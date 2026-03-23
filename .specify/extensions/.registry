@@ -1,0 +1,81 @@
+{
+  "schema_version": "1.0",
+  "extensions": {
+    "status": {
+      "version": "1.0.0",
+      "source": "local",
+      "manifest_hash": "sha256:25d080d9f1a0ea2fc62de2464479143c7c008b9131d32755f351413605d7946f",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "opencode": [
+          "speckit.status.show",
+          "speckit.status"
+        ]
+      },
+      "installed_at": "2026-03-23T11:21:26.163795+00:00"
+    },
+    "doctor": {
+      "version": "1.0.0",
+      "source": "local",
+      "manifest_hash": "sha256:45150c8ac10b6b002ebea9de34a203911951fe3a89cb8635a2a149082c02eeed",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "opencode": [
+          "speckit.doctor.check",
+          "speckit.doctor"
+        ]
+      },
+      "installed_at": "2026-03-23T11:21:30.501665+00:00"
+    },
+    "review": {
+      "version": "1.0.0",
+      "source": "local",
+      "manifest_hash": "sha256:0cbd39c71fbf9274e2d313d2ec8470c758759dea9e15ca162be2ae94612fc3f8",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "opencode": [
+          "speckit.review.run",
+          "speckit.review",
+          "speckit.review.code",
+          "speckit.review.comments",
+          "speckit.review.tests",
+          "speckit.review.errors",
+          "speckit.review.types",
+          "speckit.review.simplify"
+        ]
+      },
+      "installed_at": "2026-03-23T11:21:32.076173+00:00"
+    },
+    "verify": {
+      "version": "1.0.0",
+      "source": "local",
+      "manifest_hash": "sha256:4baa329349fffb5598a7bd41f958cf193aac77dd624c1c64799de052995ca29a",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "opencode": [
+          "speckit.verify.run",
+          "speckit.verify"
+        ]
+      },
+      "installed_at": "2026-03-23T11:21:33.488178+00:00"
+    },
+    "cleanup": {
+      "version": "1.0.0",
+      "source": "local",
+      "manifest_hash": "sha256:b15a5e3b4e5b43f867c093d962492f502b01503d0ec174611d0797854b017578",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "opencode": [
+          "speckit.cleanup.run",
+          "speckit.cleanup"
+        ]
+      },
+      "installed_at": "2026-03-23T11:21:35.038879+00:00"
+    }
+  }
+}
