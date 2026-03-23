@@ -130,82 +130,61 @@ elec-archive/
 │   ├── phase-1/
 │   └── ...
 │
-├── app/                            ← Next.js App Router
-│   ├── (auth)/
-│   │   ├── login/
-│   │   │   └── page.tsx            ← صفحة Login (Stitch Generated)
-│   │   └── layout.tsx
+├── next/                           ← كود تطبيق Next.js
 │   │
-│   ├── (dashboard)/
-│   │   ├── layout.tsx              ← Sidebar + Navbar (Stitch Generated)
-│   │   ├── page.tsx                ← Commander Dashboard (Stitch Generated)
-│   │   ├── fax/
-│   │   │   ├── page.tsx            ← قائمة الفاكسات (Stitch Generated)
-│   │   │   ├── [id]/page.tsx       ← تفاصيل فاكس (Stitch Generated)
-│   │   │   └── new/page.tsx        ← رفع فاكس جديد (Stitch Generated)
-│   │   ├── officers/
-│   │   │   ├── page.tsx
-│   │   │   ├── [id]/page.tsx
-│   │   │   └── rollcall/page.tsx   ← التمام اليومي (Stitch Generated)
-│   │   ├── medical/
-│   │   ├── students/
-│   │   ├── education/
-│   │   ├── admin/
-│   │   │   └── users/page.tsx
-│   │   └── audit-log/page.tsx
+│   ├── app/                        ← Next.js App Router
+│   │   ├── (auth)/
+│   │   │   ├── login/
+│   │   │   │   └── page.tsx        ← صفحة Login (Stitch Generated)
+│   │   │   └── layout.tsx
+│   │   │
+│   │   ├── (dashboard)/
+│   │   │   ├── layout.tsx          ← Sidebar + Navbar (Stitch Generated)
+│   │   │   ├── page.tsx            ← Commander Dashboard (Stitch Generated)
+│   │   │   ├── fax/
+│   │   │   │   ├── page.tsx        ← قائمة الفاكسات (Stitch Generated)
+│   │   │   │   ├── [id]/page.tsx   ← تفاصيل فاكس (Stitch Generated)
+│   │   │   │   └── new/page.tsx    ← رفع فاكس جديد (Stitch Generated)
+│   │   │   ├── officers/
+│   │   │   │   ├── page.tsx
+│   │   │   │   ├── [id]/page.tsx
+│   │   │   │   └── rollcall/page.tsx ← التمام اليومي (Stitch Generated)
+│   │   │   ├── medical/
+│   │   │   ├── students/
+│   │   │   ├── education/
+│   │   │   ├── admin/
+│   │   │   │   └── users/page.tsx
+│   │   │   └── audit-log/page.tsx
+│   │   │
+│   │   └── api/                    ← Next.js API Routes (Backend)
+│   │       ├── auth/
+│   │       ├── fax/
+│   │       ├── officers/
+│   │       ├── medical/
+│   │       ├── students/
+│   │       ├── education/
+│   │       ├── notifications/
+│   │       └── audit/
 │   │
-│   └── api/                        ← Next.js API Routes (Backend)
-│       ├── auth/
-│       │   ├── login/route.ts
-│       │   ├── logout/route.ts
-│       │   └── me/route.ts
-│       ├── fax/
-│       │   ├── route.ts            ← GET list / POST new
-│       │   ├── [id]/route.ts       ← GET / PUT / DELETE
-│       │   └── [id]/decision/route.ts
-│       ├── officers/
-│       │   ├── route.ts
-│       │   ├── [id]/route.ts
-│       │   └── rollcall/route.ts
-│       ├── medical/
-│       │   ├── patients/route.ts
-│       │   └── medicines/route.ts
-│       ├── students/route.ts
-│       ├── education/route.ts
-│       ├── notifications/route.ts
-│       └── audit/route.ts
-│
-├── lib/
-│   ├── db/
-│   │   ├── connect.ts              ← Mongoose connection
-│   │   └── models/                 ← كل الـ Mongoose Models
-│   │       ├── User.ts
-│   │       ├── Fax.ts
-│   │       ├── Officer.ts
-│   │       ├── Leave.ts
-│   │       ├── Rollcall.ts
-│   │       ├── Patient.ts
-│   │       ├── Medicine.ts
-│   │       ├── Student.ts
-│   │       ├── Course.ts
-│   │       ├── Notification.ts
-│   │       └── AuditLog.ts
-│   ├── auth/
-│   │   ├── jwt.ts
-│   │   └── middleware.ts
-│   └── uploads/                    ← File upload handler (local)
-│
-├── components/
-│   ├── ui/                         ← shadcn/ui base components
-│   ├── shared/                     ← Shared components
-│   └── [module]/                   ← Per-module components
-│
-├── public/uploads/                 ← ملفات الفاكس والمستندات (local)
+│   ├── lib/
+│   │   ├── db/
+│   │   │   ├── connect.ts          ← Mongoose connection
+│   │   │   └── models/             ← كل الـ Mongoose Models
+│   │   ├── auth/
+│   │   └── uploads/                ← File upload handler (local)
+│   │
+│   ├── components/
+│   │   ├── ui/shared/              ← UI Components
+│   │   └── [module]/               ← Per-module components
+│   │
+│   ├── public/uploads/             ← ملفات الفاكس والمستندات (local)
+│   │
+│   ├── .env.local
+│   ├── package.json
+│   └── DESIGN.md                   ← Design DNA من Stitch
 │
 ├── docker-compose.yml
-├── Dockerfile
-├── .env.local
-└── DESIGN.md                       ← Design DNA من Stitch
+└── Dockerfile
 ```
 
 ---
