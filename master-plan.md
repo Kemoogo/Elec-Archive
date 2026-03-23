@@ -126,6 +126,7 @@
 - **Input Sanitization:** لا نثق بأي إدخال من المستخدم؛ يتم فحص وتطهير كل البيانات قبل إرسالها لـ MongoDB.
 - **Audit Logging:** أي عملية (إنشاء، تعديل، حذف) يتم تسجيلها فوراً في الـ `AuditLog` مع تسجيل رقم الـ IP واسم المستخدم.
 - **Rate Limiting:** تطبيق حد أقصى لمحاولات تسجيل الدخول والطلبات لمنع الـ Brute-force.
+- **No Self-Registration:** يُمنع التسجيل الذاتي (Self-Registration) نهائياً؛ إنشاء الحسابات يتم حصرياً عبر الـ Admin Panel لضمان سرية النظام.
 
 ### 2. فلسفة التطوير (Architecture Policy)
 - **SSR-First Policy:** يتم استخدام **React Server Components (SSR)** بشكل افتراضي لكل الصفحات. 
