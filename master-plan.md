@@ -118,6 +118,32 @@
 
 ---
 
+## 🛡️ معايير الجودة والأمان (Security & Quality Standards)
+
+### 1. الأمان (Security-First)
+- **Authentication:** استخدام JWT مؤمن (HttpOnly Cookies) لمنع الـ XSS والـ CSRF.
+- **RBAC:** التحقق من الصلاحيات في كل API Route وفي الـ Server Layouts.
+- **Input Sanitization:** لا نثق بأي إدخال من المستخدم؛ يتم فحص وتطهير كل البيانات قبل إرسالها لـ MongoDB.
+- **Audit Logging:** أي عملية (إنشاء، تعديل، حذف) يتم تسجيلها فوراً في الـ `AuditLog` مع تسجيل رقم الـ IP واسم المستخدم.
+- **Rate Limiting:** تطبيق حد أقصى لمحاولات تسجيل الدخول والطلبات لمنع الـ Brute-force.
+
+### 2. فلسفة التطوير (Architecture Policy)
+- **SSR-First Policy:** يتم استخدام **React Server Components (SSR)** بشكل افتراضي لكل الصفحات. 
+- **Minimal Use Clients:** لا يتم استخدام دستور `'use client'` إلا عند الضرورة القصوى (مثل النماذج التفاعلية Forms أو الـ Charts).
+- **Edge Cases:** في كل موديول، يجب معالجة حالات مثل:
+    - فشل الاتصال بقاعدة البيانات.
+    - محاولة الوصول لمستند محذوف أو غير موجود (404 handling).
+    - رفع ملفات بصيغ غير مدعومة أو أحجام ضخمة جداً.
+    - التعامل مع التعديلات المتزامنة (Concurrency) من مستخدمين اثنين.
+
+### 3. الجودة والاختبار (Quality Control)
+- **Linting & Formatting:** الالتزام بقواعد ESLint و Prettier لضمان توحيد شكل الكود.
+- **Build Validation:** لا يتم اعتماد أي كود (Merge) إلا بعد تخطي مرحلة `npm run build` بنجاح دون أي Errors أو Warnings.
+- **Type Safety:** استخدام TypeScript بشكل صارم ومنع استخدام `any` نهائياً.
+- **Validation:** استخدام مكتبة مثل `Zod` للتحقق من بيانات الـ Forms والـ API.
+
+---
+
 ## 📁 هيكل المشروع (Next.js Fullstack)
 
 ```
