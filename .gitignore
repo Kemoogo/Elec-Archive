@@ -1,0 +1,25 @@
+# Next.js app
+next/.next/
+next/node_modules/
+next/.env.local
+next/.env*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Docker
+mongo_data/
+
+# Logs
+*.log
+
+# Specs Agents
+.agent
+.agents
+
+.gitignore

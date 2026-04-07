@@ -3,6 +3,13 @@ settings:
   auto_execute_hooks: true
 hooks:
   after_implement:
+  - extension: cleanup
+    command: speckit.cleanup.run
+    enabled: true
+    optional: true
+    prompt: Run cleanup to review implementation changes and identify tech debt?
+    description: Post-implementation quality gate
+    condition: null
   - extension: review
     command: speckit.review.run
     enabled: true
@@ -17,10 +24,19 @@ hooks:
     prompt: Run verify to validate implementation against specification?
     description: Post-implementation verification gate
     condition: null
-  - extension: cleanup
-    command: speckit.cleanup.run
+  after_specify:
+  - extension: speckit-utils
+    command: speckit.speckit-utils.doctor
     enabled: true
     optional: true
-    prompt: Run cleanup to review implementation changes and identify tech debt?
-    description: Post-implementation quality gate
+    prompt: Run project health check?
+    description: Validate project health after specification generation
+    condition: null
+  after_plan:
+  - extension: speckit-utils
+    command: speckit.speckit-utils.validate
+    enabled: true
+    optional: true
+    prompt: Validate spec-to-task traceability?
+    description: Verify requirements map to planned tasks after planning
     condition: null

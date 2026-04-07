@@ -1,0 +1,70 @@
+import { redirect } from "next/navigation";
+import { headers } from "next/headers";
+import { authenticate } from "@/lib/auth/middleware";
+import type { ModulePermissions } from "@/lib/auth/types";
+import { AuthenticatedNavbar } from "@/components/layout/AuthenticatedNavbar";
+import LandingPage from "@/components/landing/LandingPage";
+
+const moduleRoutes: (keyof ModulePermissions)[] = ["fax", "officers", "medical", "students", "education"];
+
+function checkRouteAccess(pathname: string, role: string, permissions: ModulePermissions): { allowed: boolean; redirectTo?: string } {
+  if (pathname.startsWith("/admin")) {
+    if (role !== "admin") {
+      return { allowed: false, redirectTo: "/" };
+    }
+    return { allowed: true };
+  }
+
+  for (const mod of moduleRoutes) {
+    if (pathname.startsWith(`/${mod}`)) {
+      if (role !== "admin" && permissions[mod] === "none") {
+        return { allowed: false, redirectTo: "/" };
+      }
+      return { allowed: true };
+    }
+  }
+
+  return { allowed: true };
+}
+
+export default async function DashboardLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  const result = await authenticate();
+
+  const headersList = await headers();
+  const pathname = headersList.get("x-pathname") ?? "/";
+
+  if (!result.success) {
+    if (pathname === "/") {
+      return <LandingPage />;
+    }
+    const encoded = encodeURIComponent(pathname);
+    redirect(`/login?redirect=${encoded}`);
+  }
+
+  const user = result.user!;
+
+  const accessCheck = checkRouteAccess(pathname, user.role, user.permissions);
+  if (!accessCheck.allowed && accessCheck.redirectTo) {
+    redirect(accessCheck.redirectTo);
+  }
+
+  const accessibleModules = moduleRoutes.filter(
+    (module) => user.role === "admin" || user.permissions[module] !== "none"
+  );
+
+  return (
+    <div dir="rtl">
+      <AuthenticatedNavbar user={user} accessibleModules={accessibleModules} />
+
+      <div className="flex flex-col min-h-[calc(100vh-64px-56px)]">
+        <main className="flex-1 p-6 transition-all duration-300">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+}

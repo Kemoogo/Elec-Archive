@@ -1,0 +1,357 @@
+@import "tailwindcss";
+
+/* ========================================
+   Sapphire Archive Design System
+   Creative North Star: "The Digital Monolith"
+   ======================================== */
+
+/* --- Light Mode (Default) --- */
+:root {
+    --app-primary: #1E3C72;
+    --app-primary-hover: #2a5298;
+    --app-secondary: #64748B;
+
+    --app-background: #f8fafc;
+    --app-surface: #ffffff;
+    --app-surface-container: #f1f5f9;
+    --app-surface-container-low: #f8fafc;
+    --app-surface-container-lowest: #ffffff;
+
+    --app-foreground: #0f172a;
+    --app-muted-foreground: #64748b;
+
+    --app-border: #e2e8f0;
+
+    --app-accent: #1E3C72;
+    --app-accent-foreground: #ffffff;
+
+    --app-gradient-start: #1e3c72;
+    --app-gradient-end: #2a5298;
+
+    --app-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --app-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --app-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --app-shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+    --app-radius-sm: 0.25rem;
+    --app-radius-md: 0.5rem;
+    --app-radius-lg: 1rem;
+    --app-radius-xl: 1.5rem;
+    --app-radius-pill: 1rem;
+
+    /* Semantic Colors */
+    --app-white: #ffffff;
+    --app-success: #10b981;
+    --app-warning: #f59e0b;
+    --app-error: #ef4444;
+    --app-info: #3b82f6;
+
+    --color-primary: var(--app-primary);
+    --color-primary-hover: var(--app-primary-hover);
+    --color-surface: var(--app-surface);
+    --color-border: var(--app-border);
+    --color-muted: var(--app-secondary);
+    --radius-card: var(--app-radius-lg);
+}
+
+/* --- Dark Mode --- */
+.dark {
+    --app-background: #0f172a;
+    --app-surface: #1e293b;
+    --app-surface-container: #1e293b;
+    --app-surface-container-low: #0f172a;
+    --app-surface-container-lowest: #020617;
+
+    --app-foreground: #f8fafc;
+    --app-muted-foreground: #94a3b8;
+
+    --app-border: #334155;
+
+    --app-accent: #d4a843;
+    --app-accent-foreground: #0f172a;
+
+    --app-gradient-start: #1e293b;
+    --app-gradient-end: #334155;
+
+    --app-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+    --app-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+    --app-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+    --app-shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+}
+
+/* --- Tailwind Theme Extension --- */
+@theme inline {
+    --color-background: var(--app-background);
+    --color-foreground: var(--app-foreground);
+    --color-secondary: var(--app-secondary);
+    --font-sans: "Segoe UI", Tahoma, Arial, "Noto Sans Arabic", sans-serif;
+}
+
+/* --- Base --- */
+html,
+body {
+    overscroll-behavior: none;
+}
+
+body {
+    background: var(--app-background);
+    color: var(--app-foreground);
+    font-family: "Segoe UI", Tahoma, Arial, "Noto Sans Arabic", sans-serif;
+    line-height: 1.625;
+}
+
+/* --- Typography Scale --- */
+.text-display {
+    font-size: 3rem;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+}
+
+@media (min-width: 768px) {
+    .text-display {
+        font-size: 4rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .text-display {
+        font-size: 5rem;
+    }
+}
+
+.text-label {
+    font-size: 0.5625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+}
+
+/* --- Signature Gradient --- */
+.bg-primary-gradient {
+    background: linear-gradient(135deg, var(--app-gradient-start) 0%, var(--app-gradient-end) 100%);
+}
+
+.text-gradient-accent {
+    background: linear-gradient(135deg, var(--app-gradient-start) 0%, var(--app-gradient-end) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* --- Surface Utilities --- */
+.bg-surface-lowest {
+    background: var(--app-surface-container-lowest);
+}
+
+.bg-surface-low {
+    background: var(--app-surface-container-low);
+}
+
+.bg-surface-container {
+    background: var(--app-surface-container);
+}
+
+/* --- Elevation Utilities --- */
+.shadow-depth-sm {
+    box-shadow: var(--app-shadow-sm);
+}
+
+.shadow-depth-md {
+    box-shadow: var(--app-shadow-md);
+}
+
+.shadow-depth-lg {
+    box-shadow: var(--app-shadow-lg);
+}
+
+.shadow-depth-xl {
+    box-shadow: var(--app-shadow-xl);
+}
+
+/* --- Archive Card --- */
+.archive-card {
+    background: var(--app-surface-container-lowest);
+    border: 1px solid var(--app-border);
+    border-radius: var(--app-radius-lg);
+    padding: 2.5rem;
+    box-shadow: var(--app-shadow-sm);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.archive-card:hover {
+    box-shadow: var(--app-shadow-lg);
+    transform: translateY(-1px);
+}
+
+/* --- Button Utilities --- */
+.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--app-white);
+    background: var(--color-primary);
+    box-shadow: var(--app-shadow-md);
+    transition: all 0.15s ease;
+    cursor: pointer;
+}
+
+.btn-primary:hover {
+    background: var(--color-primary-hover);
+    box-shadow: var(--app-shadow-lg);
+    transform: translateY(-1px);
+}
+
+.btn-primary:active {
+    transform: scale(0.95);
+}
+
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    background: #f1f5f9;
+    transition: all 0.15s ease;
+    cursor: pointer;
+}
+
+.btn-secondary:hover {
+    background: #e2e8f0;
+}
+
+.btn-secondary:active {
+    transform: scale(0.95);
+}
+
+.btn-destructive {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--app-white);
+    background: var(--app-error);
+    transition: all 0.15s ease;
+    cursor: pointer;
+}
+
+.btn-destructive:hover {
+    background: color-mix(in srgb, var(--app-error) 90%, white);
+}
+
+.btn-destructive:active {
+    transform: scale(0.95);
+}
+
+.btn-accent {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--app-accent-foreground);
+    background: var(--app-accent);
+    box-shadow: var(--app-shadow-md);
+    transition: all 0.15s ease;
+    cursor: pointer;
+}
+
+.btn-accent:hover {
+    background: color-mix(in srgb, var(--app-accent) 90%, white);
+    box-shadow: var(--app-shadow-lg);
+    transform: translateY(-1px);
+}
+
+.btn-accent:active {
+    transform: scale(0.95);
+}
+
+/* --- Legacy Pill Button (backward compat) --- */
+.btn-pill-primary {
+    background: linear-gradient(135deg, var(--app-gradient-start) 0%, var(--app-gradient-end) 100%);
+    color: #ffffff;
+    font-weight: 600;
+    padding: 0.5rem 1.5rem;
+    border-radius: 1rem;
+    transition: all 0.15s ease;
+}
+
+.btn-pill-primary:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+    box-shadow: var(--app-shadow-md);
+}
+
+.btn-pill-primary:active {
+    transform: scale(0.95);
+}
+
+.btn-pill-secondary {
+    background: var(--app-surface);
+    color: var(--app-foreground);
+    font-weight: 500;
+    padding: 0.5rem 1.5rem;
+    border: 1px solid var(--app-secondary);
+    border-radius: 1rem;
+    transition: all 0.15s ease;
+}
+
+.btn-pill-secondary:hover {
+    background: var(--app-surface-container);
+    box-shadow: var(--app-shadow-sm);
+}
+
+.btn-pill-secondary:active {
+    transform: scale(0.95);
+}
+
+/* --- Utility --- */
+.text-secondary {
+    color: var(--app-secondary);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.app-page-shell {
+    min-height: calc(100vh - 64px);
+    background: var(--app-background);
+}
+
+.app-page-container {
+    max-width: 80rem;
+    margin-inline: auto;
+    width: 100%;
+    padding: 2rem 1rem;
+}
+
+@media (min-width: 640px) {
+    .app-page-container {
+        padding-inline: 1.5rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .app-page-container {
+        padding-inline: 2rem;
+    }
+}

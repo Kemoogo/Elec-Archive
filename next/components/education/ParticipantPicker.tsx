@@ -1,0 +1,134 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+
+interface ParticipantPickerProps {
+  courseId: string;
+  participantModel: "Officer" | "Student";
+}
+
+export function ParticipantPicker({ courseId, participantModel }: ParticipantPickerProps) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [results, setResults] = useState<{ _id: string; name: string; identifier: string }[]>([]);
+  const [error, setError] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+
+  async function handleSearch() {
+    if (!search.trim()) return;
+    setIsSearching(true);
+    setError("");
+    try {
+      const endpoint = participantModel === "Officer" ? "/api/officers" : "/api/students";
+      const res = await fetch(`${endpoint}?search=${encodeURIComponent(search)}&limit=10`);
+      const data = await res.json();
+      if (res.ok) {
+        const items = Array.isArray(data.data?.items) ? data.data.items : Array.isArray(data.data) ? data.data : [];
+        const mapped = items
+          .filter((item: Record<string, unknown>) => typeof item?._id === "string" && typeof item?.fullName === "string")
+          .map((item: Record<string, unknown>) => ({
+            _id: item._id as string,
+            name: item.fullName as string,
+            identifier: (typeof item.militaryId === "string" ? item.militaryId : typeof item.studentId === "string" ? item.studentId : "") as string,
+          }));
+        setResults(mapped);
+      }
+    } catch {
+      setError("فشل البحث");
+    } finally {
+      setIsSearching(false);
+    }
+  }
+
+  async function handleAdd(participantId: string) {
+    startTransition(async () => {
+      try {
+        const res = await fetch(`/api/education/${courseId}/participants`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ participantId }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setResults([]);
+          setSearch("");
+          setIsOpen(false);
+          router.refresh();
+        } else {
+          setError(data.error ?? "فشل الإضافة");
+        }
+      } catch {
+        setError("حدث خطأ في الاتصال");
+      }
+    });
+  }
+
+  if (!isOpen) {
+    return (
+      <button
+        onClick={() => setIsOpen(true)}
+        className="rounded-md bg-(--app-accent) px-4 py-2 text-sm text-(--app-accent-foreground) font-medium hover:bg-(--app-accent)/90"
+      >
+        إضافة مشارك
+      </button>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-(--app-border) bg-(--app-surface) p-4" dir="rtl">
+      <h3 className="mb-3 text-sm font-medium text-(--app-white)">
+        إضافة {participantModel === "Officer" ? "ضابط" : "طالب"}
+      </h3>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="بحث بالاسم..."
+          className="flex-1 rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-white) placeholder:text-(--app-muted-foreground)"
+        />
+        <button
+          onClick={handleSearch}
+          disabled={isSearching}
+className="rounded-md bg-(--app-accent) px-4 py-2 text-sm text-(--app-accent-foreground) font-medium hover:bg-(--app-accent)/90 disabled:opacity-50"
+          >
+            {isSearching ? "جاري..." : "بحث"}
+        </button>
+      </div>
+      {error && <p className="mt-2 text-sm text-(--app-error)">{error}</p>}
+      {results.length > 0 && (
+        <ul className="mt-3 space-y-2">
+          {results.map((r) => (
+            <li
+              key={r._id}
+className="flex items-center justify-between rounded-md border border-(--app-border) p-3"
+              >
+                <div>
+                  <p className="text-sm text-(--app-white)">{r.name}</p>
+                  <p className="text-xs text-(--app-muted-foreground)">{r.identifier}</p>
+              </div>
+              <button
+                onClick={() => handleAdd(r._id)}
+                disabled={isPending}
+                className="rounded-md bg-(--app-success) px-3 py-1 text-xs text-(--app-white) hover:bg-(--app-success)/90 disabled:opacity-50"
+              >
+                {isPending ? "جاري..." : "إضافة"}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="mt-3 flex justify-end">
+        <button
+          onClick={() => { setIsOpen(false); setResults([]); setSearch(""); setError(""); }}
+          className="rounded-md border border-(--app-border) px-4 py-2 text-sm text-foreground hover:bg-white/10"
+        >
+          إغلاق
+        </button>
+      </div>
+    </div>
+  );
+}

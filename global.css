@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+:root {
+    --app-primary: #1e3c72;
+    --app-primary-hover: #2a5298;
+    --app-background: #f8fafc;
+    --app-surface: #ffffff;
+    --app-border: #e2e8f0;
+    --app-muted: #64748b;
+    --app-foreground: #212529;
+    --app-radius-card: 1rem;
+    --app-radius-panel: 1.5rem;
+    --color-primary: var(--app-primary);
+    --color-primary-hover: var(--app-primary-hover);
+    --color-surface: var(--app-surface);
+    --color-border: var(--app-border);
+    --color-muted: var(--app-muted);
+    --radius-card: var(--app-radius-card);
+}
+
+@theme inline {
+    --color-background: var(--app-background);
+    --color-foreground: var(--app-foreground);
+    --color-secondary: var(--app-muted);
+    --font-sans: Arial, Helvetica, sans-serif;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+html,
+body {
+    overscroll-behavior: none;
+}
+
+body {
+    background: var(--app-background);
+    color: var(--app-foreground);
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.text-secondary {
+    color: var(--app-muted);
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+}
+
+.app-page-shell {
+    min-height: calc(100vh - 64px);
+    background: var(--app-background);
+}
+
+.app-page-container {
+    max-width: 80rem;
+    margin-inline: auto;
+    width: 100%;
+    padding: 1.5rem 1rem;
+}
+
+@media (min-width: 640px) {
+    .app-page-container {
+        padding-inline: 1.5rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .app-page-container {
+        padding-inline: 2rem;
+    }
+}

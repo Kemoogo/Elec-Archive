@@ -1,10 +1,11 @@
 <!-- Sync Impact Report
-Version change: 1.0.0 → 1.0.1
-Modified principles: I. Security-First (added no self-registration rule)
+Version change: 1.0.1 → 1.0.2
+Modified principles: None
 Added sections: None
 Removed sections: None
-Templates requiring updates: ✅ plan-template.md, ✅ spec-template.md, ✅ tasks-template.md
+Templates requiring updates: None
 Follow-up TODOs: None
+Notes: PATCH bump — clarified Tech Stack versions to Next.js 16, React 19, Mongoose 9.x, Tailwind CSS 4, Zod 4 (already in use, aligned documentation)
 -->
 
 # الأرشيف אלקטרוני (Elec Archive) Constitution
@@ -40,10 +41,10 @@ All frontend pages and components MUST be generated using the Stitch MCP workflo
 **Language & Direction**: The entire application UI MUST be in Arabic with RTL layout. All component structures, forms, tables, and navigation MUST render correctly in RTL mode.
 
 **Tech Stack**:
-- Frontend & Backend: Next.js 14+ (App Router)
-- Database: MongoDB 7 via Mongoose ODM
-- Styling: Tailwind CSS + shadcn/ui
-- Validation: Zod
+- Frontend & Backend: Next.js 16 (App Router, React 19)
+- Database: MongoDB 7 via Mongoose 9.x ODM
+- Styling: Tailwind CSS 4 + shadcn/ui
+- Validation: Zod 4
 - Deployment: Docker Compose (Next.js + MongoDB) on Windows
 
 **Scale**: The system MUST support 10–30 concurrent users on a local network. Performance optimization targets local intranet latency, not internet-scale.
@@ -72,4 +73,4 @@ This constitution governs all development decisions for the الأرشيف ال�
 
 **Supremacy**: In case of conflict between this constitution and any other documentation, this constitution takes precedence.
 
-**Version**: 1.0.1 | **Ratified**: 2026-03-23 | **Last Amended**: 2026-03-23
+**Version**: 1.0.2 | **Ratified**: 2026-03-23 | **Last Amended**: 2026-03-27

@@ -1,0 +1,259 @@
+import { z } from "zod";
+
+export const OFFICER_RANKS_Z = [
+  "second_lieutenant",
+  "first_lieutenant",
+  "captain",
+  "major",
+  "lieutenant_colonel",
+  "colonel",
+  "brigadier",
+  "major_general",
+] as const;
+
+export const EMPLOYMENT_STATUSES_Z = ["active", "inactive", "retired"] as const;
+
+export const OFFICER_TYPES_Z = ["worker", "reserve", "university", "honorary", "technical", "engineer"] as const;
+
+export const OFFICER_WEAPONS_Z = ["signals", "vehicles", "armored", "admin_affairs", "infantry"] as const;
+
+export const createOfficerSchema = z.object({
+  militaryId: z
+    .string()
+    .min(1, "الرقم العسكري مطلوب")
+    .regex(/^\d{5,7}$/, "الرقم العسكري يجب أن يكون بين 5 إلى 7 أرقام")
+    .trim(),
+  seniorityNumber: z
+    .string()
+    .min(1, "رقم الأقدمية مطلوب")
+    .regex(/^\d{5,}(?:[A-Za-z\u0600-\u06FF]+\d*)?$/, "رقم الأقدمية غير صالح. يجب أن يبدأ بـ 5 أرقام على الأقل، ويمكن أن يحتوي على حروف بعده")
+    .trim(),
+  fullName: z.string().min(1, "الاسم الكامل مطلوب").trim(),
+  rank: z.enum(OFFICER_RANKS_Z, { message: "الرتبة غير صالحة" }),
+  unit: z.string().min(1, "الوحدة مطلوبة").trim(),
+  position: z.string().min(1, "المنصب مطلوب").trim(),
+  batch: z.string().regex(/^\d+$/, "الدفعة يجب أن تكون أرقام فقط").trim().optional(),
+  type: z.enum(OFFICER_TYPES_Z).optional(),
+  weapon: z.enum(OFFICER_WEAPONS_Z).optional(),
+  phone: z.string().trim().optional(),
+  nationalId: z
+    .string()
+    .regex(/^\d{14}$/, "الرقم القومي يجب أن يكون 14 رقم")
+    .trim()
+    .optional()
+    .or(z.literal("")),
+  employmentStatus: z.enum(EMPLOYMENT_STATUSES_Z).default("active"),
+  joinDate: z
+    .string()
+    .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح")
+    .optional(),
+  birthDate: z
+    .string()
+    .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح")
+    .optional(),
+  file121Url: z.string().trim().optional(),
+}).superRefine((data, ctx) => {
+  if (data.birthDate) {
+    const birth = new Date(data.birthDate);
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    if (birth >= today) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "تاريخ الميلاد يجب أن يكون في الماضي",
+        path: ["birthDate"],
+      });
+    }
+    if (data.joinDate) {
+      const join = new Date(data.joinDate);
+      if (birth >= join) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "تاريخ الميلاد يجب أن يكون قبل تاريخ الانضمام",
+          path: ["birthDate"],
+        });
+      }
+    }
+  }
+});
+
+export const patchOfficerSchema = z.object({
+  fullName: z.string().min(1).trim().optional(),
+  rank: z.enum(OFFICER_RANKS_Z).optional(),
+  unit: z.string().min(1).trim().optional(),
+  position: z.string().min(1).trim().optional(),
+  batch: z.string().trim().optional(),
+  type: z.enum(OFFICER_TYPES_Z).optional(),
+  weapon: z.enum(OFFICER_WEAPONS_Z).optional(),
+  phone: z.string().trim().optional(),
+  nationalId: z.string().trim().optional(),
+  employmentStatus: z.enum(EMPLOYMENT_STATUSES_Z).optional(),
+  joinDate: z
+    .string()
+    .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح")
+    .optional(),
+  birthDate: z
+    .string()
+    .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح")
+    .optional(),
+  file121Url: z.string().trim().optional(),
+}).refine((data) => Object.keys(data).length > 0, {
+  message: "يجب تحديد حقل واحد على الأقل",
+});
+
+export const officersListQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  status: z.enum(EMPLOYMENT_STATUSES_Z).optional(),
+  search: z.string().optional(),
+});
+
+export const seniorityCheckSchema = z.object({
+  seniorityNumber: z.string().min(1, "رقم الأقدمية مطلوب").trim(),
+});
+
+export const RETURN_REASONS_Z = ["joined", "rejoining", "return", "transfer"] as const;
+
+export const returningOfficerSchema = z.object({
+  returnDate: z
+    .string()
+    .min(1, "تاريخ العودة مطلوب")
+    .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح"),
+  returnReason: z.enum(RETURN_REASONS_Z, { message: "سبب العودة غير صالح" }),
+});
+
+export const officerIdParamSchema = z.object({
+  id: z.string().min(1, "معرف الضابط مطلوب"),
+});
+
+export const deleteDocumentSchema = z.object({
+  documentId: z.string().min(1, "معرف المستند مطلوب"),
+});
+
+export const ROLLCALL_STATUSES_Z = ["present", "absent", "leave", "mission"] as const;
+
+export const rollcallEntrySchema = z.object({
+  officerId: z.string().min(1, "معرف الضابط مطلوب"),
+  status: z.enum(ROLLCALL_STATUSES_Z, { message: "الحالة غير صالحة" }),
+  note: z.string().trim().optional(),
+});
+
+export const rollcallSubmitSchema = z.object({
+  date: z
+    .string()
+    .min(1, "التاريخ مطلوب")
+    .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح"),
+  action: z.enum(["save_draft", "submit"], { message: "الإجراء غير صالح" }),
+  entries: z.array(rollcallEntrySchema).min(1, "يجب إدخال سجل واحد على الأقل"),
+});
+
+export const rollcallQuerySchema = z.object({
+  date: z
+    .string()
+    .min(1, "التاريخ مطلوب")
+    .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح"),
+});
+
+export const LEAVE_CATEGORIES_Z = ["leave", "absence"] as const;
+export const LEAVE_TYPES_Z = [
+  "annual",
+  "sick",
+  "emergency",
+  "rest",
+  "overnight",
+  "field",
+  "casual",
+] as const;
+export const LEAVE_STATUSES_Z = ["draft", "approved", "closed", "cancelled"] as const;
+
+export const createLeaveSchema = z.object({
+  officerId: z.string().min(1, "معرف الضابط مطلوب"),
+  category: z.enum(LEAVE_CATEGORIES_Z, { message: "الفئة غير صالحة" }),
+  type: z.enum(LEAVE_TYPES_Z, { message: "النوع غير صالح" }),
+  startDate: z
+    .string()
+    .min(1, "تاريخ البداية مطلوب")
+    .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح"),
+  endDate: z
+    .string()
+    .min(1, "تاريخ الانتهاء مطلوب")
+    .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح"),
+  reason: z.string().trim().optional(),
+});
+
+export const patchLeaveSchema = z.object({
+  type: z.enum(LEAVE_TYPES_Z).optional(),
+  startDate: z
+    .string()
+    .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح")
+    .optional(),
+  endDate: z
+    .string()
+    .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح")
+    .optional(),
+  reason: z.string().trim().optional(),
+  status: z.enum(LEAVE_STATUSES_Z).optional(),
+}).refine((data) => Object.keys(data).length > 0, {
+  message: "يجب تحديد حقل واحد على الأقل",
+});
+
+export const leavesListQuerySchema = z.object({
+  officerId: z.string().optional(),
+  status: z.enum(LEAVE_STATUSES_Z).optional(),
+  type: z.enum(LEAVE_TYPES_Z).optional(),
+  from: z.string().refine((v) => !isNaN(Date.parse(v)), "invalid").optional(),
+  to: z.string().refine((v) => !isNaN(Date.parse(v)), "invalid").optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+export const ASSIGNMENT_TYPES_Z = ["assignment", "promotion", "mission"] as const;
+export const ASSIGNMENT_STATUSES_Z = ["scheduled", "active", "completed", "cancelled"] as const;
+
+export const createAssignmentSchema = z.object({
+  officerId: z.string().min(1, "معرف الضابط مطلوب"),
+  type: z.enum(ASSIGNMENT_TYPES_Z, { message: "النوع غير صالح" }),
+  title: z.string().min(1, "العنوان مطلوب").trim(),
+  description: z.string().trim().optional(),
+  effectiveDate: z
+    .string()
+    .min(1, "تاريخ السريان مطلوب")
+    .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح"),
+  endDate: z
+    .string()
+    .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح")
+    .optional(),
+});
+
+export const patchAssignmentSchema = z.object({
+  type: z.enum(ASSIGNMENT_TYPES_Z).optional(),
+  title: z.string().min(1).trim().optional(),
+  description: z.string().trim().optional(),
+  effectiveDate: z
+    .string()
+    .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح")
+    .optional(),
+  endDate: z
+    .string()
+    .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح")
+    .optional(),
+  status: z.enum(ASSIGNMENT_STATUSES_Z).optional(),
+});
+
+export const assignmentsListQuerySchema = z.object({
+  officerId: z.string().optional(),
+  type: z.enum(ASSIGNMENT_TYPES_Z).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+export type CreateOfficerInput = z.infer<typeof createOfficerSchema>;
+export type PatchOfficerInput = z.infer<typeof patchOfficerSchema>;
+export type OfficersListQueryInput = z.infer<typeof officersListQuerySchema>;
+export type CreateLeaveInput = z.infer<typeof createLeaveSchema>;
+export type PatchLeaveInput = z.infer<typeof patchLeaveSchema>;
+export type LeavesListQueryInput = z.infer<typeof leavesListQuerySchema>;
+export type CreateAssignmentInput = z.infer<typeof createAssignmentSchema>;
+export type PatchAssignmentInput = z.infer<typeof patchAssignmentSchema>;
+export type AssignmentsListQueryInput = z.infer<typeof assignmentsListQuerySchema>;
+export type RollcallSubmitInput = z.infer<typeof rollcallSubmitSchema>;

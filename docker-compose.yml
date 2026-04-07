@@ -1,0 +1,40 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/elec-archive
+      - JWT_SECRET=${JWT_SECRET:-local-dev-secret}
+      - UPLOAD_PATH=/app/public/uploads
+      - NEXT_PUBLIC_APP_NAME=الأرشيف الإلكتروني
+    volumes:
+      - uploads_data:/app/public/uploads
+    depends_on:
+      mongo:
+        condition: service_started
+    restart: unless-stopped
+
+  officers-reminder:
+    build: .
+    command: npx tsx scripts/officers-rollcall-reminder.ts
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/elec-archive
+      - JWT_SECRET=${JWT_SECRET:-local-dev-secret}
+      - UPLOAD_PATH=/app/public/uploads
+    depends_on:
+      mongo:
+        condition: service_started
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
+  uploads_data:

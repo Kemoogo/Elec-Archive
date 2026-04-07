@@ -52,24 +52,35 @@
 
 **Stitch MCP** هو Google Labs tool بيولّد UI designs وكود HTML/CSS من natural language prompts، ومتكامل مع Claude Code كـ MCP server.
 
+### ⚠️ قاعدة إلزامية:
+
+**يجب استخدام Stitch MCP server مباشرة لتوليد كل شاشة — لا يُسمح بالاعتماد على ملفات artifacts مسبقة أو تصميمات يدوية.**
+
+كل مهمة Stitch في أي Phase يجب أن تستدعي أدوات MCP الحية:
+- `stitch_create_project` — إنشاء مشروع جديد
+- `stitch_generate_screen_from_text` — توليد شاشة من prompt نصي
+- `stitch_list_screens` — عرض الشاشات المولّدة
+- `stitch_get_screen` — استخراج تفاصيل شاشة محددة
+- `stitch_create_design_system` — إنشاء Design System
+- `stitch_apply_design_system` — تطبيق Design System على شاشات
+
 ### طريقة الاستخدام في كل Phase:
 
 ```
 لكل صفحة / component جديدة:
 
-1. DESIGN  → نكتب prompt لـ Stitch يصمم الشاشة
-             مثال: "Design an Arabic RTL dashboard for a military
-             archive system with dark sidebar, showing fax
-             notifications, daily rollcall summary cards..."
+1. DESIGN  → استدعاء Stitch MCP server مباشرة:
+             stitch_create_project → stitch_generate_screen_from_text
+             مع prompt يصف الشاشة بالتفصيل
 
-2. EXTRACT → نستخرج:
-             - Design DNA (ألوان، خطوط، layouts) عبر extract_design_context
-             - HTML/CSS code عبر fetch_screen_code
+2. EXTRACT → استخراج البيانات من الشاشات المولّدة:
+             stitch_list_screens → stitch_get_screen
+             لاستخراج Design DNA و component structure
 
-3. CONVERT → نحول الـ HTML/CSS لـ Next.js components
+3. CONVERT → تحويل الـ HTML/CSS لـ Next.js components
              (Tailwind CSS + shadcn/ui مع RTL support)
 
-4. CONNECT → نربط الـ component بـ API Routes + Mongoose
+4. CONNECT → ربط الـ component بـ API Routes + Mongoose
 ```
 
 ### Stitch MCP Config (Claude Code):
@@ -88,8 +99,9 @@
 ```
 
 ### الـ Design System (يُستخرج من Stitch مرة واحدة في Phase 0):
-- نولّد شاشة رئيسية واحدة (Dashboard) في Stitch
-- نستخرج منها الـ Design DNA: ألوان، خطوط، spacing
+- نستدعي `stitch_create_project` لإنشاء مشروع Stitch
+- نستدعي `stitch_generate_screen_from_text` لتوليد شاشة Dashboard رئيسية
+- نستدعي `stitch_get_screen` لاستخراج Design DNA: ألوان، خطوط، spacing
 - نحفظه في `DESIGN.md` → يُستخدم في كل الشاشات التالية للاتساق
 
 ---
@@ -412,15 +424,14 @@ elec-archive/
 
 #### Stitch Task في هذه الـ Phase:
 ```
-Prompt لـ Stitch:
-"Design a professional Arabic RTL military archive web application
-dashboard. Dark navy sidebar with Arabic menu items (الفاكس، شئون
-الضباط، النقطة الطبية، شئون الطلبة، التعليم). Main area shows
-summary cards for each department. Top notification bell. Clean,
-government/institutional feel. Colors: deep navy + gold accent."
-
-→ extract_design_context  →  حفظ في DESIGN.md
-→ fetch_screen_code        →  قاعدة للـ Layout component
+1. stitch_create_project → title: "Elec Archive Dashboard"
+2. stitch_generate_screen_from_text → prompt:
+   "Design a professional Arabic RTL military archive web application
+   dashboard. Dark navy sidebar with Arabic menu items (الفاكس، شئون
+   الضباط، النقطة الطبية، شئون الطلبة، التعليم). Main area shows
+   summary cards for each department. Top notification bell. Clean,
+   government/institutional feel. Colors: deep navy + gold accent."
+3. stitch_get_screen → extract Design DNA → حفظ في DESIGN.md
 ```
 
 **Deliverable:** مشروع Next.js شغال + MongoDB + Docker + DESIGN.md جاهز
@@ -441,11 +452,13 @@ government/institutional feel. Colors: deep navy + gold accent."
 #### Stitch Tasks:
 ```
 1. Login Page:
+   stitch_generate_screen_from_text → prompt:
    "Using design context from DESIGN.md, generate a login screen
    for Arabic RTL military archive system. Username + password
    fields, institutional logo placeholder, dark theme."
 
 2. User Management Page:
+   stitch_generate_screen_from_text → prompt:
    "Generate an Arabic RTL user management page. Table of users
    with role badges, add/edit user modal with department and
    permissions dropdowns."
@@ -468,15 +481,18 @@ government/institutional feel. Colors: deep navy + gold accent."
 #### Stitch Tasks:
 ```
 1. Commander Dashboard:
+   stitch_generate_screen_from_text → prompt:
    "Using DESIGN.md context, generate commander dashboard with:
    summary cards (فاكسات معلقة, تمام اليوم, أدوية منتهية),
    recent fax list with status badges, daily rollcall widget."
 
 2. Notifications Panel:
+   stitch_generate_screen_from_text → prompt:
    "Generate a slide-in notification panel, Arabic RTL,
    showing fax alerts, rollcall submissions, medicine expiry."
 
 3. Audit Log Page:
+   stitch_generate_screen_from_text → prompt:
    "Generate audit log page with filterable table: user, action,
    module, timestamp. Arabic RTL."
 ```
@@ -501,16 +517,19 @@ government/institutional feel. Colors: deep navy + gold accent."
 #### Stitch Tasks:
 ```
 1. Fax List Page:
+   stitch_generate_screen_from_text → prompt:
    "Arabic RTL fax inbox page. Table with columns: رقم الفاكس,
    التاريخ, الجهة, الموضوع, الحالة (status badge). Filter bar
    on top. Floating action button to add new fax."
 
 2. Fax Detail Page:
+   stitch_generate_screen_from_text → prompt:
    "Fax detail page Arabic RTL. Left: PDF/image viewer.
    Right: fax metadata + commander decision section +
    forwarding controls + linked faxes thread."
 
 3. New Fax Upload:
+   stitch_generate_screen_from_text → prompt:
    "File upload page Arabic RTL. Drag-drop zone for PDF/image.
    Form fields: رقم الفاكس, التاريخ, الجهة, الموضوع."
 ```
@@ -535,14 +554,17 @@ government/institutional feel. Colors: deep navy + gold accent."
 #### Stitch Tasks:
 ```
 1. Officers List:
+   stitch_generate_screen_from_text → prompt:
    "Arabic RTL officers list page. Cards/table showing:
    الرتبة, الاسم, الوظيفة, الحالة. Search bar on top."
 
 2. Officer Profile:
+   stitch_generate_screen_from_text → prompt:
    "Officer profile page Arabic RTL. Header with rank badge and
    name. Tabs: البيانات الشخصية | الإجازات | التكليفات | المستندات."
 
 3. Daily Rollcall:
+   stitch_generate_screen_from_text → prompt:
    "Daily rollcall submission page. List of officers with radio
    buttons: حاضر/غائب/إجازة/مأمورية. Submit button sends to commander."
 ```
@@ -565,11 +587,13 @@ government/institutional feel. Colors: deep navy + gold accent."
 #### Stitch Tasks:
 ```
 1. Medical Dashboard:
+   stitch_generate_screen_from_text → prompt:
    "Arabic RTL medical point page. Two sections:
    سجل الزيارات (recent visits table) + المخزون الدوائي
    (medicines table with expiry warning badges)."
 
 2. Dispense Medicine Modal:
+   stitch_generate_screen_from_text → prompt:
    "Modal for dispensing medicine: select patient, select
    medicine, enter quantity. Auto-updates stock."
 ```
@@ -590,6 +614,7 @@ government/institutional feel. Colors: deep navy + gold accent."
 
 #### Stitch Task:
 ```
+stitch_generate_screen_from_text → prompt:
 "Arabic RTL students management page. Searchable table with
 student ID, name, enrollment date. Click to open profile with
 document upload section."
@@ -611,6 +636,7 @@ document upload section."
 
 #### Stitch Task:
 ```
+stitch_generate_screen_from_text → prompt:
 "Arabic RTL training courses page. Cards showing course name,
 dates, status badge (قادمة/جارية/منتهية), participants count.
 Add course button."
@@ -668,6 +694,25 @@ volumes:
 
 ## 📐 Stitch MCP — Workflow Summary
 
+```
+لكل Phase:
+  stitch_create_project          → إنشاء مشروع Stitch
+  stitch_generate_screen_from_text → توليد كل شاشة من prompt
+  stitch_list_screens            → عرض الشاشات المولّدة
+  stitch_get_screen              → استخراح Design DNA + component structure
+
+Phase 0   → stitch_create_project → stitch_generate_screen_from_text → DESIGN.md
+Phase 1   → Login Screen + User Management (شاشتين)
+Phase 2   → Dashboard + Notifications + Audit Log (3 شاشات)
+Phase 3   → 3 شاشات للفاكس
+Phase 4   → 3 شاشات لشئون الضباط
+Phase 5   → 2 شاشة للنقطة الطبية
+Phase 6   → 2 شاشة لشئون الطلبة
+Phase 7   → 2 شاشة للتعليم
+
+المجموع: ~16 شاشة مولّدة مباشرة من Stitch MCP server
+الـ Design DNA مستخرج مرة واحدة ومطبق على الكل
+لا يوجد artifact مسبق — كل شاشة تُولّد حيًا عبر MCP
 ```
 Phase 0   → توليد الـ Design System (مرة واحدة) → DESIGN.md
 Phase 1   → Login Screen + User Management

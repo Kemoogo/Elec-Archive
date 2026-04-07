@@ -1,20 +1,6 @@
 {
   "schema_version": "1.0",
   "extensions": {
-    "status": {
-      "version": "1.0.0",
-      "source": "local",
-      "manifest_hash": "sha256:25d080d9f1a0ea2fc62de2464479143c7c008b9131d32755f351413605d7946f",
-      "enabled": true,
-      "priority": 10,
-      "registered_commands": {
-        "opencode": [
-          "speckit.status.show",
-          "speckit.status"
-        ]
-      },
-      "installed_at": "2026-03-23T11:21:26.163795+00:00"
-    },
     "doctor": {
       "version": "1.0.0",
       "source": "local",
@@ -22,12 +8,117 @@
       "enabled": true,
       "priority": 10,
       "registered_commands": {
+        "qwen": [
+          "speckit.doctor.check",
+          "speckit.doctor"
+        ],
         "opencode": [
+          "speckit.doctor.check",
+          "speckit.doctor"
+        ],
+        "codex": [
           "speckit.doctor.check",
           "speckit.doctor"
         ]
       },
-      "installed_at": "2026-03-23T11:21:30.501665+00:00"
+      "installed_at": "2026-03-23T22:21:18.592767+00:00"
+    },
+    "archive": {
+      "version": "1.0.0",
+      "source": "local",
+      "manifest_hash": "sha256:ffa3831c0dd8aceeadad88efe4411676142d654dfbc1987e6e030ba6cdceb83e",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "qwen": [
+          "speckit.archive.run"
+        ],
+        "opencode": [
+          "speckit.archive.run"
+        ],
+        "codex": [
+          "speckit.archive.run"
+        ]
+      },
+      "installed_at": "2026-03-23T22:22:34.647655+00:00"
+    },
+    "speckit-utils": {
+      "version": "1.0.0",
+      "source": "local",
+      "manifest_hash": "sha256:e4970a3d868ad26c27c2b7b57cec58a017b0f6d31e1186dd64ca30c8e8da7721",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "qwen": [
+          "speckit.speckit-utils.resume",
+          "speckit.resume",
+          "speckit.speckit-utils.doctor",
+          "speckit.doctor",
+          "speckit.speckit-utils.validate",
+          "speckit.validate"
+        ],
+        "opencode": [
+          "speckit.speckit-utils.resume",
+          "speckit.resume",
+          "speckit.speckit-utils.doctor",
+          "speckit.doctor",
+          "speckit.speckit-utils.validate",
+          "speckit.validate"
+        ],
+        "codex": [
+          "speckit.speckit-utils.resume",
+          "speckit.resume",
+          "speckit.speckit-utils.doctor",
+          "speckit.doctor",
+          "speckit.speckit-utils.validate",
+          "speckit.validate"
+        ]
+      },
+      "installed_at": "2026-03-23T22:25:11.322277+00:00"
+    },
+    "cleanup": {
+      "version": "1.0.0",
+      "source": "local",
+      "manifest_hash": "sha256:b15a5e3b4e5b43f867c093d962492f502b01503d0ec174611d0797854b017578",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "qwen": [
+          "speckit.cleanup.run",
+          "speckit.cleanup"
+        ],
+        "opencode": [
+          "speckit.cleanup.run",
+          "speckit.cleanup"
+        ],
+        "codex": [
+          "speckit.cleanup.run",
+          "speckit.cleanup"
+        ]
+      },
+      "installed_at": "2026-03-23T22:25:13.356805+00:00"
+    },
+    "status": {
+      "version": "1.0.0",
+      "source": "local",
+      "manifest_hash": "sha256:25d080d9f1a0ea2fc62de2464479143c7c008b9131d32755f351413605d7946f",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "qwen": [
+          "speckit.status.show",
+          "speckit.status"
+        ],
+        "opencode": [
+          "speckit.status.show",
+          "speckit.status"
+        ],
+        "codex": [
+          "speckit.status.show",
+          "speckit.status"
+        ]
+      },
+      "installed_at": "2026-03-23T22:29:15.956047+00:00"
     },
     "review": {
       "version": "1.0.0",
@@ -36,7 +127,27 @@
       "enabled": true,
       "priority": 10,
       "registered_commands": {
+        "qwen": [
+          "speckit.review.run",
+          "speckit.review",
+          "speckit.review.code",
+          "speckit.review.comments",
+          "speckit.review.tests",
+          "speckit.review.errors",
+          "speckit.review.types",
+          "speckit.review.simplify"
+        ],
         "opencode": [
+          "speckit.review.run",
+          "speckit.review",
+          "speckit.review.code",
+          "speckit.review.comments",
+          "speckit.review.tests",
+          "speckit.review.errors",
+          "speckit.review.types",
+          "speckit.review.simplify"
+        ],
+        "codex": [
           "speckit.review.run",
           "speckit.review",
           "speckit.review.code",
@@ -47,7 +158,7 @@
           "speckit.review.simplify"
         ]
       },
-      "installed_at": "2026-03-23T11:21:32.076173+00:00"
+      "installed_at": "2026-03-23T22:29:17.622972+00:00"
     },
     "verify": {
       "version": "1.0.0",
@@ -56,26 +167,20 @@
       "enabled": true,
       "priority": 10,
       "registered_commands": {
+        "qwen": [
+          "speckit.verify.run",
+          "speckit.verify"
+        ],
         "opencode": [
+          "speckit.verify.run",
+          "speckit.verify"
+        ],
+        "codex": [
           "speckit.verify.run",
           "speckit.verify"
         ]
       },
-      "installed_at": "2026-03-23T11:21:33.488178+00:00"
-    },
-    "cleanup": {
-      "version": "1.0.0",
-      "source": "local",
-      "manifest_hash": "sha256:b15a5e3b4e5b43f867c093d962492f502b01503d0ec174611d0797854b017578",
-      "enabled": true,
-      "priority": 10,
-      "registered_commands": {
-        "opencode": [
-          "speckit.cleanup.run",
-          "speckit.cleanup"
-        ]
-      },
-      "installed_at": "2026-03-23T11:21:35.038879+00:00"
+      "installed_at": "2026-03-23T22:29:19.206062+00:00"
     }
   }
 }

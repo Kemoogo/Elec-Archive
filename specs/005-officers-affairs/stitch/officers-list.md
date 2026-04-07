@@ -1,0 +1,34 @@
+# Officers List Screen Layout Notes (T001)
+- **Project ID**: 5333932305081722626
+- **Screen ID**: 719d4c2967514b08a6acdbe6415bc36e
+- **Title**: قائمة الضباط - أرشيف الكتروني
+- **Theme**: Digital Vault (Azure Scribe RTL)
+- **Background**: #0A0F1D / #0e1321
+- **Surface**: #252a39 / #1a1f2e
+- **Primary**: #3B82F6 / #adc6ff
+- **Key Features**:
+    - Searchable, filterable list of officers.
+    - Columns: Military ID (XXXX-YY), Rank (icon + text), Full Name, Position, Status.
+    - Status Badges: 'نشط' (green), 'غير نشط' (gray), 'متقاعد' (orange).
+    - Breadcrumbs: 'الرئيسية / شئون الضباط'.
+    - Header: 'رفع ضابط جديد' button.
+    - Right Sidebar (280px) active for 'شئون الضباط'.
+    - Glassmorphism on container cards.
+
+## Design DNA Extraction (T002)
+- [x] **Component Architecture**: 
+    - Right-aligned sidebar (`SidebarRight`) 280px with active state highlight (vertical bar on inner edge).
+    - Top header (`TopAppBar`) with left-aligned user profile/notifications and right-aligned breadcrumbs.
+    - Search bar and status filters (`OfficerFilterBar`) at the top of the main content area.
+    - Data table/list (`OfficerDataTable`) with glassmorphic rows and rank icons.
+- [x] **Color Tokens**:
+    - **Backdrop**: `#0e1321` (Vault Base)
+    - **Surface**: `#252a39` (Elevated Cards)
+    - **Accent**: `#adc6ff` (Primary Blue)
+    - **Text**: `#dee2f6` (High Contrast)
+- [x] **Layout Patterns**:
+    - RTL alignment (Right-to-Left).
+    - Corner radius: `12px` (Rounded-lg).
+    - Ambient Shadow: `40px-60px blur, -5px spread, #000 at 40%`.
+    - No-Line Rule: boundaries defined by tonal shifts (surface containers) rather than borders.
+    - Glassmorphism: `20px backdrop-blur`, `70% opacity` on floating surfaces.

@@ -1,0 +1,233 @@
+import { NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/db/connect";
+import { User } from "@/lib/db/models/User";
+import { requireAdmin } from "@/lib/auth/middleware";
+import { logAuditEvent } from "@/lib/auth/audit";
+import { updateUserSchema } from "@/validations/auth";
+import { errors } from "@/lib/auth/errors";
+import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
+
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const auth = await requireAdmin();
+  if (!auth.success) {
+    return NextResponse.json(
+      { success: false, error: auth.error },
+      { status: auth.status },
+    );
+  }
+
+  const ip = request.headers.get("x-forwarded-for") ?? "";
+  const rl = checkApiRateLimit(auth.user!.id, ip, "read");
+  if (!rl.allowed) {
+    return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
+  }
+
+  await connectToDatabase();
+
+  const { id } = await params;
+  const user = await User.findById(id).select("-password");
+
+  if (!user) {
+    return NextResponse.json(
+      { success: false, error: errors.userNotFound },
+      { status: 404 },
+    );
+  }
+
+  return NextResponse.json({
+    success: true,
+    user: {
+      id: user._id.toString(),
+      username: user.username,
+      fullName: user.fullName,
+      role: user.role,
+      department: user.department ?? "",
+      permissions: user.permissions,
+      isActive: user.isActive,
+      isLocked: user.isLocked,
+      createdAt: user.createdAt.toISOString(),
+    },
+  });
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const auth = await requireAdmin();
+  if (!auth.success) {
+    return NextResponse.json(
+      { success: false, error: auth.error },
+      { status: auth.status },
+    );
+  }
+
+  const ip = request.headers.get("x-forwarded-for") ?? "";
+  const rl = checkApiRateLimit(auth.user!.id, ip, "write");
+  if (!rl.allowed) {
+    return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
+  }
+
+  try {
+    const body = await request.json();
+    const parsed = updateUserSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: errors.validationFailed, details: parsed.error.issues },
+        { status: 400 },
+      );
+    }
+
+    await connectToDatabase();
+
+    const { id } = await params;
+
+    if (id === auth.user!.id && parsed.data.isActive === false) {
+      const adminCount = await User.countDocuments({ role: "admin", isActive: true });
+      if (adminCount <= 1) {
+        return NextResponse.json(
+          { success: false, error: errors.cannotDeactivateSelf },
+          { status: 400 },
+        );
+      }
+    }
+
+    if (id === auth.user!.id && parsed.data.isLocked === true) {
+      return NextResponse.json(
+        { success: false, error: errors.cannotLockSelf },
+        { status: 400 },
+      );
+    }
+
+    const updateData: Record<string, unknown> = {};
+
+    if (parsed.data.fullName !== undefined) updateData.fullName = parsed.data.fullName;
+    if (parsed.data.role !== undefined) updateData.role = parsed.data.role;
+    if (parsed.data.department !== undefined) updateData.department = parsed.data.department;
+    if (parsed.data.permissions !== undefined) updateData.permissions = parsed.data.permissions;
+    if (parsed.data.isActive !== undefined) updateData.isActive = parsed.data.isActive;
+    if (parsed.data.isLocked !== undefined) {
+      updateData.isLocked = parsed.data.isLocked;
+      if (parsed.data.isLocked === false) {
+        updateData.failedLoginAttempts = 0;
+      }
+    }
+    if (parsed.data.password !== undefined) {
+      updateData.password = parsed.data.password;
+    }
+
+    const user = await User.findByIdAndUpdate(id, updateData, { new: true }).select("-password");
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: errors.userNotFound },
+        { status: 404 },
+      );
+    }
+
+    const changes = Object.keys(updateData).filter((k) => k !== "password").join(", ");
+    const description = `Admin ${auth.user!.username} updated user ${user.username}${changes ? `: ${changes}` : ""}${parsed.data.password ? " (password changed)" : ""}`;
+    await logAuditEvent({
+      userId: auth.user!.id,
+      userName: auth.user!.username,
+      action: "UPDATE",
+      module: "users",
+      targetId: user._id.toString(),
+      description,
+      ipAddress: ip,
+    });
+
+    if (parsed.data.isLocked === false) {
+      await logAuditEvent({
+        userId: auth.user!.id,
+        userName: auth.user!.username,
+        action: "UNLOCK",
+        module: "auth",
+        targetId: user._id.toString(),
+        description: `Admin unlocked account ${user.username}`,
+        ipAddress: ip,
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      user: {
+        id: user._id.toString(),
+        username: user.username,
+        fullName: user.fullName,
+        role: user.role,
+        department: user.department ?? "",
+        permissions: user.permissions,
+        isActive: user.isActive,
+        isLocked: user.isLocked,
+      },
+    });
+  } catch (error) {
+    console.error("Update user error:", error);
+    return NextResponse.json(
+      { success: false, error: errors.internalError },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const auth = await requireAdmin();
+  if (!auth.success) {
+    return NextResponse.json(
+      { success: false, error: auth.error },
+      { status: auth.status },
+    );
+  }
+
+  const ip = request.headers.get("x-forwarded-for") ?? "";
+  const rl = checkApiRateLimit(auth.user!.id, ip, "write");
+  if (!rl.allowed) {
+    return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
+  }
+
+  await connectToDatabase();
+
+  const { id } = await params;
+
+  if (id === auth.user!.id) {
+    const adminCount = await User.countDocuments({ role: "admin", isActive: true });
+    if (adminCount <= 1) {
+      return NextResponse.json(
+        { success: false, error: errors.cannotDeactivateSelf },
+        { status: 400 },
+      );
+    }
+  }
+
+  const user = await User.findByIdAndUpdate(id, { isActive: false }, { new: true });
+
+  if (!user) {
+    return NextResponse.json(
+      { success: false, error: "User not found" },
+      { status: 404 },
+    );
+  }
+
+  await logAuditEvent({
+    userId: auth.user!.id,
+    userName: auth.user!.username,
+    action: "DELETE",
+    module: "users",
+    targetId: user._id.toString(),
+    description: `Admin deactivated user ${user.username}`,
+    ipAddress: ip,
+  });
+
+  return NextResponse.json({
+    success: true,
+    message: "User deactivated",
+  });
+}

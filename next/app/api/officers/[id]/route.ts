@@ -1,0 +1,149 @@
+import { NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/db/connect";
+import { authenticate } from "@/lib/auth/middleware";
+import { logAuditEvent } from "@/lib/auth/audit";
+import { errors } from "@/lib/auth/errors";
+import { Officer } from "@/lib/db/models/Officer";
+import { canViewOfficers, canEditOfficers } from "@/lib/officers/access";
+import { serializeOfficerDetail } from "@/lib/officers/queries";
+import { patchOfficerSchema } from "@/lib/validations/officers";
+import { checkOfficersRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
+
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const auth = await authenticate();
+  if (!auth.success) {
+    return NextResponse.json(
+      { success: false, error: auth.error },
+      { status: auth.status },
+    );
+  }
+
+  if (!canViewOfficers(auth.user!)) {
+    return NextResponse.json(
+      { success: false, error: errors.insufficientPermissions },
+      { status: 403 },
+    );
+  }
+
+  const ip = request.headers.get("x-forwarded-for") ?? "";
+  const rl = checkOfficersRateLimit(auth.user!.id, ip, "read");
+  if (!rl.allowed) {
+    return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
+  }
+
+  await connectToDatabase();
+
+  const { id } = await params;
+  const officer = await Officer.findById(id).lean();
+  if (!officer) {
+    return NextResponse.json(
+      { success: false, error: "الضابط غير موجود" },
+      { status: 404 },
+    );
+  }
+
+  await logAuditEvent({
+    userId: auth.user!.id,
+    userName: auth.user!.fullName,
+    action: "VIEW",
+    module: "officers",
+    targetId: id,
+    description: `عرض ملف الضابط: ${officer.fullName}`,
+    ipAddress: ip,
+  });
+
+  return NextResponse.json({
+    success: true,
+    data: serializeOfficerDetail(officer as Parameters<typeof serializeOfficerDetail>[0]),
+  });
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const auth = await authenticate();
+  if (!auth.success) {
+    return NextResponse.json(
+      { success: false, error: auth.error },
+      { status: auth.status },
+    );
+  }
+
+  if (!canEditOfficers(auth.user!)) {
+    return NextResponse.json(
+      { success: false, error: errors.insufficientPermissions },
+      { status: 403 },
+    );
+  }
+
+  const ip = request.headers.get("x-forwarded-for") ?? "";
+  const rl = checkOfficersRateLimit(auth.user!.id, ip, "write");
+  if (!rl.allowed) {
+    return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
+  }
+
+  await connectToDatabase();
+
+  const { id } = await params;
+  const officer = await Officer.findById(id);
+  if (!officer) {
+    return NextResponse.json(
+      { success: false, error: "الضابط غير موجود" },
+      { status: 404 },
+    );
+  }
+
+  try {
+    const body = await request.json();
+    const parsed = patchOfficerSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: errors.validationFailed, details: parsed.error.issues },
+        { status: 400 },
+      );
+    }
+
+    const data = parsed.data;
+
+    if (data.fullName !== undefined) officer.fullName = data.fullName;
+    if (data.rank !== undefined) officer.rank = data.rank;
+    if (data.unit !== undefined) officer.unit = data.unit;
+    if (data.position !== undefined) officer.position = data.position;
+    if (data.batch !== undefined) officer.batch = data.batch;
+    if (data.type !== undefined) officer.type = data.type;
+    if (data.weapon !== undefined) officer.weapon = data.weapon;
+    if (data.phone !== undefined) officer.phone = data.phone;
+    if (data.nationalId !== undefined) officer.nationalId = data.nationalId;
+    if (data.employmentStatus !== undefined) officer.employmentStatus = data.employmentStatus;
+    if (data.joinDate !== undefined) officer.joinDate = new Date(data.joinDate);
+    if (data.birthDate !== undefined) officer.birthDate = data.birthDate ? new Date(data.birthDate) : undefined;
+    if (data.file121Url !== undefined) officer.file121Url = data.file121Url;
+
+    await officer.save();
+
+    await logAuditEvent({
+      userId: auth.user!.id,
+      userName: auth.user!.fullName,
+      action: "UPDATE",
+      module: "officers",
+      targetId: id,
+      description: `تحديث بيانات الضابط: ${officer.fullName}`,
+      ipAddress: ip,
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: serializeOfficerDetail(officer.toObject() as Parameters<typeof serializeOfficerDetail>[0]),
+    });
+  } catch {
+    return NextResponse.json(
+      { success: false, error: errors.internalError },
+      { status: 500 },
+    );
+  }
+}

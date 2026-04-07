@@ -1,0 +1,31 @@
+# Officer Detail Screen Layout Notes (T001)
+- **Project ID**: 5333932305081722626
+- **Screen ID**: ef4eae039ea54b499e8b090f4e94f562
+- **Title**: ملف الضابط - أرشيف الكتروني
+- **Theme**: Digital Vault (Azure Scribe RTL)
+- **Background**: #151C2C (surface-container-low)
+- **Primary**: #3B82F6 (primary)
+- **Key Features**:
+    - Profile Section: Professional photo, military rank icon (عميد), name, and military ID (8842-24).
+    - Core Data Cards: Personal and Professional data blocks.
+    - Document List: Vault for PDF records with upload/delete controls.
+    - Professional Timeline: Vertical track with icons for events (promotion, transfer, award).
+    - Leave History Table: Glassmorphic layout for tracking absences.
+    - Breadcrumbs: 'الرئيسية / شئون الضباط / عبد الرحمن خالد المطيري'.
+
+## Design DNA Extraction (T002)
+- [x] **Component Architecture**: 
+    - Detail Header (`OfficerProfileHeader`) with large profile image, rank badge, and core IDs.
+    - Tabbed/Grid-based content area (`DataContainer`) for Personal/Professional info cards.
+    - Timeline view (`OfficerTimeline`) as a vertical activity log.
+    - Document Vault (`DocumentVault`) with PDF previews and action buttons.
+- [x] **Color Tokens**:
+    - Background: `#0e1321`
+    - Main Container Surface: `#161b2a` (surface-container-low)
+    - Card Surface: `#252a39` (surface-container-high)
+    - Timeline Track: `#424754` (outline-variant)
+- [x] **Layout Patterns**:
+    - Architectural Depth: Layering defined by tonal shifts (Low -> High -> Highest).
+    - Intentional Asymmetry: stat cards placed to create visual anchors.
+    - No-Line Rule: 0px borders, boundaries by background contrast.
+    - Editorial Hierarchy: bold tracked-tight headers.
