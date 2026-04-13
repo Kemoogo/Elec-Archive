@@ -30,8 +30,8 @@ export const createOfficerSchema = z.object({
     .trim(),
   fullName: z.string().min(1, "الاسم الكامل مطلوب").trim(),
   rank: z.enum(OFFICER_RANKS_Z, { message: "الرتبة غير صالحة" }),
-  unit: z.string().min(1, "الوحدة مطلوبة").trim(),
-  position: z.string().min(1, "المنصب مطلوب").trim(),
+  unit: z.string().trim().optional(),
+  position: z.string().trim().optional(),
   batch: z.string().regex(/^\d+$/, "الدفعة يجب أن تكون أرقام فقط").trim().optional(),
   type: z.enum(OFFICER_TYPES_Z).optional(),
   weapon: z.enum(OFFICER_WEAPONS_Z).optional(),
@@ -42,15 +42,15 @@ export const createOfficerSchema = z.object({
     .trim()
     .optional()
     .or(z.literal("")),
-  employmentStatus: z.enum(EMPLOYMENT_STATUSES_Z).default("active"),
-  joinDate: z
-    .string()
-    .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح")
-    .optional(),
-  birthDate: z
-    .string()
-    .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح")
-    .optional(),
+   employmentStatus: z.enum(EMPLOYMENT_STATUSES_Z).default("active"),
+   joinDate: z
+     .string()
+     .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح")
+     .optional(),
+   birthDate: z
+     .string()
+     .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح")
+     .optional(),
   file121Url: z.string().trim().optional(),
 }).superRefine((data, ctx) => {
   if (data.birthDate) {

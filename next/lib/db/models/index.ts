@@ -10,6 +10,15 @@ export { Student } from "./Student";
 export { Course } from "./Course";
 export { Notification } from "./Notification";
 export { AuditLog } from "./AuditLog";
+export {
+  PositionAssignment,
+  POSITION_TYPES,
+  POSITION_STATUSES,
+  POSITION_TYPE_LABELS,
+  POSITION_STATUS_LABELS,
+} from "./PositionAssignment";
+export { Promotion } from "./Promotion";
+export { Mission, MISSION_STATUSES, MISSION_STATUS_LABELS } from "./Mission";
 
 export type { IUser, UserRole, ModulePermission } from "./User";
 export type { IFax, FaxStatus, FileType, ForwardedToType } from "./Fax";
@@ -28,3 +37,10 @@ export type { IStudent, IStudentDocument } from "./Student";
 export type { ICourse, ICourseDocument, CourseStatus } from "./Course";
 export type { INotification, NotificationType } from "./Notification";
 export type { IAuditLog, AuditAction, AuditModule } from "./AuditLog";
+export type {
+  IPositionAssignment,
+  PositionType,
+  PositionStatus,
+} from "./PositionAssignment";
+export type { IPromotion } from "./Promotion";
+export type { IMission, MissionStatus } from "./Mission";

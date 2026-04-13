@@ -18,7 +18,6 @@ provides:
     - name: "speckit.doctor.check"
       file: "commands/check.md"
       description: "Run a full project health diagnostic"
-      aliases: ["speckit.doctor"]
 
 tags:
   - "diagnostics"

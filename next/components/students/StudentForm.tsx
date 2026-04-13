@@ -2,6 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { GraduationCap } from "lucide-react";
+import { ModalActions } from "@/components/ui/modal-actions";
+import { ModalShell } from "@/components/ui/modal-shell";
 
 interface StudentFormProps {
   mode: "create" | "edit";
@@ -20,6 +23,7 @@ export function StudentForm({ mode, initialData, onSuccess }: StudentFormProps) 
   const [isPending, startTransition] = useTransition();
   const [isOpen, setIsOpen] = useState(mode === "edit");
   const [error, setError] = useState("");
+  const formId = mode === "create" ? "create-student-form" : "edit-student-form";
 
   const [studentId, setStudentId] = useState(initialData?.studentId ?? "");
   const [fullName, setFullName] = useState(initialData?.fullName ?? "");
@@ -83,16 +87,41 @@ export function StudentForm({ mode, initialData, onSuccess }: StudentFormProps) 
   if (mode === "create") {
     return (
       <>
-        <button
-          onClick={() => setIsOpen(true)}
-          className="rounded-md bg-(--app-accent) px-4 py-2 text-sm text-(--app-accent-foreground) font-medium hover:bg-(--app-accent)/90"
-        >
-          إضافة طالب
-        </button>
+         <button
+           onClick={() => setIsOpen(true)}
+           className="btn-primary"
+         >
+           <>
+             <GraduationCap className="h-4 w-4" />
+             إضافة طالب
+           </>
+         </button>
         {isOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-            <div className="w-[480px] rounded-lg border border-(--app-border) bg-(--app-surface) p-6" dir="rtl">
-              <h2 className="mb-4 text-lg font-bold text-(--app-white)">إضافة طالب جديد</h2>
+          <ModalShell
+            title="إضافة طالب جديد"
+            panelClassName="max-w-[480px]"
+            onClose={() => setIsOpen(false)}
+            footer={
+              <ModalActions>
+                <button
+                  type="submit"
+                  form={formId}
+                  disabled={isPending}
+                  className="rounded-md bg-(--app-accent) px-4 py-2 text-sm font-medium text-(--app-accent-foreground) hover:bg-(--app-accent)/90 disabled:opacity-50"
+                >
+                  {isPending ? "جاري الحفظ..." : "إضافة"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="rounded-md border border-(--app-border) px-4 py-2 text-sm text-foreground hover:bg-white/10"
+                >
+                  إلغاء
+                </button>
+              </ModalActions>
+            }
+          >
+            <form id={formId} onSubmit={handleSubmit} className="space-y-4">
               <FormFields
                 studentId={studentId}
                 setStudentId={setStudentId}
@@ -104,26 +133,9 @@ export function StudentForm({ mode, initialData, onSuccess }: StudentFormProps) 
                 setNotes={setNotes}
                 mode={mode}
               />
-              {error && <p className="mt-2 text-sm text-(--app-error)">{error}</p>}
-              <div className="mt-4 flex justify-end gap-2">
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="rounded-md border border-(--app-border) px-4 py-2 text-sm text-foreground hover:bg-white/10"
-                >
-                  إلغاء
-                </button>
-                <button
-                  onClick={() => {
-                    handleSubmit(new Event("submit") as unknown as React.FormEvent);
-                  }}
-                  disabled={isPending}
-                  className="rounded-md bg-(--app-accent) px-4 py-2 text-sm text-(--app-accent-foreground) font-medium hover:bg-(--app-accent)/90 disabled:opacity-50"
-                >
-                  {isPending ? "جاري الحفظ..." : "إضافة"}
-                </button>
-              </div>
-            </div>
-          </div>
+              {error && <p className="text-sm text-(--app-error)">{error}</p>}
+            </form>
+          </ModalShell>
         )}
       </>
     );

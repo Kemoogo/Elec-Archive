@@ -1,9 +1,9 @@
 ---
-description: "Test coverage quality analysis \u2014 behavioral coverage, critical\
-  \ gap identification, test resilience evaluation."
+description: Test coverage quality analysis — behavioral coverage, critical gap identification,
+  test resilience evaluation.
 scripts:
-  sh: scripts/bash/detect-changed-files.sh
-  ps: scripts/powershell/detect-changed-files.ps1
+  sh: .specify/scripts/bash/detect-changed-files.sh
+  ps: .specify/scripts/powershell/detect-changed-files.ps1
 ---
 
 

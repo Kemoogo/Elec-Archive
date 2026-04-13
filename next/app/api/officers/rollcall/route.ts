@@ -225,10 +225,10 @@ export async function POST(request: Request) {
 
     if (action === "submit") {
       await createNotificationForCommanders({
-        type: "rollcall_submitted",
-        title: "تم تسليم التمام",
-        body: `تم تسليم تمام الضباط ليوم ${date} بواسطة ${auth.user!.fullName}`,
-        refId: existing?._id?.toString(),
+        type: "rollcall_approved",
+        title: "اعتماد التمام اليومي",
+        body: `تم اعتماد التمام اليومي ليوم ${date} من قبل ضابط أركان الحرب (${auth.user!.fullName})`,
+        refId: (existing?._id || "").toString(),
         refModel: "DailyRollcall",
       });
     }

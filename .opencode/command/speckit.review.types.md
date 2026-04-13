@@ -1,9 +1,9 @@
 ---
-description: "Type design analysis \u2014 encapsulation, invariant expression, usefulness,\
-  \ and enforcement."
+description: Type design analysis — encapsulation, invariant expression, usefulness,
+  and enforcement.
 scripts:
-  sh: scripts/bash/detect-changed-files.sh
-  ps: scripts/powershell/detect-changed-files.ps1
+  sh: .specify/scripts/bash/detect-changed-files.sh
+  ps: .specify/scripts/powershell/detect-changed-files.ps1
 ---
 
 

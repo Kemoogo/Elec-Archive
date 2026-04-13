@@ -4,13 +4,14 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/components/ui/toast";
 import { Lock, User, Loader2, Eye, EyeOff } from 'lucide-react';
+import { getSafeRedirectUrl } from "@/lib/utils/redirect";
 
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showToast } = useToast();
   const rawRedirect = searchParams.get("redirect");
-  const redirectTo = rawRedirect && rawRedirect.startsWith("/") && !rawRedirect.startsWith("//") ? rawRedirect : "/";
+  const redirectTo = getSafeRedirectUrl(rawRedirect);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);

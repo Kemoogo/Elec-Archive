@@ -4,6 +4,8 @@ import { ToastProvider } from "@/components/ui/toast";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import Footer from "@/components/layout/Footer";
 
+import { ScrollToTop } from "@/components/ui/ScrollToTop";
+
 export const metadata: Metadata = {
   title: "الأرشيف الإلكتروني",
   description: "نظام إدارة الأرشيف الإلكتروني",
@@ -21,6 +23,7 @@ export default function RootLayout({
           <ToastProvider>
             <main className="flex-1">{children}</main>
             <Footer />
+            <ScrollToTop />
           </ToastProvider>
         </ThemeProvider>
       </body>

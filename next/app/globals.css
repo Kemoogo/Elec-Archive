@@ -196,7 +196,7 @@ body {
     color: var(--app-white);
     background: var(--color-primary);
     box-shadow: var(--app-shadow-md);
-    transition: all 0.15s ease;
+    transition: transform 0.15s ease, background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
     cursor: pointer;
 }
 
@@ -220,7 +220,7 @@ body {
     font-weight: 700;
     color: var(--color-primary);
     background: #f1f5f9;
-    transition: all 0.15s ease;
+    transition: transform 0.15s ease, background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
     cursor: pointer;
 }
 
@@ -242,7 +242,7 @@ body {
     font-weight: 700;
     color: var(--app-white);
     background: var(--app-error);
-    transition: all 0.15s ease;
+    transition: transform 0.15s ease, background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
     cursor: pointer;
 }
 
@@ -265,7 +265,7 @@ body {
     color: var(--app-accent-foreground);
     background: var(--app-accent);
     box-shadow: var(--app-shadow-md);
-    transition: all 0.15s ease;
+    transition: transform 0.15s ease, background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
     cursor: pointer;
 }
 
@@ -286,7 +286,7 @@ body {
     font-weight: 600;
     padding: 0.5rem 1.5rem;
     border-radius: 1rem;
-    transition: all 0.15s ease;
+    transition: transform 0.15s ease, background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .btn-pill-primary:hover {
@@ -306,7 +306,7 @@ body {
     padding: 0.5rem 1.5rem;
     border: 1px solid var(--app-secondary);
     border-radius: 1rem;
-    transition: all 0.15s ease;
+    transition: transform 0.15s ease, background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .btn-pill-secondary:hover {

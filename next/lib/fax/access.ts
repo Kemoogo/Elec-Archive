@@ -1,12 +1,14 @@
 import type { AuthUser } from "@/lib/auth/types";
 import type { IFax } from "@/lib/db/models/Fax";
 
+import { canViewModule, canEditModule } from "@/lib/auth/authorization";
+
 export function canViewFax(user: AuthUser): boolean {
-  return user.permissions.fax === "view" || user.permissions.fax === "edit";
+  return canViewModule(user, "fax");
 }
 
 export function canEditFax(user: AuthUser): boolean {
-  return user.permissions.fax === "edit";
+  return canEditModule(user, "fax");
 }
 
 export function canMakeDecision(user: AuthUser): boolean {

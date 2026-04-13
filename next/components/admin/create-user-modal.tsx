@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { ModalActions } from "@/components/ui/modal-actions";
+import { ModalShell } from "@/components/ui/modal-shell";
 import { useToast } from "@/components/ui/toast";
 
 interface CreateUserModalProps {
@@ -19,6 +21,7 @@ function emptyPermissions(): Record<string, string> {
 
 export function CreateUserModal({ onClose, onCreated }: CreateUserModalProps) {
   const { showToast } = useToast();
+  const formId = "create-user-form";
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -54,15 +57,32 @@ export function CreateUserModal({ onClose, onCreated }: CreateUserModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
-      <div
-        className="w-full max-w-lg rounded-lg bg-(--app-surface) p-6 shadow-xl"
-        dir="rtl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className="mb-4 text-lg font-bold text-(--app-white)">إضافة مستخدم جديد</h2>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <ModalShell
+      title="إضافة مستخدم جديد"
+      onClose={onClose}
+      closeOnOverlayClick
+      panelClassName="max-w-lg"
+      footer={
+        <ModalActions>
+          <button
+            type="submit"
+            form={formId}
+            disabled={saving}
+            className="rounded-md bg-(--app-accent) px-4 py-2 text-sm font-medium text-(--app-accent-foreground) hover:bg-(--app-accent)/90 disabled:opacity-50"
+          >
+            {saving ? "جاري الإنشاء..." : "إنشاء المستخدم"}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md bg-(--app-border) px-4 py-2 text-sm text-foreground hover:bg-white/10"
+          >
+            إلغاء
+          </button>
+        </ModalActions>
+      }
+    >
+        <form id={formId} onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-foreground">اسم المستخدم</label>
@@ -145,24 +165,7 @@ export function CreateUserModal({ onClose, onCreated }: CreateUserModalProps) {
             </div>
           </div>
 
-          <div className="flex gap-2 pt-2">
-            <button
-              type="submit"
-              disabled={saving}
-              className="rounded-md bg-(--app-accent) px-4 py-2 text-sm text-(--app-accent-foreground) font-medium hover:bg-(--app-accent)/90 disabled:opacity-50"
-            >
-              {saving ? "جاري الإنشاء..." : "إنشاء المستخدم"}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md bg-(--app-border) px-4 py-2 text-sm text-foreground hover:bg-white/10"
-            >
-              إلغاء
-            </button>
-          </div>
         </form>
-      </div>
-    </div>
+    </ModalShell>
   );
 }

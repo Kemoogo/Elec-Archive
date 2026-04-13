@@ -96,7 +96,11 @@ export async function POST(request: Request) {
     user.failedLoginAttempts = 0;
     await user.save();
 
-    const token = signToken({ userId: user._id.toString(), role: user.role });
+    const token = signToken({ 
+      userId: user._id.toString(), 
+      role: user.role,
+      tokenVersion: user.tokenVersion || 0,
+    });
     await setTokenCookie(token);
 
     await logAuditEvent({

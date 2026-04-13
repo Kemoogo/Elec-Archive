@@ -51,8 +51,8 @@ function registerGracefulShutdown(): void {
   if (cached.shutdownRegistered) return;
   cached.shutdownRegistered = true;
 
-  const shutdown = async (signal: string) => {
-    console.log(`Received ${signal}. Closing MongoDB connection...`);
+  const shutdown = async (_signal: string) => {
+    // Mongoose connection closed
     await disconnectFromDatabase();
     process.exit(0);
   };

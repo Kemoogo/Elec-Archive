@@ -121,8 +121,8 @@ const OfficerSchema = new Schema<IOfficer>(
       required: true,
       enum: OFFICER_RANKS,
     },
-    unit: { type: String, required: true, trim: true },
-    position: { type: String, required: true, trim: true },
+    unit: { type: String, trim: true },
+    position: { type: String, trim: true },
     batch: { type: String, trim: true },
     type: { type: String, enum: OFFICER_TYPES },
     weapon: { type: String, enum: OFFICER_WEAPONS },
@@ -150,7 +150,8 @@ const OfficerSchema = new Schema<IOfficer>(
 
 OfficerSchema.index({ fullName: 1 });
 OfficerSchema.index({ seniorityNumber: 1 });
-OfficerSchema.index({ employmentStatus: 1 });
+OfficerSchema.index({ employmentStatus: 1, fullName: 1 });
+OfficerSchema.index({ createdAt: -1 });
 
 OfficerSchema.pre("validate", function () {
   if (this.birthDate && this.joinDate && this.birthDate >= this.joinDate) {

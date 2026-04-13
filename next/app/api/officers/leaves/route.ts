@@ -112,14 +112,14 @@ export async function POST(request: Request) {
 
     const overlapping = await Leave.findOne({
       officerId: data.officerId,
-      status: { $in: ["draft", "approved"] },
+      status: { $ne: "cancelled" },
       $or: [
         { startDate: { $lte: endDate }, endDate: { $gte: startDate } },
       ],
     });
 
     if (overlapping) {
-      return NextResponse.json({ success: false, error: "يوجد تداخل في التواريخ مع إجازة/غياب آخر لنفس الضابط" }, { status: 409 });
+      return NextResponse.json({ success: false, error: "يوجد تداخل مع إجازة أخرى مسجلة لنفس الضابط في هذه الفترة" }, { status: 409 });
     }
 
     const leave = await Leave.create({

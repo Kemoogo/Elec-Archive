@@ -1,9 +1,9 @@
 ---
-description: "Comprehensive code review using specialized agents \u2014 orchestrates\
-  \ code, comments, tests, errors, types, and simplify agents sequentially."
+description: Comprehensive code review using specialized agents — orchestrates code,
+  comments, tests, errors, types, and simplify agents sequentially.
 scripts:
-  sh: scripts/bash/detect-changed-files.sh
-  ps: scripts/powershell/detect-changed-files.ps1
+  sh: .specify/scripts/bash/detect-changed-files.sh
+  ps: .specify/scripts/powershell/detect-changed-files.ps1
 ---
 
 

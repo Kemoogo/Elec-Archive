@@ -1,6 +1,16 @@
 import { Schema, model, models, type Document, type Types } from "mongoose";
 
-export type NotificationType = "new_fax" | "rollcall_submitted" | "medicine_expiry" | "low_stock" | "officers_reminder";
+export const NOTIFICATION_TYPES = [
+  "new_fax",
+  "rollcall_submitted",
+  "medicine_expiry",
+  "low_stock",
+  "officers_reminder",
+  "rollcall_reminder",
+  "rollcall_approved",
+] as const;
+
+export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
 export interface INotification extends Document {
   userId: Types.ObjectId;
@@ -19,7 +29,7 @@ const NotificationSchema = new Schema<INotification>(
     type: {
       type: String,
       required: true,
-      enum: ["new_fax", "rollcall_submitted", "medicine_expiry", "low_stock", "officers_reminder"],
+      enum: NOTIFICATION_TYPES,
     },
     title: { type: String, required: true, trim: true },
     body: { type: String, required: true, trim: true },
@@ -27,11 +37,11 @@ const NotificationSchema = new Schema<INotification>(
     refId: { type: Schema.Types.ObjectId },
     refModel: { type: String },
   },
-  { timestamps: { createdAt: true, updatedAt: false } },
+  { timestamps: { createdAt: true, updatedAt: false } }
 );
 
 NotificationSchema.index({ userId: 1, isRead: 1 });
 NotificationSchema.index({ createdAt: -1 });
 
 export const Notification =
-  models.Notification ?? model<INotification>("Notification", NotificationSchema);
+  models.Notification || model<INotification>("Notification", NotificationSchema);

@@ -1,3 +1,10 @@
+/**
+ * @deprecated THIS API IS LEGACY.
+ * It uses the old Assignment model. New features should use:
+ * - /api/arkan-harb/missions for missions
+ * - /api/arkan-harb/promotions for promotions
+ * - /api/arkan-harb/positions for job assignments
+ */
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db/connect";
 import { authenticate } from "@/lib/auth/middleware";

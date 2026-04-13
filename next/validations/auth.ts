@@ -2,17 +2,21 @@ import { z } from "zod";
 
 const usernameSchema = z
   .string()
-  .min(3, "Username must be at least 3 characters")
-  .max(50, "Username must be at most 50 characters")
-  .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores");
+  .min(3, "اسم المستخدم يجب أن يكون 3 أحرف على الأقل")
+  .max(50, "اسم المستخدم يجب أن لا يزيد عن 50 حرفاً")
+  .regex(/^[a-zA-Z0-9_]+$/, "اسم المستخدم يمكن أن يحتوي فقط على أحرف وأرقام وشرطة سفلية")
+  .trim()
+  .toLowerCase();
 
 const passwordSchema = z
   .string()
-  .min(6, "Password must be at least 6 characters");
+  .min(8, "كلمة المرور يجب أن تكون 8 أحرف على الأقل")
+  .regex(/[a-zA-Z]/, "يجب أن تحتوي على حرف واحد على الأقل")
+  .regex(/[0-9]/, "يجب أن تحتوي على رقم واحد على الأقل");
 
 const roleSchema = z.enum(["admin", "commander", "employee", "viewer"]);
 
-const departmentSchema = z.enum(["fax", "officers", "medical", "students", "education"]);
+const departmentSchema = z.enum(["fax", "officers", "medical", "students", "education", "arkan_harb"]);
 
 const permissionLevelSchema = z.enum(["none", "view", "edit"]);
 
@@ -22,6 +26,7 @@ const permissionsSchema = z.object({
   medical: permissionLevelSchema,
   students: permissionLevelSchema,
   education: permissionLevelSchema,
+  arkan_harb: permissionLevelSchema,
 });
 
 export const loginSchema = z.object({

@@ -4,8 +4,9 @@ import { authenticate } from "@/lib/auth/middleware";
 import type { ModulePermissions } from "@/lib/auth/types";
 import { AuthenticatedNavbar } from "@/components/layout/AuthenticatedNavbar";
 import LandingPage from "@/components/landing/LandingPage";
+import { checkDailyRollcallReminder } from "@/lib/arkan-harb/rollcall-reminder";
 
-const moduleRoutes: (keyof ModulePermissions)[] = ["fax", "officers", "medical", "students", "education"];
+const moduleRoutes: (keyof ModulePermissions)[] = ["fax", "officers", "medical", "students", "education", "arkan_harb"];
 
 function checkRouteAccess(pathname: string, role: string, permissions: ModulePermissions): { allowed: boolean; redirectTo?: string } {
   if (pathname.startsWith("/admin")) {
@@ -16,13 +17,15 @@ function checkRouteAccess(pathname: string, role: string, permissions: ModulePer
   }
 
   for (const mod of moduleRoutes) {
-    if (pathname.startsWith(`/${mod}`)) {
-      if (role !== "admin" && permissions[mod] === "none") {
+    const route = `/${mod.replace("_", "-")}`;
+    if (pathname.startsWith(route)) {
+      if (role !== "admin" && role !== "commander" && permissions[mod] === "none") {
         return { allowed: false, redirectTo: "/" };
       }
       return { allowed: true };
     }
   }
+
 
   return { allowed: true };
 }
@@ -47,13 +50,22 @@ export default async function DashboardLayout({
 
   const user = result.user!;
 
+  // Trigger daily rollcall reminder check (Sun-Thu, 09:00+)
+  if (user.role === "admin" || (user.permissions && user.permissions.arkan_harb !== "none")) {
+    try {
+      await checkDailyRollcallReminder();
+    } catch (error) {
+      console.error("Failed to check daily rollcall reminder:", error);
+    }
+  }
+
   const accessCheck = checkRouteAccess(pathname, user.role, user.permissions);
   if (!accessCheck.allowed && accessCheck.redirectTo) {
     redirect(accessCheck.redirectTo);
   }
 
   const accessibleModules = moduleRoutes.filter(
-    (module) => user.role === "admin" || user.permissions[module] !== "none"
+    (module) => user.role === "admin" || user.role === "commander" || user.permissions[module] !== "none"
   );
 
   return (

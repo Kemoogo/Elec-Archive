@@ -243,6 +243,10 @@ function NotificationPanel({
                     {notification.type === "new_fax" && "📠"}
                     {notification.type === "rollcall_submitted" && "👥"}
                     {notification.type === "medicine_expiry" && "💊"}
+                    {notification.type === "low_stock" && "⚠️"}
+                    {notification.type === "officers_reminder" && "🔔"}
+                    {notification.type === "rollcall_reminder" && "📢"}
+                    {notification.type === "rollcall_approved" && "✅"}
                   </span>
                   <div className="flex-1">
                     <p className="font-medium text-(--app-white)">{notification.title}</p>

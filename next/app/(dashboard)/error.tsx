@@ -10,7 +10,7 @@ export default function DashboardError({
   return (
     <div className="flex min-h-[60vh] items-center justify-center" dir="rtl">
       <div className="text-center space-y-4">
-        <h2 className="text-xl font-bold text-(--app-white)">حدث خطأ غير متوقع</h2>
+        <h2 className="text-xl font-bold text-(--app-primary)">حدث خطأ غير متوقع</h2>
         <p className="text-sm text-(--app-muted-foreground)">
           عذراً، حدث خطأ أثناء تحميل هذه الصفحة.
         </p>

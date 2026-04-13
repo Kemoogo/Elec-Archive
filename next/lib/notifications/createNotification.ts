@@ -83,6 +83,43 @@ export async function createNotificationForOfficersEditors(
   }
 }
 
+export async function createNotificationForStaffOps(
+  params: CreateNotificationParams,
+): Promise<void> {
+  await connectToDatabase();
+
+  const staffOps = await User.find({
+    isActive: true,
+    $or: [{ role: "admin" }, { "permissions.arkan_harb": { $in: ["view", "edit"] } }],
+  }).select("_id");
+
+  const notifications = await Promise.all(
+    staffOps.map((user) =>
+      Notification.create({
+        userId: user._id,
+        type: params.type,
+        title: params.title,
+        body: params.body,
+        refId: params.refId,
+        refModel: params.refModel,
+      }),
+    ),
+  );
+
+  for (const notification of notifications) {
+    emitToUser(notification.userId.toString(), {
+      _id: notification._id.toString(),
+      type: notification.type,
+      title: notification.title,
+      body: notification.body,
+      isRead: notification.isRead,
+      refId: notification.refId?.toString(),
+      refModel: notification.refModel,
+      createdAt: notification.createdAt.toISOString(),
+    });
+  }
+}
+
 export async function createNotificationForUser(
   userId: string,
   params: CreateNotificationParams,

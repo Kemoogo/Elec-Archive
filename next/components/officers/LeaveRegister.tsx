@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Save, X, AlertCircle, CalendarRange, History, Loader2, CheckCircle2 } from "lucide-react";
+import { CalendarRange, CheckCircle2 } from "lucide-react";
 
 interface LeaveItem {
   id: string;
@@ -32,6 +32,7 @@ interface LeaveRegisterProps {
   canEdit: boolean;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const LEAVE_TYPE_OPTIONS = [
   { value: "annual", label: "سنوية" },
   { value: "sick", label: "مرضية" },
@@ -54,70 +55,30 @@ const STATUS_CONFIG: Record<string, string> = {
   cancelled: "bg-(--app-error)/10 border border-(--app-error)/20 text-(--app-error)",
 };
 
-export function LeaveRegister({ leaves, officers, canEdit }: LeaveRegisterProps) {
+export function LeaveRegister({ leaves, canEdit }: LeaveRegisterProps) {
   const router = useRouter();
-  const [showForm, setShowForm] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [statusErrors, setStatusErrors] = useState<Record<string, string>>({});
 
-  const [form, setForm] = useState({
-    officerId: "",
-    category: "leave",
-    type: "annual",
-    startDate: "",
-    endDate: "",
-    reason: "",
-  });
+   const handleStatusChange = async (leaveId: string, newStatus: string) => {
+     setStatusErrors((prev) => ({ ...prev, [leaveId]: "" }));
+     try {
+       const res = await fetch(`/api/arkan-harb/leaves/${leaveId}`, {
+         method: "PATCH",
+         headers: { "Content-Type": "application/json" },
+         body: JSON.stringify({ status: newStatus }),
+       });
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
+       const data = await res.json();
+       if (!res.ok || !data.success) {
+         setStatusErrors((prev) => ({ ...prev, [leaveId]: data.error || "فشل في تحديث الحالة" }));
+         return;
+       }
 
-    try {
-      const res = await fetch("/api/officers/leaves", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        setError(data.error || "فشل في إنشاء السجل");
-        return;
-      }
-
-      setShowForm(false);
-      setForm({ officerId: "", category: "leave", type: "annual", startDate: "", endDate: "", reason: "" });
-      router.refresh();
-    } catch {
-      setError("حدث خطأ في الاتصال");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleStatusChange = async (leaveId: string, newStatus: string) => {
-    setStatusErrors((prev) => ({ ...prev, [leaveId]: "" }));
-    try {
-      const res = await fetch(`/api/officers/leaves/${leaveId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        setStatusErrors((prev) => ({ ...prev, [leaveId]: data.error || "فشل في تحديث الحالة" }));
-        return;
-      }
-
-      router.refresh();
-    } catch {
-      setStatusErrors((prev) => ({ ...prev, [leaveId]: "حدث خطأ في الاتصال" }));
-    }
-  };
+       router.refresh();
+     } catch {
+       setStatusErrors((prev) => ({ ...prev, [leaveId]: "حدث خطأ في الاتصال" }));
+     }
+   };
 
   return (
     <div className="space-y-6">
@@ -128,150 +89,7 @@ export function LeaveRegister({ leaves, officers, canEdit }: LeaveRegisterProps)
            </div>
            <h2 className="text-lg font-semibold text-(--color-primary)">سجل الإجازات والغياب</h2>
         </div>
-        
-        {canEdit && !showForm && (
-           <button
-             onClick={() => setShowForm(true)}
-             className="flex items-center gap-2 btn-primary px-6 py-2.5 rounded-lg font-bold"
-           >
-             <Plus className="h-4 w-4" />
-             توثيق سجل جديد
-           </button>
-        )}
       </div>
-
-      {showForm && (
-        <div className="bg-(--app-surface) border border-(--app-border) rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-               <History className="h-5 w-5 text-(--color-primary)" />
-               <h3 className="text-lg font-semibold text-(--color-primary)">إضافة سجل حركة جديد</h3>
-            </div>
-            <button onClick={() => setShowForm(false)} className="p-2 hover:bg-(--app-surface-container) rounded-full transition-colors">
-              <X className="h-5 w-5 text-(--app-muted-foreground)" />
-            </button>
-          </div>
-
-          {error && (
-            <div className="mb-4 rounded-lg bg-(--app-error)/10 border border-(--app-error)/20 p-4 text-(--app-error) flex items-center gap-3">
-              <AlertCircle className="h-5 w-5 shrink-0" />
-              <p className="text-sm font-bold">{error}</p>
-            </div>
-          )}
-
-          <form onSubmit={handleCreate} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-(--app-muted-foreground) px-1">الضابط المعني *</label>
-                <select
-                  value={form.officerId}
-                  onChange={(e) => setForm({ ...form, officerId: e.target.value })}
-                  required
-                  className="w-full rounded-lg bg-(--app-surface) border border-(--app-border) px-4 py-2.5 text-sm text-(--color-primary) focus:outline-none focus:ring-2 focus:ring-(--color-primary)/20"
-                >
-                  <option value="" className="bg-(--app-surface)">اختر ضابط من القائمة</option>
-                  {officers.map((o) => (
-                    <option key={o.id} value={o.id} className="bg-(--app-surface)">
-                      {o.fullName} ({o.militaryId})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-(--app-muted-foreground) px-1">الفئة الرئيسية *</label>
-                <div className="grid grid-cols-2 gap-2">
-                   {["leave", "absence"].map((c) => (
-                     <button
-                       key={c}
-                       type="button"
-                       onClick={() => setForm({ ...form, category: c })}
-                       className={`py-2.5 rounded-lg text-xs font-medium border transition-all ${
-                         form.category === c
-                           ? "bg-(--color-primary)/20 border-(--color-primary) text-(--color-primary)"
-                           : "bg-(--app-surface-container) border border-(--app-border) text-(--app-muted-foreground) hover:bg-(--app-surface-container)"
-                       }`}
-                     >
-                       {c === "leave" ? "إجازة رسمية" : "غياب / انقطاع"}
-                     </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-(--app-muted-foreground) px-1">نوع الانتداب أو الإجازة *</label>
-              <div className="flex flex-wrap gap-2">
-                {LEAVE_TYPE_OPTIONS.map((t) => (
-                  <button
-                    key={t.value}
-                    type="button"
-                    onClick={() => setForm({ ...form, type: t.value })}
-                    className={`px-4 py-2 rounded-lg text-xs font-medium border transition-all ${
-                      form.type === t.value
-                        ? "bg-(--app-surface-container) border border-(--color-primary) text-(--color-primary)"
-                        : "bg-(--app-surface-container) border border-(--app-border) text-(--app-muted-foreground) hover:text-(--app-muted-foreground)"
-                    }`}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-(--app-muted-foreground) px-1">تاريخ البدء *</label>
-                <input
-                  type="date"
-                  value={form.startDate}
-                  onChange={(e) => setForm({ ...form, startDate: e.target.value })}
-                  required
-                  className="w-full rounded-lg bg-(--app-surface) border border-(--app-border) px-4 py-2.5 text-sm text-(--color-primary) focus:outline-none focus:ring-2 focus:ring-(--color-primary)/20"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-(--app-muted-foreground) px-1">تاريخ الانتهاء المتوقع *</label>
-                <input
-                  type="date"
-                  value={form.endDate}
-                  onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-                  required
-                  className="w-full rounded-lg bg-(--app-surface) border border-(--app-border) px-4 py-2.5 text-sm text-(--color-primary) focus:outline-none focus:ring-2 focus:ring-(--color-primary)/20"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-(--app-muted-foreground) px-1">السبب أو ملاحظات إضافية</label>
-              <textarea
-                value={form.reason}
-                onChange={(e) => setForm({ ...form, reason: e.target.value })}
-                className="w-full rounded-lg bg-(--app-surface) border border-(--app-border) px-4 py-2.5 text-sm text-(--color-primary) focus:outline-none focus:ring-2 focus:ring-(--color-primary)/20"
-                rows={2}
-                placeholder="تفاصيل إضافية حول السجل..."
-              />
-            </div>
-
-            <div className="flex gap-4 pt-4">
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex-1 flex items-center justify-center gap-2 btn-primary py-3 rounded-lg font-bold transition-all disabled:opacity-50"
-              >
-                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
-                {loading ? "جاري الحفظ..." : "حفظ السجل"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="px-6 rounded-lg bg-(--app-surface-container) text-(--color-primary) py-3 font-bold border border-(--app-border) hover:bg-(--app-surface-container) transition-all"
-              >
-                إلغاء
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
 
       {leaves.length === 0 ? (
         <div className="rounded-lg bg-(--app-surface) p-8 text-center text-(--app-muted-foreground)">

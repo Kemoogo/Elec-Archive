@@ -16,12 +16,14 @@ export interface IUser extends Document {
     medical: ModulePermission;
     students: ModulePermission;
     education: ModulePermission;
+    arkan_harb: ModulePermission;
   };
   isActive: boolean;
   isLocked: boolean;
   failedLoginAttempts: number;
   createdAt: Date;
   updatedAt: Date;
+  tokenVersion: number;
   comparePassword(candidate: string): Promise<boolean>;
 }
 
@@ -33,6 +35,7 @@ const UserSchema = new Schema<IUser>(
       unique: true,
       minlength: 3,
       trim: true,
+      lowercase: true,
     },
     password: {
       type: String,
@@ -60,6 +63,7 @@ const UserSchema = new Schema<IUser>(
       medical: { type: String, enum: ["none", "view", "edit"], default: "none" },
       students: { type: String, enum: ["none", "view", "edit"], default: "none" },
       education: { type: String, enum: ["none", "view", "edit"], default: "none" },
+      arkan_harb: { type: String, enum: ["none", "view", "edit"], default: "none" },
     },
     isActive: {
       type: Boolean,
@@ -74,6 +78,10 @@ const UserSchema = new Schema<IUser>(
       default: 0,
       min: 0,
       max: 5,
+    },
+    tokenVersion: {
+      type: Number,
+      default: 0,
     },
   },
   { timestamps: true },

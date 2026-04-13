@@ -8,11 +8,13 @@ export interface ModulePermissions {
   medical: PermissionLevel;
   students: PermissionLevel;
   education: PermissionLevel;
+  arkan_harb: PermissionLevel;
 }
 
 export interface JwtPayload {
   userId: string;
   role: UserRole;
+  tokenVersion: number;
 }
 
 export interface AuthUser {

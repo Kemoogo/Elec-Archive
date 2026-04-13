@@ -1,8 +1,34 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { AlertTriangle, Award, ArrowRightCircle } from "lucide-react";
 import { compareSeniority } from "@/lib/officers/seniority";
 import MainTable, { TableColumn } from "@/components/ui/Table";
+import { OfficerForm } from "./OfficerForm";
+import { OfficerPromoteModal } from "./OfficerPromoteModal";
+import { OfficerTransferModal } from "./OfficerTransferModal";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const ActionButton = ({ icon, color, title, onClick }: any) => {
+    return (
+        <div className="relative flex flex-col items-center group">
+            <button
+                type="button"
+                onClick={onClick}
+                className={`p-1.5 rounded-lg transition-all ${color} relative`}
+            >
+                {icon}
+            </button>
+            {title && (
+                <div className="absolute bottom-full left-0 mb-2 z-50 w-max max-w-[150px] whitespace-normal bg-slate-800 text-white text-[10px] font-bold px-2 py-1.5 rounded shadow-xl hidden group-hover:block pointer-events-none">
+                    {title}
+                    <div className="absolute top-full left-3 -translate-x-1/2 border-x-4 border-x-transparent border-t-4 border-t-slate-800"></div>
+                </div>
+            )}
+        </div>
+    );
+};
 
 interface OfficerListItem {
   id: string;
@@ -17,6 +43,14 @@ interface OfficerListItem {
   weapon: string;
   weaponLabel: string;
   phone: string;
+  unit: string;
+  position: string;
+  nationalId: string;
+  joinDate: string;
+  birthDate: string;
+  employmentStatus: string;
+  employmentStatusLabel: string;
+  file121Url: string;
 }
 
 interface OfficersTableProps {
@@ -28,8 +62,17 @@ interface OfficersTableProps {
 }
 
 export function OfficersTable({ officers, page, totalPages, total, canEdit }: OfficersTableProps) {
-  // ترتيب الضباط وفق المنطق العسكري المتقدم
-  const sortedOfficers = [...officers].sort((a, b) => compareSeniority(a.seniorityNumber, b.seniorityNumber));
+  const router = useRouter();
+  // ترتيب الضباط وفق المنطق العسكري المتقدم وتقييم اكتمال البيانات
+  const sortedOfficers = [...officers].sort((a, b) => compareSeniority(a.seniorityNumber, b.seniorityNumber))
+  .map(officer => {
+    // A record is complete if all descriptive fields are filled
+    const isComplete = Boolean(officer.batch && officer.type && officer.weapon && officer.phone && officer.nationalId && officer.unit && officer.position && officer.militaryId);
+    return {
+      ...officer,
+      _isComplete: isComplete,
+    };
+  });
 
   if (sortedOfficers.length === 0) {
     return (
@@ -91,16 +134,52 @@ export function OfficersTable({ officers, page, totalPages, total, canEdit }: Of
       cellAlign: "center",
       headerAlign: "center",
       minWidth: true,
-      render: (_, row) => (
-        <div className="flex items-center justify-center gap-2">
-          <Link
-            href={`/officers/${row.id}`}
-            className="rounded-lg border border-(--app-border) px-3 py-1.5 text-xs font-bold text-(--color-primary) transition hover:bg-(--app-surface-container)"
-          >
-            {canEdit ? "عرض وتعديل" : "عرض"}
-          </Link>
-        </div>
-      ),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      render: (_, row: any) => {
+        return (
+          <div className="flex items-center justify-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+            {!row._isComplete && (
+              <OfficerForm
+                mode="edit"
+                initialValues={row}
+                trigger={
+                  <ActionButton
+                    icon={<AlertTriangle className="w-4 h-4 text-amber-600" />}
+                    color="bg-amber-50 hover:bg-amber-100 border border-amber-200"
+                    title="بيانات غير مكتملة"
+                  />
+                }
+              />
+            )}
+            
+            {canEdit && row.employmentStatus === "active" && (
+              <>
+                <OfficerPromoteModal
+                  officer={row}
+                  trigger={
+                    <ActionButton
+                      icon={<Award className="w-4 h-4 text-amber-600" />}
+                      color="bg-amber-50 hover:bg-amber-100 border border-amber-200"
+                      title="تسجيل ترقية"
+                    />
+                  }
+                />
+                
+                <OfficerTransferModal
+                  officer={row}
+                  trigger={
+                    <ActionButton
+                      icon={<ArrowRightCircle className="w-4 h-4 text-orange-600" />}
+                      color="bg-orange-50 hover:bg-orange-100 border border-orange-200"
+                      title="نقل / إنهاء خدمة"
+                    />
+                  }
+                />
+              </>
+            )}
+          </div>
+        );
+      },
     },
   ];
 
@@ -109,6 +188,8 @@ export function OfficersTable({ officers, page, totalPages, total, canEdit }: Of
       <MainTable
         columns={columns}
         data={sortedOfficers}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        onRowClick={(row: any) => router.push(`/officers/${row.id}`)}
       // showSerialNumber 
       />
 

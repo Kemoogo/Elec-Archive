@@ -109,7 +109,7 @@ export function RollcallSheet({ date, roster, existingEntries, isDraft }: Rollca
     setSuccess("");
 
     try {
-      const res = await fetch("/api/officers/rollcall", {
+      const res = await fetch("/api/arkan-harb/rollcall", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...getPayload(), action: "save_draft" }),
@@ -147,7 +147,7 @@ export function RollcallSheet({ date, roster, existingEntries, isDraft }: Rollca
     setSuccess("");
 
     try {
-      const res = await fetch("/api/officers/rollcall", {
+      const res = await fetch("/api/arkan-harb/rollcall", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...getPayload(), action: "submit" }),

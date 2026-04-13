@@ -17,7 +17,7 @@ function isWorkday(): boolean {
 
 export async function sendRollcallReminder(): Promise<void> {
   if (!isWorkday()) {
-    console.log("[OfficersReminder] Today is not a workday (Fri/Sat). Skipping.");
+    // Today is not a workday (Fri/Sat). Skipping.
     return;
   }
 

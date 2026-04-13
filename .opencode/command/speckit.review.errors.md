@@ -1,9 +1,9 @@
 ---
-description: "Error handling review \u2014 silent failure detection, catch block analysis,\
-  \ error logging."
+description: Error handling review — silent failure detection, catch block analysis,
+  error logging.
 scripts:
-  sh: scripts/bash/detect-changed-files.sh
-  ps: scripts/powershell/detect-changed-files.ps1
+  sh: .specify/scripts/bash/detect-changed-files.sh
+  ps: .specify/scripts/powershell/detect-changed-files.ps1
 ---
 
 

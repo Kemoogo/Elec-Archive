@@ -1,9 +1,9 @@
 ---
-description: "Code simplification suggestions \u2014 clarity, unnecessary complexity,\
-  \ redundant abstractions. Advisory only."
+description: Code simplification suggestions — clarity, unnecessary complexity, redundant
+  abstractions. Advisory only.
 scripts:
-  sh: scripts/bash/detect-changed-files.sh
-  ps: scripts/powershell/detect-changed-files.ps1
+  sh: .specify/scripts/bash/detect-changed-files.sh
+  ps: .specify/scripts/powershell/detect-changed-files.ps1
 ---
 
 

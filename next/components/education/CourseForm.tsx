@@ -2,6 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { BookOpen } from "lucide-react";
+import { ModalActions } from "@/components/ui/modal-actions";
+import { ModalShell } from "@/components/ui/modal-shell";
 
 interface CourseFormProps {
   mode: "create" | "edit";
@@ -22,6 +25,7 @@ export function CourseForm({ mode, initialData, onSuccess }: CourseFormProps) {
   const [isPending, startTransition] = useTransition();
   const [isOpen, setIsOpen] = useState(mode === "edit");
   const [error, setError] = useState("");
+  const formId = mode === "create" ? "create-course-form" : "edit-course-form";
 
   const [title, setTitle] = useState(initialData?.title ?? "");
   const [description, setDescription] = useState(initialData?.description ?? "");
@@ -79,13 +83,39 @@ export function CourseForm({ mode, initialData, onSuccess }: CourseFormProps) {
   if (mode === "create") {
     return (
       <>
-        <button onClick={() => setIsOpen(true)} className="btn-accent">
-          إضافة دورة
-        </button>
+         <button onClick={() => setIsOpen(true)} className="btn-primary">
+           <>
+             <BookOpen className="h-4 w-4" />
+             إضافة دورة
+           </>
+         </button>
         {isOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-            <form onSubmit={handleSubmit} className="w-[480px] rounded-lg border border-(--app-border) bg-(--app-surface) p-6" dir="rtl">
-              <h2 className="mb-4 text-lg font-bold text-(--app-white)">إضافة دورة جديدة</h2>
+          <ModalShell
+            title="إضافة دورة جديدة"
+            panelClassName="max-w-[480px]"
+            onClose={() => {
+              setIsOpen(false);
+              setError("");
+            }}
+            footer={
+              <ModalActions>
+                <button type="submit" form={formId} disabled={isPending} className="btn-accent disabled:opacity-50">
+                  {isPending ? "جاري الحفظ..." : "إضافة"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOpen(false);
+                    setError("");
+                  }}
+                  className="rounded-md border border-(--app-border) px-4 py-2 text-sm text-foreground hover:bg-white/10"
+                >
+                  إلغاء
+                </button>
+              </ModalActions>
+            }
+          >
+            <form id={formId} onSubmit={handleSubmit} className="space-y-4">
               <FormFields
                 title={title} setTitle={setTitle}
                 description={description} setDescription={setDescription}
@@ -94,15 +124,9 @@ export function CourseForm({ mode, initialData, onSuccess }: CourseFormProps) {
                 participantModel={participantModel} setParticipantModel={setParticipantModel}
                 mode={mode}
               />
-              {error && <p className="mt-2 text-sm text-(--app-error)">{error}</p>}
-              <div className="mt-4 flex justify-end gap-2">
-                <button type="button" onClick={() => { setIsOpen(false); setError(""); }} className="rounded-md border border-(--app-border) px-4 py-2 text-sm text-foreground hover:bg-white/10">إلغاء</button>
-                <button type="submit" disabled={isPending} className="btn-accent disabled:opacity-50">
-                  {isPending ? "جاري الحفظ..." : "إضافة"}
-                </button>
-              </div>
+              {error && <p className="text-sm text-(--app-error)">{error}</p>}
             </form>
-          </div>
+          </ModalShell>
         )}
       </>
     );

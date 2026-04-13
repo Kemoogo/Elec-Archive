@@ -5,8 +5,7 @@ const Footer = () => {
         © 2026 الأرشيف الإلكتروني. جميع الحقوق محفوظة.
       </div>
       <div className="mr-auto text-sm font-medium opacity-90">
-        تطوير مقدم / كريم احمد مصطفي
-      </div>
+        تطوير مقدم / كريم احمد مصطفى      </div>
     </footer>
   );
 };

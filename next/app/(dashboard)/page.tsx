@@ -4,12 +4,14 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { Fax } from "@/lib/db/models/Fax";
 import { DailyRollcall } from "@/lib/db/models/DailyRollcall";
 import { Medicine } from "@/lib/db/models/Medicine";
+import { Mission } from "@/lib/db/models/Mission";
 import { Course } from "@/lib/db/models/Course";
 import { Student } from "@/lib/db/models/Student";
+import { ArkanHarbSummaryCard } from "@/components/dashboard/ArkanHarbSummaryCard";
 import { DashboardCard } from "@/components/dashboard/DashboardCard";
 import { headers } from "next/headers";
 
-async function getDashboardData(userRole: string, department: string) {
+async function getDashboardData(userRole: string, department: string, canViewArkanHarb: boolean) {
   await connectToDatabase();
 
   const today = new Date();
@@ -25,6 +27,10 @@ async function getDashboardData(userRole: string, department: string) {
       todaySubmitted: boolean;
       presentCount: number;
       absentCount: number;
+    } | null,
+    arkanHarb: null as {
+        rollcallSubmitted: boolean;
+        activeCount: number;
     } | null,
     medical: null as { expiredCount: number; lowStockCount: number } | null,
     courses: null as { activeCount: number } | null,
@@ -60,6 +66,25 @@ async function getDashboardData(userRole: string, department: string) {
     }
   } catch {
     // graceful per-card failure
+  }
+
+  try {
+    if (isAdminOrCommander || canViewArkanHarb) {
+      const todayRollcall = await DailyRollcall.findOne({
+        date: { $gte: today, $lt: tomorrow },
+      });
+      const activeMissionsCount = await Mission.countDocuments({ 
+          status: { $in: ["scheduled", "ongoing"] },
+          startDate: { $lte: new Date() }
+      });
+      // Simplified active count for demo purposes
+      data.arkanHarb = {
+        rollcallSubmitted: todayRollcall?.status === "submitted",
+        activeCount: activeMissionsCount,
+      };
+    }
+  } catch {
+    // graceful
   }
 
   try {
@@ -110,12 +135,18 @@ export default async function DashboardPage() {
   }
 
   if (user.role === "commander") {
-    const data = await getDashboardData(user.role, user.department);
+    const data = await getDashboardData(user.role, user.department, true);
 
     return (
       <div className="space-y-8">
         <h1 className="text-2xl font-bold text-foreground">نظرة عامة على الأقسام</h1>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {data.arkanHarb && (
+            <ArkanHarbSummaryCard 
+                rollcallSubmitted={data.arkanHarb.rollcallSubmitted}
+                activeCount={data.arkanHarb.activeCount}
+            />
+          )}
           <DashboardCard
             title="الفاكسات"
             count={data.faxes?.pendingCount ?? null}
@@ -178,15 +209,16 @@ export default async function DashboardPage() {
 
   if (user.role === "employee") {
     const permissions = user.permissions;
+    const canViewArkanHarb = permissions.arkan_harb !== "none";
     const assignedModules = Object.entries(permissions)
       .filter(([, level]) => level !== "none")
       .map(([module]) => module);
 
-    if (assignedModules.length === 1) {
+    if (assignedModules.length === 1 && !canViewArkanHarb) {
       redirect(`/${assignedModules[0]}`);
     }
 
-    const data = await getDashboardData(user.role, user.department);
+    const data = await getDashboardData(user.role, user.department, canViewArkanHarb);
 
     const moduleCards: {
       module: string;
@@ -254,6 +286,12 @@ export default async function DashboardPage() {
       <div className="space-y-8">
         <h1 className="text-2xl font-bold text-foreground">لوحة التحكم</h1>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {data.arkanHarb && (
+            <ArkanHarbSummaryCard 
+                rollcallSubmitted={data.arkanHarb.rollcallSubmitted}
+                activeCount={data.arkanHarb.activeCount}
+            />
+          )}
           {moduleCards.map((card) => (
             <DashboardCard
               key={card.module}

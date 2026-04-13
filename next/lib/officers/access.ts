@@ -1,11 +1,13 @@
 import type { AuthUser } from "@/lib/auth/types";
 
+import { canViewModule, canEditModule } from "@/lib/auth/authorization";
+
 export function canViewOfficers(user: AuthUser): boolean {
-  return user.role === "admin" || user.permissions.officers !== "none";
+  return canViewModule(user, "officers") || canViewModule(user, "arkan_harb");
 }
 
 export function canEditOfficers(user: AuthUser): boolean {
-  return user.role === "admin" || user.permissions.officers === "edit";
+  return canEditModule(user, "officers") || canEditModule(user, "arkan_harb");
 }
 
 export function canViewCommanderRollcall(user: AuthUser): boolean {

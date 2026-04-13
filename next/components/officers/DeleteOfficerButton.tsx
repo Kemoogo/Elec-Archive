@@ -1,0 +1,58 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Trash2 } from "lucide-react";
+import { ModalShell } from "@/components/ui/modal-shell";
+import { ModalActions } from "@/components/ui/modal-actions";
+
+export function DeleteOfficerButton({ officerId, officerName }: { officerId: string, officerName: string }) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+
+  const handleDelete = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/officers/${officerId}`, { method: "DELETE" });
+      if (res.ok) {
+        router.push("/officers");
+        router.refresh();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to delete the officer.");
+        setLoading(false);
+      }
+    } catch {
+      alert("An error occurred during deletion.");
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <button onClick={() => setOpen(true)} className="btn-destructive px-4 py-2 font-bold text-sm">
+        <Trash2 className="w-4 h-4" />
+        حذف الضابط
+      </button>
+
+      {open && (
+        <ModalShell title={<span className="text-base font-semibold text-(--app-error)">تأكيد الحذف</span>} onClose={() => setOpen(false)}>
+          <div className="p-6">
+            <p className="text-sm font-bold text-slate-600 mb-6 font-sans">
+              هل أنت متأكد من حذف الضابط <span className="text-(--app-error)">{officerName}</span>؟ هذا الإجراء لا يمكن التراجع عنه.
+            </p>
+            <ModalActions>
+              <button onClick={handleDelete} disabled={loading} className="btn-destructive flex-1 justify-center">
+                {loading ? "جاري الحذف..." : "نعم، احذف الضابط"}
+              </button>
+              <button onClick={() => setOpen(false)} disabled={loading} className="btn-secondary flex-1 justify-center">
+                إلغاء
+              </button>
+            </ModalActions>
+          </div>
+        </ModalShell>
+      )}
+    </>
+  );
+}

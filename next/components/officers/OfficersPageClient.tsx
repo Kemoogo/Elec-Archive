@@ -24,6 +24,14 @@ interface OfficersPageClientProps {
     weapon: string;
     weaponLabel: string;
     phone: string;
+    unit: string;
+    position: string;
+    nationalId: string;
+    joinDate: string;
+    birthDate: string;
+    employmentStatus: string;
+    employmentStatusLabel: string;
+    file121Url: string;
   }>;
   page: number;
   totalPages: number;

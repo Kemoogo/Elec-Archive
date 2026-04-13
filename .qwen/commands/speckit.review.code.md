@@ -1,9 +1,9 @@
 ---
-description: "General code quality review \u2014 project guideline compliance, bug\
-  \ detection, code quality analysis."
+description: General code quality review — project guideline compliance, bug detection,
+  code quality analysis.
 scripts:
-  sh: scripts/bash/detect-changed-files.sh
-  ps: scripts/powershell/detect-changed-files.ps1
+  sh: .specify/scripts/bash/detect-changed-files.sh
+  ps: .specify/scripts/powershell/detect-changed-files.ps1
 ---
 
 

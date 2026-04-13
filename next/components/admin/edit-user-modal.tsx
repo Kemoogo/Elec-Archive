@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { ModalActions } from "@/components/ui/modal-actions";
+import { ModalShell } from "@/components/ui/modal-shell";
 import { useToast } from "@/components/ui/toast";
 
 interface UserSummary {
@@ -26,6 +28,7 @@ const DEPARTMENTS = ["fax", "officers", "medical", "students", "education"] as c
 
 export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
   const { showToast } = useToast();
+  const formId = `edit-user-form-${user.id}`;
   const [fullName, setFullName] = useState(user.fullName);
   const [role, setRole] = useState(user.role);
   const [department, setDepartment] = useState(user.department);
@@ -40,6 +43,29 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [changePassword, setChangePassword] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadUser() {
+      try {
+        const res = await fetch(`/api/auth/users/${user.id}`);
+        const data = await res.json();
+        if (data.success && data.user) {
+          setFullName(data.user.fullName);
+          setRole(data.user.role);
+          setDepartment(data.user.department || "");
+          if (data.user.permissions) {
+            setPermissions(data.user.permissions);
+          }
+        }
+      } catch {
+        showToast("فشل في تحميل بيانات المستخدم", "error");
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadUser();
+  }, [user.id, showToast]);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -85,11 +111,35 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-lg bg-(--app-surface) p-6 shadow-xl" dir="rtl" onClick={(e) => e.stopPropagation()}>
-        <h2 className="mb-4 text-lg font-bold text-(--app-white)">تعديل المستخدم: {user.username}</h2>
-
-        <form onSubmit={handleSave} className="space-y-4">
+    <ModalShell
+      title={`تعديل المستخدم: ${user.username}`}
+      onClose={onClose}
+      closeOnOverlayClick
+      panelClassName="max-w-lg"
+      footer={
+        <ModalActions>
+          <button
+            type="submit"
+            form={formId}
+            disabled={saving}
+            className="rounded-md bg-(--app-accent) px-4 py-2 text-sm font-medium text-(--app-accent-foreground) hover:bg-(--app-accent)/90 disabled:opacity-50"
+          >
+            {saving ? "جاري الحفظ..." : "حفظ التغييرات"}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md bg-(--app-border) px-4 py-2 text-sm text-foreground hover:bg-white/10"
+          >
+            إلغاء
+          </button>
+        </ModalActions>
+      }
+    >
+      {loading ? (
+        <div className="py-10 text-center text-(--app-muted-foreground)">جاري تحميل بيانات المستخدم...</div>
+      ) : (
+        <form id={formId} onSubmit={handleSave} className="space-y-4">
           <div>
             <label className="block text-sm text-foreground">الاسم الكامل</label>
             <input
@@ -198,24 +248,8 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
             </div>
           </div>
 
-          <div className="flex gap-2 pt-2">
-            <button
-              type="submit"
-              disabled={saving}
-              className="rounded-md bg-(--app-accent) px-4 py-2 text-sm text-(--app-accent-foreground) font-medium hover:bg-(--app-accent)/90 disabled:opacity-50"
-            >
-              {saving ? "جاري الحفظ..." : "حفظ التغييرات"}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md bg-(--app-border) px-4 py-2 text-sm text-foreground hover:bg-white/10"
-            >
-              إلغاء
-            </button>
-          </div>
         </form>
-      </div>
-    </div>
+      )}
+    </ModalShell>
   );
 }

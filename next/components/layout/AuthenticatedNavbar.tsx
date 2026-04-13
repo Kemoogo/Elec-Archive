@@ -12,6 +12,7 @@ const moduleLabels: Record<keyof ModulePermissions, string> = {
   medical: "الطبي",
   students: "الطلبة",
   education: "التعليم",
+  arkan_harb: "أركان حرب",
 };
 
 interface AuthenticatedNavbarProps {
@@ -23,16 +24,37 @@ interface AuthenticatedNavbarProps {
   accessibleModules: (keyof ModulePermissions)[];
 }
 
+interface NavItem {
+  href: string;
+  label: string;
+  children?: NavItem[];
+}
+
 export function AuthenticatedNavbar({ user, accessibleModules }: AuthenticatedNavbarProps) {
-  const navItems: { href: string; label: string }[] = [];
+  const navItems: NavItem[] = [];
 
   if (user.role === "admin") {
     navItems.push({ href: "/admin/users", label: "الإدارة" });
   }
 
   for (const mod of accessibleModules) {
-    navItems.push({ href: `/${mod}`, label: moduleLabels[mod] });
+    if (mod === "arkan_harb") {
+      navItems.push({
+        href: "/arkan-harb",
+        label: moduleLabels[mod],
+        children: [
+          { href: "/arkan-harb/rollcall", label: "التمام اليومي" },
+          { href: "/arkan-harb/leaves", label: "سجل الإجازات" },
+          { href: "/arkan-harb/missions", label: "المأموريات والمهام" },
+          { href: "/arkan-harb/positions", label: "التنظيم والوظائف" },
+        ],
+      });
+    } else {
+      const href = `/${mod.replace("_", "-")}`;
+      navItems.push({ href, label: moduleLabels[mod] });
+    }
   }
+
 
   if (user.role === "admin" || user.role === "commander") {
     navItems.push({ href: "/audit-log", label: "السجل" });

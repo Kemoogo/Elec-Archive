@@ -1,37 +1,25 @@
 import { Schema, model, models, type Document, type Types } from "mongoose";
 
-export const LEAVE_CATEGORIES = ["leave", "absence"] as const;
-export type LeaveCategory = (typeof LEAVE_CATEGORIES)[number];
+import { 
+  LEAVE_CATEGORIES, 
+  LEAVE_TYPES, 
+  LEAVE_STATUSES, 
+  LEAVE_TYPE_LABELS, 
+  LEAVE_STATUS_LABELS,
+  type LeaveCategory,
+  type LeaveType,
+  type LeaveStatus 
+} from "./Leave.shared";
 
-export const LEAVE_TYPES = [
-  "annual",
-  "sick",
-  "emergency",
-  "rest",
-  "overnight",
-  "field",
-  "casual",
-] as const;
-export type LeaveType = (typeof LEAVE_TYPES)[number];
-
-export const LEAVE_STATUSES = ["draft", "approved", "closed", "cancelled"] as const;
-export type LeaveStatus = (typeof LEAVE_STATUSES)[number];
-
-export const LEAVE_TYPE_LABELS: Record<LeaveType, string> = {
-  annual: "سنوية",
-  sick: "مرضية",
-  emergency: "طارئة",
-  rest: "راحة",
-  overnight: "مبيت",
-  field: "ميدانية",
-  casual: "عارضة",
-};
-
-export const LEAVE_STATUS_LABELS: Record<LeaveStatus, string> = {
-  draft: "مسودة",
-  approved: "معتمدة",
-  closed: "منتهية",
-  cancelled: "ملغاة",
+export { 
+  LEAVE_CATEGORIES, 
+  LEAVE_TYPES, 
+  LEAVE_STATUSES, 
+  LEAVE_TYPE_LABELS, 
+  LEAVE_STATUS_LABELS,
+  type LeaveCategory,
+  type LeaveType,
+  type LeaveStatus 
 };
 
 export interface ILeave extends Document {

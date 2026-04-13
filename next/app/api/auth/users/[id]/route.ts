@@ -6,6 +6,7 @@ import { logAuditEvent } from "@/lib/auth/audit";
 import { updateUserSchema } from "@/validations/auth";
 import { errors } from "@/lib/auth/errors";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
+import { UpdateQuery } from "mongoose";
 
 export async function GET(
   request: Request,
@@ -104,23 +105,41 @@ export async function PATCH(
     }
 
     const updateData: Record<string, unknown> = {};
+    const incData: Record<string, number> = {};
+    let shouldIncrementTokenVersion = false;
 
     if (parsed.data.fullName !== undefined) updateData.fullName = parsed.data.fullName;
     if (parsed.data.role !== undefined) updateData.role = parsed.data.role;
     if (parsed.data.department !== undefined) updateData.department = parsed.data.department;
     if (parsed.data.permissions !== undefined) updateData.permissions = parsed.data.permissions;
-    if (parsed.data.isActive !== undefined) updateData.isActive = parsed.data.isActive;
+    if (parsed.data.isActive !== undefined) {
+      updateData.isActive = parsed.data.isActive;
+      if (parsed.data.isActive === false) shouldIncrementTokenVersion = true;
+    }
     if (parsed.data.isLocked !== undefined) {
       updateData.isLocked = parsed.data.isLocked;
       if (parsed.data.isLocked === false) {
         updateData.failedLoginAttempts = 0;
+      } else {
+        shouldIncrementTokenVersion = true;
       }
     }
     if (parsed.data.password !== undefined) {
-      updateData.password = parsed.data.password;
+      const { hash } = await import("bcryptjs");
+      updateData.password = await hash(parsed.data.password, 12);
+      shouldIncrementTokenVersion = true;
     }
 
-    const user = await User.findByIdAndUpdate(id, updateData, { new: true }).select("-password");
+    if (shouldIncrementTokenVersion) {
+      incData.tokenVersion = 1;
+    }
+
+    const updateQuery: UpdateQuery<typeof User> = Object.keys(updateData).length > 0 ? { $set: updateData } : {};
+    if (Object.keys(incData).length > 0) {
+      updateQuery.$inc = incData;
+    }
+
+    const user = await User.findByIdAndUpdate(id, updateQuery, { new: true }).select("-password");
 
     if (!user) {
       return NextResponse.json(
@@ -207,7 +226,7 @@ export async function DELETE(
     }
   }
 
-  const user = await User.findByIdAndUpdate(id, { isActive: false }, { new: true });
+  const user = await User.findByIdAndUpdate(id, { $set: { isActive: false }, $inc: { tokenVersion: 1 } }, { new: true });
 
   if (!user) {
     return NextResponse.json(

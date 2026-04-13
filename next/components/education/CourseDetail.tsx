@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { CourseStatus } from "@/lib/db/models/Course";
+import { ModalActions } from "@/components/ui/modal-actions";
+import { ModalShell } from "@/components/ui/modal-shell";
 
 interface CourseDetailProps {
   course: {
@@ -196,23 +198,38 @@ export function CourseDetail({ course, canEdit }: CourseDetailProps) {
       </div>
 
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="w-96 rounded-lg border border-(--app-border) bg-(--app-surface) p-6" dir="rtl">
-            <h3 className="text-lg font-bold text-(--app-white)">تأكيد الحذف</h3>
+        <ModalShell
+          title="تأكيد الحذف"
+          panelClassName="max-w-96"
+          onClose={() => {
+            setShowDeleteConfirm(false);
+            setDeleteError("");
+          }}
+          footer={
+            <ModalActions>
+              <button type="button" onClick={handleDelete} disabled={isDeleting} className="btn-destructive disabled:opacity-50">
+                {isDeleting ? "جاري الحذف..." : "تأكيد الحذف"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setDeleteError("");
+                }}
+                className="rounded-md border border-(--app-border) px-4 py-2 text-sm text-foreground hover:bg-white/10"
+              >
+                إلغاء
+              </button>
+            </ModalActions>
+          }
+        >
             <p className="mt-2 text-sm text-(--app-muted-foreground)">
               هل أنت متأكد من حذف دورة &quot;{course.title}&quot;؟ سيتم حذف جميع المستندات المرفقة.
             </p>
             {deleteError && (
               <p className="mt-2 text-sm text-(--app-error)">{deleteError}</p>
             )}
-            <div className="mt-4 flex justify-end gap-2">
-              <button onClick={() => { setShowDeleteConfirm(false); setDeleteError(""); }} className="rounded-md border border-(--app-border) px-4 py-2 text-sm text-foreground hover:bg-white/10">إلغاء</button>
-              <button onClick={handleDelete} disabled={isDeleting} className="btn-destructive disabled:opacity-50">
-                {isDeleting ? "جاري الحذف..." : "تأكيد الحذف"}
-              </button>
-            </div>
-          </div>
-        </div>
+        </ModalShell>
       )}
     </div>
   );

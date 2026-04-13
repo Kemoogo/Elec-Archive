@@ -147,3 +147,53 @@ export async function PATCH(
     );
   }
 }
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const auth = await authenticate();
+  if (!auth.success) {
+    return NextResponse.json(
+      { success: false, error: auth.error },
+      { status: auth.status },
+    );
+  }
+
+  if (!canEditOfficers(auth.user!)) {
+    return NextResponse.json(
+      { success: false, error: errors.insufficientPermissions },
+      { status: 403 },
+    );
+  }
+
+  const ip = request.headers.get("x-forwarded-for") ?? "";
+  const rl = checkOfficersRateLimit(auth.user!.id, ip, "write");
+  if (!rl.allowed) {
+    return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
+  }
+
+  await connectToDatabase();
+
+  const { id } = await params;
+  const officer = await Officer.findByIdAndDelete(id);
+  if (!officer) {
+    return NextResponse.json(
+      { success: false, error: "الضابط غير موجود" },
+      { status: 404 },
+    );
+  }
+
+  await logAuditEvent({
+    userId: auth.user!.id,
+    userName: auth.user!.fullName,
+    action: "DELETE",
+    module: "officers",
+    targetId: id,
+    description: `حذف الضابط: ${officer.fullName}`,
+    ipAddress: ip,
+  });
+
+  return NextResponse.json({ success: true });
+}
+

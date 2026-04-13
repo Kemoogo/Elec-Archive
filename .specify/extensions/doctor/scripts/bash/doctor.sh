@@ -58,10 +58,10 @@ echo ""
 echo "=== Project Structure ==="
 check_dir ".specify" ".specify/ directory" "error"
 check_dir "specs" "specs/ directory" "info"
-check_dir "scripts" "scripts/ directory" "error"
-check_dir "templates" "templates/ directory" "error"
-check_dir "memory" "memory/ directory" "error"
-check_file "memory/constitution.md" "memory/constitution.md" "warning"
+check_dir ".specify/scripts" ".specify/scripts/ directory" "error"
+check_dir ".specify/templates" ".specify/templates/ directory" "error"
+check_dir ".specify/memory" ".specify/memory/ directory" "error"
+check_file ".specify/memory/constitution.md" ".specify/memory/constitution.md" "warning"
 
 # ── 2. AI agent detection ─────────────────────────────────────────
 echo ""
@@ -156,37 +156,37 @@ echo "=== Scripts ==="
 
 EXPECTED_SCRIPTS="common check-prerequisites create-new-feature setup-plan update-agent-context"
 
-if [ -d "$PROJECT_ROOT/scripts/bash" ]; then
+if [ -d "$PROJECT_ROOT/.specify/scripts/bash" ]; then
     for name in $EXPECTED_SCRIPTS; do
-        script="$PROJECT_ROOT/scripts/bash/${name}.sh"
+        script="$PROJECT_ROOT/.specify/scripts/bash/${name}.sh"
         if [ -f "$script" ]; then
             if [ ! -x "$script" ]; then
                 echo "  [WARNING] bash/${name}.sh — not executable"
-                WARNINGS+=("scripts/bash/${name}.sh is not executable — run chmod +x")
+                WARNINGS+=(".specify/scripts/bash/${name}.sh is not executable — run chmod +x")
             else
                 echo "  [OK] bash/${name}.sh"
             fi
         else
             echo "  [MISSING] bash/${name}.sh"
-            ERRORS+=("scripts/bash/${name}.sh is missing")
+            ERRORS+=(".specify/scripts/bash/${name}.sh is missing")
         fi
     done
 else
-    echo "  [NOTE] scripts/bash/ not found"
+    echo "  [NOTE] .specify/scripts/bash/ not found"
 fi
 
-if [ -d "$PROJECT_ROOT/scripts/powershell" ]; then
+if [ -d "$PROJECT_ROOT/.specify/scripts/powershell" ]; then
     for name in $EXPECTED_SCRIPTS; do
-        script="$PROJECT_ROOT/scripts/powershell/${name}.ps1"
+        script="$PROJECT_ROOT/.specify/scripts/powershell/${name}.ps1"
         if [ -f "$script" ]; then
             echo "  [OK] powershell/${name}.ps1"
         else
             echo "  [MISSING] powershell/${name}.ps1"
-            ERRORS+=("scripts/powershell/${name}.ps1 is missing")
+            ERRORS+=(".specify/scripts/powershell/${name}.ps1 is missing")
         fi
     done
 else
-    echo "  [NOTE] scripts/powershell/ not found"
+    echo "  [NOTE] .specify/scripts/powershell/ not found"
 fi
 
 # ── 5. Extensions health ──────────────────────────────────────────

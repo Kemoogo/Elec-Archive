@@ -30,6 +30,10 @@ export async function authenticate(): Promise<AuthResult> {
     return { success: false, error: errors.notAuthenticated, status: 401 };
   }
 
+  if (user.tokenVersion !== payload.tokenVersion) {
+    return { success: false, error: errors.notAuthenticated, status: 401 };
+  }
+
   if (!user.isActive) {
     return { success: false, error: errors.accountDeactivated, status: 403 };
   }

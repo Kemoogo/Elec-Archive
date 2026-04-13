@@ -15,6 +15,14 @@ interface OfficerListItem {
   weapon: string;
   weaponLabel: string;
   phone: string;
+  unit: string;
+  position: string;
+  nationalId: string;
+  joinDate: string;
+  birthDate: string;
+  employmentStatus: string;
+  employmentStatusLabel: string;
+  file121Url: string;
 }
 
 interface OfficerDetailData {
@@ -71,6 +79,14 @@ export function serializeOfficerListItem(officer: OfficerLean): OfficerListItem 
     weapon: officer.weapon ?? "",
     weaponLabel: officer.weapon ? (OFFICER_WEAPON_LABELS[officer.weapon] ?? officer.weapon) : "",
     phone: officer.phone ?? "",
+    unit: officer.unit ?? "",
+    position: officer.position ?? "",
+    nationalId: officer.nationalId ?? "",
+    joinDate: officer.joinDate ? officer.joinDate.toISOString() : new Date().toISOString(),
+    birthDate: officer.birthDate ? officer.birthDate.toISOString() : "",
+    employmentStatus: officer.employmentStatus ?? "inactive",
+    employmentStatusLabel: EMPLOYMENT_LABELS[officer.employmentStatus] ?? officer.employmentStatus ?? "غير محدد",
+    file121Url: officer.file121Url ?? "",
   };
 }
 
