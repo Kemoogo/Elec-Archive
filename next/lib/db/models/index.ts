@@ -24,7 +24,6 @@ export type { IUser, UserRole, ModulePermission } from "./User";
 export type { IFax, FaxStatus, FileType, ForwardedToType } from "./Fax";
 export type {
   IOfficer,
-  IOfficerDocument,
   OfficerRank,
   EmploymentStatus,
 } from "./Officer";

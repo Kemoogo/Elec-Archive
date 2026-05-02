@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { authenticate } from "@/lib/auth/middleware";
 import type { ModulePermissions } from "@/lib/auth/types";
 import { AuthenticatedNavbar } from "@/components/layout/AuthenticatedNavbar";
+import { SessionWatcher } from "@/components/auth/SessionWatcher";
 import LandingPage from "@/components/landing/LandingPage";
 import { checkDailyRollcallReminder } from "@/lib/arkan-harb/rollcall-reminder";
 
@@ -70,6 +71,7 @@ export default async function DashboardLayout({
 
   return (
     <div dir="rtl">
+      <SessionWatcher />
       <AuthenticatedNavbar user={user} accessibleModules={accessibleModules} />
 
       <div className="flex flex-col min-h-[calc(100vh-64px-56px)]">

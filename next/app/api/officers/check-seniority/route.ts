@@ -30,7 +30,7 @@ export async function POST(request: Request) {
           existingId: existing._id.toString(),
           fullName: existing.fullName,
           rank: existing.rank,
-          employmentStatus: existing.employmentStatus,
+          isInUnit: existing.isInUnit,
         },
         error: "رقم الأقدمية هذا مسجل مسبقاً لضابط آخر."
       });

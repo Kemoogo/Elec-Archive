@@ -5,34 +5,15 @@ import { useRouter } from "next/navigation";
 import { OfficersTable } from "@/components/officers/OfficersTable";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { ModernPageHeader as PageHeader } from "@/components/layout/ModernPageHeader";
-import { Users } from "lucide-react";
+import { Shield } from "lucide-react";
 import { OfficerForm } from "@/components/officers/OfficerForm";
+import type { OfficerListItem } from "@/lib/officers/queries";
 
 interface OfficersPageClientProps {
   initialSearch: string;
   initialStatus: string;
-  officers: Array<{
-    id: string;
-    militaryId: string;
-    seniorityNumber: string;
-    fullName: string;
-    rank: string;
-    rankLabel: string;
-    batch: string;
-    type: string;
-    typeLabel: string;
-    weapon: string;
-    weaponLabel: string;
-    phone: string;
-    unit: string;
-    position: string;
-    nationalId: string;
-    joinDate: string;
-    birthDate: string;
-    employmentStatus: string;
-    employmentStatusLabel: string;
-    file121Url: string;
-  }>;
+  initialShowAll: boolean;
+  officers: OfficerListItem[];
   page: number;
   totalPages: number;
   total: number;
@@ -42,6 +23,7 @@ interface OfficersPageClientProps {
 export function OfficersPageClient({
   initialSearch,
   initialStatus,
+  initialShowAll,
   officers,
   page,
   totalPages,
@@ -51,12 +33,14 @@ export function OfficersPageClient({
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [statusFilter, setStatusFilter] = useState(initialStatus);
+  const [showAll, setShowAll] = useState(initialShowAll);
 
   const applyFilters = useCallback(
-    (search: string, status: string) => {
+    (search: string, status: string, all: boolean) => {
       const params = new URLSearchParams();
       if (search) params.set("search", search);
       if (status) params.set("status", status);
+      if (all) params.set("all", "true");
       router.push(`/officers?${params.toString()}`);
     },
     [router],
@@ -65,40 +49,42 @@ export function OfficersPageClient({
   const handleSearchChange = useCallback(
     (query: string) => {
       setSearchQuery(query);
-      applyFilters(query, statusFilter);
+      applyFilters(query, statusFilter, showAll);
     },
-    [applyFilters, statusFilter],
+    [applyFilters, statusFilter, showAll],
   );
 
   const handleStatusChange = useCallback(
     (status: string) => {
       setStatusFilter(status);
-      applyFilters(searchQuery, status);
+      applyFilters(searchQuery, status, showAll);
     },
-    [applyFilters, searchQuery],
+    [applyFilters, searchQuery, showAll],
   );
+
+  const toggleShowAll = useCallback(() => {
+    const nextShowAll = !showAll;
+    setShowAll(nextShowAll);
+    applyFilters(searchQuery, statusFilter, nextShowAll);
+  }, [applyFilters, searchQuery, statusFilter, showAll]);
 
   return (
     <PageContainer className="max-w-[1600px] mx-auto pb-12">
       <PageHeader
         title="شئون الضباط"
         description="سجل الضباط، الترقيات، والتنقلات"
-        icon={<Users className="w-6 h-6" />}
+        icon={<Shield className="w-6 h-6" />}
         showSearch
         searchQuery={searchQuery}
         onSearchChange={handleSearchChange}
         action={
           <div className="flex items-center gap-2">
-            <select
-              value={statusFilter}
-              onChange={(e) => handleStatusChange(e.target.value)}
-              className="rounded-xl border border-(--app-border) bg-(--app-surface-container) px-3 py-2 text-xs font-bold text-(--color-primary) focus:outline-none focus:ring-2 focus:ring-(--color-primary)/20 transition-all appearance-none cursor-pointer"
+            <button
+              onClick={toggleShowAll}
+              className="px-4 py-2 rounded-xl text-sm font-bold transition-all bg-slate-100 text-(--color-primary) hover:bg-slate-200 focus:outline-none cursor-pointer text-center"
             >
-              <option value="">جميع السجلات</option>
-              <option value="active">القوة النشطة</option>
-              <option value="inactive">القوة غير النشطة</option>
-              <option value="retired">المحالون للتقاعد</option>
-            </select>
+              {showAll ? "كل الضباط" : "الضباط بالوحدة"}
+            </button>
             {canEdit && <OfficerForm mode="create" />}
           </div>
         }

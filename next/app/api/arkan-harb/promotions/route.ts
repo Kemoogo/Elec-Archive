@@ -5,7 +5,7 @@ import { canViewModule, canEditModule } from "@/lib/auth/authorization";
 import { logAuditEvent } from "@/lib/auth/audit";
 import { errors } from "@/lib/auth/errors";
 import { Promotion } from "@/lib/db/models/Promotion";
-import { Officer } from "@/lib/db/models/Officer";
+import { Officer, RANK_LABELS, type OfficerRank } from "@/lib/db/models/Officer";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
 import { promotionsListQuerySchema, createPromotionSchema } from "@/lib/validations/arkan-harb";
 
@@ -45,7 +45,17 @@ export async function GET(request: Request) {
 
     // 5. Build query
     const query: Record<string, unknown> = {};
-    if (officerId) query.officerId = officerId;
+    let officerDisplayName = "";
+
+    if (officerId) {
+      query.officerId = officerId;
+      const officer = await Officer.findById(officerId).select("rank fullName").lean();
+      if (officer) {
+        officerDisplayName = `${RANK_LABELS[officer.rank as OfficerRank]} / ${officer.fullName}`;
+      } else {
+        officerDisplayName = officerId;
+      }
+    }
 
     const skip = (page - 1) * limit;
     const [items, total] = await Promise.all([
@@ -59,7 +69,7 @@ export async function GET(request: Request) {
       userName: auth.user!.fullName,
       action: "VIEW",
       module: "arkan_harb",
-      description: `عرض قائمة الترقيات (صفحة ${page})${officerId ? ` للضابط ${officerId}` : ""}`,
+      description: `عرض قائمة الترقيات (صفحة ${page})${officerDisplayName ? ` للضابط: ${officerDisplayName}` : ""}`,
       ipAddress: ip,
     });
 
@@ -139,13 +149,21 @@ export async function POST(request: Request) {
     await Officer.findByIdAndUpdate(data.officerId, { rank: data.toRank });
 
     // 7. Audit
+    const officer = await Officer.findById(data.officerId).select("rank fullName").lean();
+    const officerDisplayName = officer 
+      ? `${RANK_LABELS[officer.rank as OfficerRank]} / ${officer.fullName}` 
+      : data.officerId;
+    
+    const fromRankLabel = RANK_LABELS[data.fromRank as OfficerRank] || data.fromRank;
+    const toRankLabel = RANK_LABELS[data.toRank as OfficerRank] || data.toRank;
+
     await logAuditEvent({
       userId: auth.user!.id,
       userName: auth.user!.fullName,
       action: "CREATE",
       module: "arkan_harb",
       targetId: promotion._id.toString(),
-      description: `تم ترقية الضابط ${data.officerId} من ${data.fromRank} إلى ${data.toRank}`,
+      description: `تم ترقية الضابط ${officerDisplayName} من ${fromRankLabel} إلى ${toRankLabel}`,
       ipAddress: ip,
     });
 

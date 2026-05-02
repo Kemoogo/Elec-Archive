@@ -18,14 +18,17 @@ provides:
     - name: "speckit.speckit-utils.resume"
       file: "commands/resume.md"
       description: "Resume an interrupted session by detecting feature state and suggesting the next command"
+      aliases: ["speckit.resume"]
 
     - name: "speckit.speckit-utils.doctor"
       file: "commands/doctor.md"
       description: "Validate project health: templates, agent config, scripts, constitution, and feature artifacts"
+      aliases: ["speckit.doctor"]
 
     - name: "speckit.speckit-utils.validate"
       file: "commands/validate.md"
       description: "Verify spec-to-task traceability and check that completed tasks produced expected files"
+      aliases: ["speckit.validate"]
 
 hooks:
   after_specify:

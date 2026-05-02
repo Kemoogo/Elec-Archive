@@ -5,6 +5,7 @@ import Link from "next/link";
 import { FileText, Loader2, ExternalLink } from "lucide-react";
 import MainTable, { TableColumn } from "@/components/ui/Table";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { LEAVE_TYPE_LABELS, LEAVE_STATUS_LABELS } from "@/lib/db/models/Leave.shared";
 
 interface LeaveRecord {
@@ -118,13 +119,13 @@ export function LeaveRecordTab({ officerId, initialData }: LeaveRecordTabProps) 
   }
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-(--app-surface-container) border border-(--app-border) rounded-lg">
             <FileText className="h-5 w-5 text-(--color-primary)" />
           </div>
-          <h2 className="text-lg font-semibold text-(--color-primary)">بيان الإجازات والغيابات</h2>
+          <h2 className="text-xl font-bold text-(--color-primary)">بيان الإجازات والغيابات</h2>
         </div>
         <Link 
           href={`/arkan-harb/leaves?officerId=${officerId}`} 
@@ -136,16 +137,17 @@ export function LeaveRecordTab({ officerId, initialData }: LeaveRecordTabProps) 
       </div>
 
       {leaves.length === 0 ? (
-        <div className="flex h-40 flex-col items-center justify-center rounded-xl border border-dashed border-(--app-border) bg-(--app-surface) text-(--app-muted-foreground)">
-          <FileText className="h-10 w-10 mb-4 opacity-20" />
-          <p className="font-medium">لا توجد سجلات إجازات مسجلة لهذا الضابط</p>
-        </div>
+        <EmptyState
+          icon={FileText}
+          title="لا توجد سجلات إجازات"
+          description="لم يتم تسجيل أي إجازات أو غيابات لهذا الضابط حتى الآن."
+        />
       ) : (
         <MainTable 
           columns={columns} 
           data={leaves} 
           theadClassName="bg-(--app-surface-container) text-(--app-muted-foreground) text-xs"
-          tdClassName="px-5 py-4 text-sm font-medium border-b border-(--app-border) text-slate-600"
+          tdClassName="px-5 py-4 text-sm font-medium border-b border-(--app-border) text-(--app-muted-foreground)"
         />
       )}
     </div>

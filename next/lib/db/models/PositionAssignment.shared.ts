@@ -13,3 +13,8 @@ export const POSITION_STATUS_LABELS: Record<PositionStatus, string> = {
   active: "ساري",
   ended: "منتهي",
 };
+
+export const POSITION_STATUS_COLORS: Record<PositionStatus, string> = {
+  active: "bg-(--app-success)/10 text-(--app-success) border-(--app-success)/20",
+  ended: "bg-(--app-surface-container) text-(--app-muted-foreground) border-(--app-border)",
+};

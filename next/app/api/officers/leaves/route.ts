@@ -3,7 +3,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { authenticate } from "@/lib/auth/middleware";
 import { logAuditEvent } from "@/lib/auth/audit";
 import { errors } from "@/lib/auth/errors";
-import { Officer } from "@/lib/db/models/Officer";
+import { Officer, RANK_LABELS, type OfficerRank } from "@/lib/db/models/Officer";
 import { Leave } from "@/lib/db/models/Leave";
 import { canViewOfficers, canEditOfficers } from "@/lib/officers/access";
 import { createLeaveSchema, leavesListQuerySchema } from "@/lib/validations/officers";
@@ -51,6 +51,25 @@ export async function GET(request: Request) {
     Leave.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
     Leave.countDocuments(query),
   ]);
+
+  let officerDisplayName = "";
+  if (officerId) {
+    const officer = await Officer.findById(officerId).select("rank fullName").lean();
+    if (officer) {
+      officerDisplayName = `${RANK_LABELS[officer.rank as OfficerRank]} / ${officer.fullName}`;
+    } else {
+      officerDisplayName = officerId;
+    }
+  }
+
+  await logAuditEvent({
+    userId: auth.user!.id,
+    userName: auth.user!.fullName,
+    action: "VIEW",
+    module: "officers",
+    description: `عرض قائمة الإجازات (صفحة ${page})${officerDisplayName ? ` للضابط: ${officerDisplayName}` : ""}`,
+    ipAddress: ip,
+  });
 
   return NextResponse.json({
     success: true,
@@ -140,7 +159,7 @@ export async function POST(request: Request) {
       action: "CREATE",
       module: "officers",
       targetId: leave._id.toString(),
-      description: `تم إنشاء ${data.category === "leave" ? "إجازة" : "غياب"} للضابط: ${officer.fullName}`,
+      description: `تم إنشاء ${data.category === "leave" ? "إجازة" : "غياب"} للضابط: ${RANK_LABELS[officer.rank as OfficerRank]} / ${officer.fullName}`,
       ipAddress: ip,
     });
 

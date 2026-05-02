@@ -78,7 +78,7 @@ export default function MainTable<T extends object>({
     showSerialNumber = false,
     theadClassName = "bg-[var(--color-primary)] text-white text-xs",
     thClassName = "px-5 py-3",
-    tdClassName = "px-5 py-3 text-xs font-bold text-slate-600 whitespace-nowrap",
+    tdClassName = "px-5 py-3 text-xs font-bold text-(--app-muted-foreground) whitespace-nowrap",
     onRowClick,
 }: Props<T>) {
     const headerDepth = getHeaderDepth(columns);
@@ -92,7 +92,7 @@ export default function MainTable<T extends object>({
     };
 
     return (
-        <div className="pt-0 pb-0 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div className="pt-0 pb-0 bg-(--app-surface) rounded-2xl shadow-sm border border-(--app-border) overflow-hidden">
             <div className="overflow-x-auto">
                 <table className="w-full table-auto min-w-full">
                     <thead className={theadClassName}>

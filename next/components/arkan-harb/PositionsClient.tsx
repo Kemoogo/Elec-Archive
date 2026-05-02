@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { PositionAssignmentTable, type Position } from "./PositionAssignmentTable";
 import { PositionAssignmentForm } from "./PositionAssignmentForm";
 import { Button } from "@/components/ui/button";
-import { Plus, Building } from "lucide-react";
+import { Plus, Shield } from "lucide-react";
 import { PageHeader } from "@/components/layout/ModernPageHeader";
 
 interface OfficerOption {
@@ -79,21 +79,37 @@ export function PositionsClient({
     <div className="space-y-6">
       <PageHeader
         title="التنظيم الإداري والوظائف"
-        description="إدارة التعيينات الوظيفية الأساسية والبديلة للضباط"
-        icon={<Building className="w-6 h-6" />}
+        description={`إدارة التعيينات الوظيفية الأساسية والبديلة للضباط (${total})`}
+        icon={<Shield className="w-6 h-6" />}
         backHref="/arkan-harb"
         backLabel="العودة لأركان الحرب"
-      >
-        {canEdit && (
-          <Button 
-            onClick={handleCreate}
-            className="h-11 px-6 rounded-xl bg-(--color-primary) text-white font-black shadow-lg shadow-blue-900/10 hover:shadow-blue-900/20 active:scale-95 transition-all flex items-center gap-2"
-          >
-            <Plus className="h-5 w-5" />
-            إضافة تعيين وظيفي
-          </Button>
-        )}
-      </PageHeader>
+        showSearch
+        searchQuery={officerFilter}
+        onSearchChange={(query) => updateFilters({ officerId: query, page: 1 })}
+        searchPlaceholder="بحث بمعرف الضابط..."
+        action={
+          <div className="flex items-center gap-2">
+            <select
+              value={statusFilter}
+              onChange={(e) => updateFilters({ status: e.target.value, page: 1 })}
+              className="px-4 py-2 rounded-xl text-sm font-bold transition-all bg-slate-100 text-(--color-primary) hover:bg-slate-200 focus:outline-none   appearance-none cursor-pointer"
+            >
+              <option value="">كل الحالات</option>
+              <option value="active">نشطة</option>
+              <option value="historical">سابقة</option>
+            </select>
+            {canEdit && (
+              <Button 
+                onClick={handleCreate}
+                className="h-9 px-4 rounded-xl bg-(--color-primary) text-white font-black shadow-lg shadow-blue-900/10 hover:shadow-blue-900/20 active:scale-95 transition-all flex items-center gap-2 text-xs"
+              >
+                <Plus className="h-4 w-4" />
+                إضافة تعيين
+              </Button>
+            )}
+          </div>
+        }
+      />
 
       <PositionAssignmentTable
         positions={initialPositions}

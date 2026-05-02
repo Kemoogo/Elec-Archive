@@ -9,7 +9,7 @@ import { OfficersPageClient } from "@/components/officers/OfficersPageClient";
 export default async function OfficersListPage({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string; status?: string; page?: string }>;
+  searchParams: Promise<{ search?: string; status?: string; page?: string; all?: string }>;
 }) {
   const result = await authenticate();
   if (!result.success) {
@@ -24,6 +24,7 @@ export default async function OfficersListPage({
   const params = await searchParams;
   const search = params.search ?? "";
   const status = params.status ?? "";
+  const showAll = params.all === "true";
   const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
   const limit = 20;
 
@@ -31,9 +32,22 @@ export default async function OfficersListPage({
 
   const query: Record<string, unknown> = {};
   if (status) query.employmentStatus = status;
+  if (!showAll) {
+    query.isInUnit = true;
+  }
+  
   if (search) {
     const searchRegex = { $regex: search, $options: "i" };
-    query.$or = [{ fullName: searchRegex }, { militaryId: searchRegex }];
+    query.$or = [
+      { fullName: searchRegex },
+      { militaryId: searchRegex },
+      { seniorityNumber: searchRegex },
+      { nationalId: searchRegex },
+      { phone: searchRegex },
+      { batch: searchRegex },
+      { position: searchRegex },
+      { unit: searchRegex },
+    ];
   }
 
   const [officers, total] = await Promise.all([
@@ -49,6 +63,7 @@ export default async function OfficersListPage({
     <OfficersPageClient
       initialSearch={search}
       initialStatus={status}
+      initialShowAll={showAll}
       officers={serialized}
       page={page}
       totalPages={totalPages}

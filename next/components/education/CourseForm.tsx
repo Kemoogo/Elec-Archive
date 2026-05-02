@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { BookOpen } from "lucide-react";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { ModalShell } from "@/components/ui/modal-shell";
+import { DateField } from "@/components/ui/date-field";
 
 interface CourseFormProps {
   mode: "create" | "edit";
@@ -176,14 +177,20 @@ function FormFields({
         <textarea id="course-description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-white) placeholder:text-(--app-muted-foreground)" placeholder="وصف الدورة..." />
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label htmlFor="course-startDate" className="mb-1 block text-xs text-(--app-muted-foreground)">تاريخ البداية *</label>
-          <input id="course-startDate" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required className="w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-white)" />
-        </div>
-        <div>
-          <label htmlFor="course-endDate" className="mb-1 block text-xs text-(--app-muted-foreground)">تاريخ الانتهاء *</label>
-          <input id="course-endDate" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required className="w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-white)" />
-        </div>
+        <DateField
+          id="course-startDate"
+          label="تاريخ البداية"
+          value={startDate}
+          onChange={(v) => setStartDate(v)}
+          required
+        />
+        <DateField
+          id="course-endDate"
+          label="تاريخ الانتهاء"
+          value={endDate}
+          onChange={(v) => setEndDate(v)}
+          required
+        />
       </div>
       {mode === "create" && (
         <div>

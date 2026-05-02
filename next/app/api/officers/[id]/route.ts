@@ -3,7 +3,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { authenticate } from "@/lib/auth/middleware";
 import { logAuditEvent } from "@/lib/auth/audit";
 import { errors } from "@/lib/auth/errors";
-import { Officer } from "@/lib/db/models/Officer";
+import { Officer, RANK_LABELS, type OfficerRank } from "@/lib/db/models/Officer";
 import { canViewOfficers, canEditOfficers } from "@/lib/officers/access";
 import { serializeOfficerDetail } from "@/lib/officers/queries";
 import { patchOfficerSchema } from "@/lib/validations/officers";
@@ -51,7 +51,7 @@ export async function GET(
     action: "VIEW",
     module: "officers",
     targetId: id,
-    description: `عرض ملف الضابط: ${officer.fullName}`,
+    description: `عرض ملف الضابط: ${RANK_LABELS[officer.rank as OfficerRank]} / ${officer.fullName}`,
     ipAddress: ip,
   });
 
@@ -120,9 +120,28 @@ export async function PATCH(
     if (data.phone !== undefined) officer.phone = data.phone;
     if (data.nationalId !== undefined) officer.nationalId = data.nationalId;
     if (data.employmentStatus !== undefined) officer.employmentStatus = data.employmentStatus;
+    if (data.isInUnit !== undefined) {
+      const oldStatus = officer.isInUnit;
+      officer.isInUnit = data.isInUnit;
+      
+      // If status changed, create a movement history record
+      if (oldStatus !== data.isInUnit && body.movement) {
+        const { ServiceHistory } = await import("@/lib/db/models/ServiceHistory");
+        await ServiceHistory.create({
+          officerId: id,
+          type: data.isInUnit ? "return" : "leave",
+          action: body.movement.action || (data.isInUnit ? "return" : "transfer"),
+          date: new Date(body.movement.date || Date.now()),
+          notes: body.movement.notes,
+          createdBy: auth.user!.id,
+          updatedBy: auth.user!.id,
+        });
+      }
+    }
     if (data.joinDate !== undefined) officer.joinDate = new Date(data.joinDate);
     if (data.birthDate !== undefined) officer.birthDate = data.birthDate ? new Date(data.birthDate) : undefined;
     if (data.file121Url !== undefined) officer.file121Url = data.file121Url;
+    if (data.isArkanHarb !== undefined) officer.isArkanHarb = data.isArkanHarb;
 
     await officer.save();
 
@@ -132,7 +151,7 @@ export async function PATCH(
       action: "UPDATE",
       module: "officers",
       targetId: id,
-      description: `تحديث بيانات الضابط: ${officer.fullName}`,
+      description: `تحديث بيانات الضابط: ${RANK_LABELS[officer.rank as OfficerRank]} / ${officer.fullName}`,
       ipAddress: ip,
     });
 
@@ -190,7 +209,7 @@ export async function DELETE(
     action: "DELETE",
     module: "officers",
     targetId: id,
-    description: `حذف الضابط: ${officer.fullName}`,
+    description: `حذف الضابط: ${RANK_LABELS[officer.rank as OfficerRank]} / ${officer.fullName}`,
     ipAddress: ip,
   });
 

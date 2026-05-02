@@ -5,6 +5,7 @@ import MainTable, { type TableColumn } from "@/components/ui/Table"
 import { Badge } from "@/components/ui/badge"
 import { POSITION_TYPE_LABELS, POSITION_STATUS_LABELS } from "@/lib/db/models/PositionAssignment.shared"
 import { Loader2, Briefcase } from "lucide-react"
+import { EmptyState } from "@/components/ui/empty-state"
 
 interface PositionAssignment {
   id: string
@@ -94,8 +95,8 @@ export function PositionHistory({ officerId, initialData }: PositionHistoryProps
       header: "الحالة",
       cellAlign: "center",
       render: (_, row) => (
-        <Badge 
-          variant={row.status === "active" ? "default" : "outline"} 
+        <Badge
+          variant={row.status === "active" ? "default" : "outline"}
           className={row.status === "active" ? "bg-(--app-success) border-(--app-success) hover:bg-(--app-success)/90 text-white" : "bg-(--app-surface-container) text-(--app-muted-foreground) border-(--app-border)"}
         >
           {POSITION_STATUS_LABELS[row.status] || row.status}
@@ -118,35 +119,37 @@ export function PositionHistory({ officerId, initialData }: PositionHistoryProps
   if (error) {
     return (
       <div className="rounded-xl border border-red-100 bg-red-50 p-6 text-center">
-        <p className="text-sm font-medium text-red-600 font-bold">{error}</p>
+        <p className="text-sm font-medium text-red-600">{error}</p>
       </div>
     )
   }
 
   if (data.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-(--app-border) bg-(--app-surface-container)/20 p-12 text-center">
-        <p className="text-(--app-muted-foreground) font-medium">لا يوجد سجل وظائف مسجل لهذا الضابط.</p>
-      </div>
+      <EmptyState
+        icon={Briefcase}
+        title="لا يوجد سجل وظائف"
+        description="لا يوجد سجل وظائف مسجل لهذا الضابط حتى الآن."
+      />
     )
   }
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-      <div className="mb-4 flex items-center justify-between">
+    <div className="space-y-6">
+      <div className="mb-8 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-(--app-surface-container) border border-(--app-border) rounded-lg">
-             <Briefcase className="h-5 w-5 text-(--color-primary)" />
+            <Briefcase className="h-5 w-5 text-(--color-primary)" />
           </div>
-          <h3 className="text-lg font-bold text-(--color-primary)">تاريخ التعيينات الوظيفية</h3>
+          <h3 className="text-xl font-bold text-(--color-primary)">تاريخ التعيينات الوظيفية</h3>
         </div>
       </div>
-      <MainTable 
-        columns={columns} 
-        data={data} 
-        showSerialNumber 
+      <MainTable
+        columns={columns}
+        data={data}
+        showSerialNumber
         theadClassName="bg-(--app-surface-container) text-(--app-muted-foreground) text-xs"
-        tdClassName="px-5 py-4 text-sm font-medium border-b border-(--app-border) text-slate-600 font-bold"
+        tdClassName="px-5 py-4 text-sm font-medium border-b border-(--app-border) text-(--app-muted-foreground) font-bold"
       />
     </div>
   )

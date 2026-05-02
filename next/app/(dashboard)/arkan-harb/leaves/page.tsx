@@ -3,12 +3,8 @@ import { authenticate } from "@/lib/auth/middleware";
 import { canViewModule, canEditModule } from "@/lib/auth/authorization";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Leave, type ILeave } from "@/lib/db/models/Leave";
-import { Officer } from "@/lib/db/models/Officer";
-import { LeaveRegister } from "@/components/officers/LeaveRegister";
-import { LeaveAddModal } from "@/components/officers/LeaveAddModal";
-import { PageContainer } from "@/components/layout/PageContainer";
-import { PageHeader } from "@/components/layout/ModernPageHeader";
-import { ScrollText } from "lucide-react";
+import { Officer, type IOfficer } from "@/lib/db/models/Officer";
+import { LeavesPageClient } from "@/components/officers/LeavesPageClient";
 
 export default async function LeavesPage() {
   const result = await authenticate();
@@ -69,14 +65,6 @@ export default async function LeavesPage() {
   });
 
   return (
-    <PageContainer>
-      <PageHeader
-        title="سجل الإجازات والغياب"
-        description="متابعة حضور الضباط وسجل الإجازات والغيابات"
-        icon={<ScrollText className="w-6 h-6" />}
-        actions={canEdit && <LeaveAddModal officers={officers} />}
-      />
-      <LeaveRegister leaves={leaves} officers={officers} canEdit={canEdit} />
-    </PageContainer>
+    <LeavesPageClient initialLeaves={leaves} officers={officers} canEdit={canEdit} />
   );
 }

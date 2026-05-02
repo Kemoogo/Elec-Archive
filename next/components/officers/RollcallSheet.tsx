@@ -177,12 +177,6 @@ export function RollcallSheet({ date, roster, existingEntries, isDraft }: Rollca
       <div className="bg-(--app-surface) border border-(--app-border) rounded-xl p-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
           <div className="space-y-4 flex-1">
-             <div className="flex items-center gap-3">
-              <div className="p-2 bg-(--app-surface-container) border border-(--app-border) rounded-lg">
-                <ClipboardList className="h-5 w-5 text-(--color-primary)" />
-              </div>
-              <h2 className="text-lg font-semibold text-(--color-primary)">كشف التمام اليومي</h2>
-            </div>
             
             <div className="space-y-2">
                <div className="flex items-center justify-between text-xs font-medium text-(--app-muted-foreground) px-1">
@@ -272,7 +266,7 @@ export function RollcallSheet({ date, roster, existingEntries, isDraft }: Rollca
                           value={entry?.note ?? ""}
                           onChange={(e) => updateEntry(officer.id, "note", e.target.value)}
                           placeholder="تنبيهات أو ملاحظات..."
-                          className="w-full bg-(--app-surface-container) border border-(--app-border) rounded-lg px-3 py-2 text-xs text-(--color-primary) placeholder:text-(--app-muted-foreground)/30 focus:outline-none focus:ring-2 focus:ring-(--color-primary)/20"
+                          className="w-full bg-(--app-surface-container) border border-(--app-border) rounded-lg px-3 py-2 text-xs text-(--color-primary) placeholder:text-(--app-muted-foreground)/30 focus:outline-none  "
                         />
                       </div>
                     </td>

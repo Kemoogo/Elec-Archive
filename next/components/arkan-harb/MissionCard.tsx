@@ -18,11 +18,11 @@ function getStatusBadgeClass(status: string): string {
     case "active":
       return "bg-green-100 text-green-800";
     case "completed":
-      return "bg-slate-100 text-slate-800";
+      return "bg-slate-100 text-(--app-foreground)";
     case "cancelled":
       return "bg-red-100 text-red-800";
     default:
-      return "bg-slate-100 text-slate-800";
+      return "bg-slate-100 text-(--app-foreground)";
   }
 }
 

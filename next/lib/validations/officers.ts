@@ -52,6 +52,7 @@ export const createOfficerSchema = z.object({
      .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح")
      .optional(),
   file121Url: z.string().trim().optional(),
+  isArkanHarb: z.boolean().default(false),
 }).superRefine((data, ctx) => {
   if (data.birthDate) {
     const birth = new Date(data.birthDate);
@@ -97,6 +98,8 @@ export const patchOfficerSchema = z.object({
     .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح")
     .optional(),
   file121Url: z.string().trim().optional(),
+  isInUnit: z.boolean().optional(),
+  isArkanHarb: z.boolean().optional(),
 }).refine((data) => Object.keys(data).length > 0, {
   message: "يجب تحديد حقل واحد على الأقل",
 });
@@ -112,14 +115,24 @@ export const seniorityCheckSchema = z.object({
   seniorityNumber: z.string().min(1, "رقم الأقدمية مطلوب").trim(),
 });
 
-export const RETURN_REASONS_Z = ["joined", "rejoining", "return", "transfer"] as const;
-
 export const returningOfficerSchema = z.object({
   returnDate: z
     .string()
     .min(1, "تاريخ العودة مطلوب")
     .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح"),
-  returnReason: z.enum(RETURN_REASONS_Z, { message: "سبب العودة غير صالح" }),
+  returnReason: z.string().trim().optional().default("return"),
+  notes: z.string().trim().optional(),
+});
+
+export const officerMovementSchema = z.object({
+  officerId: z.string().min(1, "معرف الضابط مطلوب"),
+  type: z.enum(["join", "leave", "return"]),
+  action: z.string().min(1, "نوع الإجراء مطلوب"),
+  date: z
+    .string()
+    .min(1, "التاريخ مطلوب")
+    .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح"),
+  notes: z.string().trim().optional(),
 });
 
 export const officerIdParamSchema = z.object({

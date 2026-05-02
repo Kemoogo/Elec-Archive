@@ -8,6 +8,8 @@ import { RollcallSheet } from "@/components/officers/RollcallSheet";
 import { RollcallSummary } from "@/components/officers/RollcallSummary";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/ModernPageHeader";
+import { ClipboardList } from "lucide-react";
+import { RollcallDateSelector } from "@/components/arkan-harb/RollcallDateSelector";
 
 function getTodayDate(): string {
   const now = new Date();
@@ -54,8 +56,10 @@ export default async function RollcallPage({
             </>
           }
           description="سجل حضور وغياب موثق نهائياً"
+          icon={<ClipboardList className="w-6 h-6" />}
           backHref="/arkan-harb"
           backLabel="العودة لأركان الحرب"
+          action={<RollcallDateSelector initialDate={date} />}
         />
 
         <RollcallSummary
@@ -99,7 +103,7 @@ export default async function RollcallPage({
     militaryId: o.militaryId,
     fullName: o.fullName,
     rank: o.rank,
-    rankLabel: RANK_LABELS[o.rank as OfficerRank] ?? o.rank,
+    rankLabel: `${RANK_LABELS[o.rank as OfficerRank] ?? o.rank}${o.isArkanHarb ? " أ ح" : ""}`,
   }));
 
   return (
@@ -111,8 +115,10 @@ export default async function RollcallPage({
           </>
         }
         description={`سجل التواجد والغياب ليوم ${date}`}
+        icon={<ClipboardList className="w-6 h-6" />}
         backHref="/arkan-harb"
         backLabel="العودة لأركان الحرب"
+        action={<RollcallDateSelector initialDate={date} />}
       />
 
       <RollcallSheet

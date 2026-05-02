@@ -7,16 +7,26 @@ import { useToast } from "@/components/ui/toast";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { ModalShell } from "@/components/ui/modal-shell";
 
-const STATUS_OPTIONS = [
-  { value: "inactive", label: "غير نشط / نقل" },
-  { value: "retired", label: "متقاعد / إنهاء خدمة" },
-];
+import { DateField } from "@/components/ui/date-field";
+
+import { 
+  MOVEMENT_LABELS, 
+  MOVEMENT_TYPES, 
+  type MovementType 
+} from "@/lib/db/models/ServiceHistory.shared";
+
+const MOVEMENT_OPTIONS = MOVEMENT_TYPES
+  .filter(t => t !== 'join' && t !== 'return')
+  .map(t => ({ value: t, label: MOVEMENT_LABELS[t] }));
 
 export function OfficerTransferModal({ officer, trigger }: { // eslint-disable-next-line @typescript-eslint/no-explicit-any
   officer: any; trigger?: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [newStatus, setNewStatus] = useState("inactive");
+  const [action, setAction] = useState<MovementType>("transfer");
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [notes, setNotes] = useState("");
+  
   const { showToast } = useToast();
   const router = useRouter();
 
@@ -28,15 +38,22 @@ export function OfficerTransferModal({ officer, trigger }: { // eslint-disable-n
       const res = await fetch(`/api/officers/${officer.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employmentStatus: newStatus }),
+        body: JSON.stringify({ 
+          isInUnit: false,
+          movement: {
+            action,
+            date,
+            notes
+          }
+        }),
       });
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "فشل تحديث الحالة");
+        throw new Error(data.error || "فشل تسجيل الحركة");
       }
 
-      showToast("تم نقل / إنهاء خدمة الضابط بنجاح", "success");
+      showToast("تم تسجيل حركة مغادرة الضابط بنجاح", "success");
       setOpen(false);
       router.refresh();
     } catch (err: unknown) {
@@ -52,29 +69,54 @@ export function OfficerTransferModal({ officer, trigger }: { // eslint-disable-n
         {trigger}
       </div>
       {open && (
-        <ModalShell title="نقل / إنهاء خدمة" onClose={() => setOpen(false)}>
-          <div className="mb-4 bg-orange-50 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/50 p-3 rounded-2xl text-right">
-            <p className="text-xs font-bold text-orange-800 dark:text-orange-200">سيتم تغيير حالة الضابط إلى غير نشط أو متقاعد.</p>
-            <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">{officer.rankLabel || officer.rank} / {officer.fullName}</p>
+        <ModalShell title="تسجيل مغادرة / إنهاء خدمة" onClose={() => setOpen(false)}>
+          <div className="mb-6 bg-orange-50 border border-orange-100 p-4 rounded-2xl text-right">
+            <p className="text-xs font-bold text-orange-800">سيتم تسجيل الضابط كخارج الوحدة وتوثيق السبب في السجل المهني.</p>
+            <p className="text-xs text-orange-600 mt-1">{officer.rankLabel || officer.rank} / {officer.fullName}</p>
           </div>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+              {/* تاريخ الحركة */}
+              <DateField
+                id="movement-date"
+                label="تاريخ الحركة"
+                value={date}
+                onChange={setDate}
+                required
+              />
+
+              {/* نوع الإجراء */}
+              <div className="space-y-1.5 text-right">
+                <label htmlFor="transfer-status" className="text-xs font-bold text-(--app-muted-foreground) block mr-1">نوع الإجراء <span className="text-red-500">*</span></label>
+                <select
+                  id="transfer-status"
+                  value={action}
+                  onChange={(e) => setAction(e.target.value as MovementType)}
+                  className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none focus:ring-orange-500/20 focus:border-orange-500 transition-all appearance-none"
+                >
+                  {MOVEMENT_OPTIONS.map((r) => (
+                    <option key={r.value} value={r.value}>{r.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* ملاحظات / السبب */}
             <div className="space-y-1.5 text-right">
-              <label htmlFor="transfer-status" className="text-xs font-bold text-slate-600 block mr-1">الإجراء <span className="text-red-500">*</span></label>
-              <select
-                id="transfer-status"
-                value={newStatus}
-                onChange={(e) => setNewStatus(e.target.value)}
-                className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all appearance-none"
-              >
-                {STATUS_OPTIONS.map((r) => (
-                  <option key={r.value} value={r.value}>{r.label}</option>
-                ))}
-              </select>
+              <label htmlFor="movement-notes" className="text-xs font-bold text-(--app-muted-foreground) block mr-1">ملاحظات إضافية (اختياري)</label>
+              <textarea
+                id="movement-notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="تفاصيل إضافية حول سبب الحركة..."
+                className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-medium text-(--app-muted-foreground) focus:outline-none focus:ring-orange-500/20 focus:border-orange-500 transition-all text-right resize-none h-24"
+              />
             </div>
             
             <div className="pt-4">
               <ModalActions
-                submitText="تأكيد النقل"
+                submitText="تأكيد وتسجيل"
                 submitLoading={loading}
                 cancelText="إلغاء"
                 onCancel={() => setOpen(false)}

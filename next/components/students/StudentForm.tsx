@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { GraduationCap } from "lucide-react";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { ModalShell } from "@/components/ui/modal-shell";
+import { DateField } from "@/components/ui/date-field";
 
 interface StudentFormProps {
   mode: "create" | "edit";
@@ -216,17 +217,13 @@ function FormFields({
           placeholder="أحمد محمد علي"
         />
       </div>
-      <div>
-        <label htmlFor="student-enrollDate" className="mb-1 block text-xs text-(--app-muted-foreground)">تاريخ التسجيل *</label>
-        <input
-          id="student-enrollDate"
-          type="date"
-          value={enrollDate}
-          onChange={(e) => setEnrollDate(e.target.value)}
-          required
-          className="w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-white)"
-        />
-      </div>
+      <DateField
+        id="student-enrollDate"
+        label="تاريخ التسجيل"
+        value={enrollDate}
+        onChange={(v) => setEnrollDate(v)}
+        required
+      />
       <div>
         <label htmlFor="student-notes" className="mb-1 block text-xs text-(--app-muted-foreground)">ملاحظات</label>
         <textarea

@@ -5,6 +5,8 @@ import { ModalShell } from "@/components/ui/modal-shell";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { Calendar, MapPin, ClipboardList } from "lucide-react";
 
+import { DateField } from "@/components/ui/date-field";
+
 interface BaseMission {
   id: string;
   officerId: string;
@@ -112,7 +114,7 @@ export function MissionForm({ mission, isOpen, onClose, onSave }: MissionFormPro
           <div className={`p-1.5 rounded-lg ${isEditing ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'}`}>
             <ClipboardList className="h-4 w-4" />
           </div>
-          <span className="text-base font-black text-slate-800">
+          <span className="text-base font-black text-(--app-foreground)">
             {isEditing ? "تعديل مأمورية" : "تسجيل مأمورية جديدة"}
           </span>
         </div>
@@ -139,7 +141,7 @@ export function MissionForm({ mission, isOpen, onClose, onSave }: MissionFormPro
               placeholder="أدخل معرف الضابط..."
               value={form.officerId}
               onChange={(e) => setForm({ ...form, officerId: e.target.value })}
-              className="w-full h-11 px-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-right"
+              className="w-full h-11 px-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-(--app-foreground) focus:outline-none  focus:ring-blue-500/10 focus:border-blue-500 transition-all text-right"
             />
           </div>
 
@@ -153,41 +155,27 @@ export function MissionForm({ mission, isOpen, onClose, onSave }: MissionFormPro
               placeholder="مثال: مأمورية خارجية، تدريب..."
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
-              className="w-full h-11 px-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-right"
+              className="w-full h-11 px-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-(--app-foreground) focus:outline-none  focus:ring-blue-500/10 focus:border-blue-500 transition-all text-right"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4 items-start">
             {/* Start Date */}
-            <div className="space-y-1.5">
-              <label htmlFor="startDate" className="text-[10px] font-black uppercase text-slate-400 mr-1">تاريخ البداية</label>
-              <div className="relative">
-                <input
-                  id="startDate"
-                  type="date"
-                  required
-                  value={form.startDate}
-                  onChange={(e) => setForm({ ...form, startDate: e.target.value })}
-                  className="w-full h-11 pr-10 pl-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
-                />
-                <Calendar className="absolute right-3 top-3.5 h-4 w-4 text-slate-400" />
-              </div>
-            </div>
+            <DateField
+              id="startDate"
+              label="تاريخ البداية"
+              value={form.startDate}
+              onChange={(v) => setForm({ ...form, startDate: v })}
+              required
+            />
 
             {/* End Date */}
-            <div className="space-y-1.5">
-              <label htmlFor="endDate" className="text-[10px] font-black uppercase text-slate-400 mr-1">تاريخ الانتهاء (اختياري)</label>
-              <div className="relative">
-                <input
-                  id="endDate"
-                  type="date"
-                  value={form.endDate}
-                  onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-                  className="w-full h-11 pr-10 pl-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
-                />
-                <Calendar className="absolute right-3 top-3.5 h-4 w-4 text-slate-400" />
-              </div>
-            </div>
+            <DateField
+              id="endDate"
+              label="تاريخ الانتهاء"
+              value={form.endDate}
+              onChange={(v) => setForm({ ...form, endDate: v })}
+            />
           </div>
 
           {/* Destination */}
@@ -200,7 +188,7 @@ export function MissionForm({ mission, isOpen, onClose, onSave }: MissionFormPro
                 placeholder="أدخل مآل المأمورية..."
                 value={form.destination}
                 onChange={(e) => setForm({ ...form, destination: e.target.value })}
-                className="w-full h-11 pr-10 pl-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-right"
+                className="w-full h-11 pr-10 pl-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-(--app-foreground) focus:outline-none  focus:ring-blue-500/10 focus:border-blue-500 transition-all text-right"
               />
               <MapPin className="absolute right-3 top-3.5 h-4 w-4 text-slate-400" />
             </div>
@@ -213,7 +201,7 @@ export function MissionForm({ mission, isOpen, onClose, onSave }: MissionFormPro
               id="status"
               value={form.status}
               onChange={(e) => setForm({ ...form, status: e.target.value as BaseMission["status"] })}
-              className="w-full h-11 px-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all appearance-none"
+              className="w-full h-11 px-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-(--app-foreground) focus:outline-none  focus:ring-blue-500/10 focus:border-blue-500 transition-all appearance-none"
             >
               <option value="scheduled">مجدولة</option>
               <option value="active">نشطة</option>
@@ -230,7 +218,7 @@ export function MissionForm({ mission, isOpen, onClose, onSave }: MissionFormPro
               placeholder="أي تفاصيل أخرى..."
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              className="w-full min-h-[80px] p-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-right resize-none"
+              className="w-full min-h-[80px] p-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-(--app-foreground) focus:outline-none  focus:ring-blue-500/10 focus:border-blue-500 transition-all text-right resize-none"
             />
           </div>
         </div>

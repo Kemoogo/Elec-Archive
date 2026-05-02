@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { User, LogOut, ChevronDown, Palette } from "lucide-react";
+import { User, LogOut, ChevronDown, Palette, History, Settings } from "lucide-react";
 
 const roleLabels: Record<string, string> = {
   admin: "مسؤول",
@@ -52,7 +52,7 @@ export function UserMenu({ fullName, role }: UserMenuProps) {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-2 w-56 rounded-2xl bg-white shadow-2xl border border-slate-100 overflow-hidden text-slate-700 z-50 origin-top" dir="rtl">
+        <div className="absolute left-0 top-full mt-2 w-56 rounded-2xl bg-white shadow-2xl border border-slate-100 overflow-hidden text-(--app-muted-foreground) z-50 origin-top" dir="rtl">
           <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center gap-3">
             <div className="p-2 bg-(--color-primary) rounded-lg text-white">
               <User className="w-5 h-5" />
@@ -63,9 +63,27 @@ export function UserMenu({ fullName, role }: UserMenuProps) {
             </div>
           </div>
           <div className="p-2">
+            {role === "admin" && (
+              <button
+                onClick={() => { setOpen(false); router.push("/admin/users"); }}
+                className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-(--app-muted-foreground) transition-colors hover:bg-slate-50 font-bold cursor-pointer"
+              >
+                <Settings className="w-4 h-4 text-slate-400 group-hover:text-(--color-primary)" />
+                <span>إدارة المستخدمين</span>
+              </button>
+            )}
+            {(role === "admin" || role === "commander") && (
+              <button
+                onClick={() => { setOpen(false); router.push("/audit-log"); }}
+                className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-(--app-muted-foreground) transition-colors hover:bg-slate-50 font-bold cursor-pointer"
+              >
+                <History className="w-4 h-4 text-slate-400 group-hover:text-(--color-primary)" />
+                <span>السجل</span>
+              </button>
+            )}
             <button
               onClick={() => { setOpen(false); router.push("/theme-playground"); }}
-              className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-700 transition-colors hover:bg-slate-50 font-bold cursor-pointer"
+              className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-(--app-muted-foreground) transition-colors hover:bg-slate-50 font-bold cursor-pointer"
             >
               <Palette className="w-4 h-4 text-slate-400 group-hover:text-(--color-primary)" />
               <span>لوحة التصميم</span>

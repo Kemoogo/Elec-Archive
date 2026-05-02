@@ -2,78 +2,18 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { UserPlus, Save, AlertCircle, Search, ArrowRight, FileText, Trash2, Calendar, ChevronDown, Edit } from "lucide-react";
+import { UserPlus, Save, AlertCircle, Search, ArrowRight, FileText, Trash2, ChevronDown, Edit } from "lucide-react";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { ModalShell } from "@/components/ui/modal-shell";
+import { DateField } from "@/components/ui/date-field";
 
-/* ─── Date helpers (DD-MM-YYYY ↔ YYYY-MM-DD) ─── */
-function toDisplay(iso: string): string {
-  if (!iso) return "";
-  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  return m ? `${m[3]}-${m[2]}-${m[1]}` : iso;
-}
-function toISO(display: string): string {
-  const m = display.match(/^(\d{2})-(\d{2})-(\d{4})$/);
-  return m ? `${m[3]}-${m[2]}-${m[1]}` : display;
-}
+import { 
+  checkSeniorityAction, 
+  uploadOfficerFile121Action, 
+  deleteOfficerFile121Action,
+  saveOfficerAction
+} from "@/app/actions/officers";
 
-/* ─── DateField — CodeGeeX-style custom-date with DD-MM-YYYY auto-format + calendar picker ─── */
-function DateField({ id, label, value, onChange, disabled, required }: {
-  id: string; label: string; value: string;
-  onChange: (v: string) => void; disabled?: boolean; required?: boolean;
-}) {
-  const pickerRef = useRef<HTMLInputElement>(null);
-
-  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value.replace(/\D/g, "").slice(0, 8);
-    let formatted = raw;
-    if (raw.length > 2) formatted = raw.slice(0, 2) + "-" + raw.slice(2);
-    if (raw.length > 4) formatted = formatted.slice(0, 5) + "-" + raw.slice(4, 8);
-    // only try to convert to ISO if fully typed
-    if (/^\d{2}-\d{2}-\d{4}$/.test(formatted)) {
-      onChange(toISO(formatted));
-    } else {
-      // keep raw for in-progress typing (store display format temporarily)
-      onChange(formatted);
-    }
-  };
-
-  const handlePickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.value) return;
-    onChange(e.target.value); // native picker gives YYYY-MM-DD
-  };
-
-  return (
-    <div className="space-y-1.5 w-full">
-      <label htmlFor={id} className="text-xs font-bold text-slate-600 block mr-1">{label}</label>
-      <div className="relative">
-        <div
-          className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-110 active:scale-95 transition-transform"
-          onClick={() => pickerRef.current?.showPicker()}
-        >
-          <Calendar className="w-4 h-4 text-(--color-primary)" />
-        </div>
-        <input
-          id={id}
-          type="text"
-          placeholder="يوم-شهر-سنة"
-          value={toDisplay(value)}
-          onChange={handleTextChange}
-          maxLength={10}
-          disabled={disabled}
-          required={required}
-          className="w-full pr-9 pl-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-right disabled:opacity-70 disabled:cursor-not-allowed"
-        />
-        <input
-          ref={pickerRef}
-          type="date"
-          className="absolute opacity-0 pointer-events-none w-0 h-0"
-          onChange={handlePickerChange}
-        />
-      </div>
-    </div>
-  );
-}
 
 const RANK_OPTIONS = [
   { value: "second_lieutenant", label: "ملازم" },
@@ -116,24 +56,24 @@ interface OfficerInitialValues {
   seniorityNumber: string;
   fullName: string;
   rank: string;
-  unit: string;
-  position: string;
   batch: string;
   type: string;
   weapon: string;
   phone: string;
   nationalId: string;
-  employmentStatus: string;
+  isInUnit: boolean;
   joinDate: string;
   birthDate: string;
   file121Url: string;
+  isArkanHarb: boolean;
 }
 
 interface ExistingOfficer {
   existingId: string;
   fullName: string;
   rank: string;
-  employmentStatus: string;
+  militaryId: string;
+  isInUnit: boolean;
 }
 
 interface OfficerFormCreateProps {
@@ -148,7 +88,9 @@ interface OfficerFormEditProps {
   trigger?: React.ReactNode;
 }
 
-type OfficerFormProps = OfficerFormCreateProps | OfficerFormEditProps;
+type OfficerFormProps = (OfficerFormCreateProps | OfficerFormEditProps) & {
+  highlightIncomplete?: boolean;
+};
 
 type CreateStep = "seniority" | "returning" | "form";
 
@@ -175,8 +117,6 @@ export function OfficerForm(props: OfficerFormProps) {
     seniorityNumber: initial?.seniorityNumber ?? "",
     fullName: initial?.fullName ?? "",
     rank: initial?.rank ?? "second_lieutenant",
-    unit: initial?.unit ?? "",
-    position: initial?.position ?? "",
     batch: initial?.batch ?? "",
     type: initial?.type ?? "",
     weapon: initial?.weapon ?? "",
@@ -184,8 +124,9 @@ export function OfficerForm(props: OfficerFormProps) {
     nationalId: initial?.nationalId ?? "",
     joinDate: initial?.joinDate ? initial.joinDate.split("T")[0] : new Date().toISOString().split("T")[0],
     birthDate: initial?.birthDate ? (typeof initial.birthDate === "string" ? initial.birthDate.split("T")[0] : "") : "",
-    employmentStatus: initial?.employmentStatus ?? "active",
+    isInUnit: initial?.isInUnit ?? true,
     file121Url: initial?.file121Url ?? "",
+    isArkanHarb: initial?.isArkanHarb ?? false,
   });
 
   const [file121, setFile121] = useState<File | null>(null);
@@ -206,13 +147,7 @@ export function OfficerForm(props: OfficerFormProps) {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/officers/check-seniority", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ seniorityNumber: seniorityInput.trim() }),
-      });
-
-      const data = await res.json();
+      const data = await checkSeniorityAction(seniorityInput.trim());
 
       if (data.success) {
         setError("");
@@ -245,32 +180,38 @@ export function OfficerForm(props: OfficerFormProps) {
     setForm({
       ...form,
       seniorityNumber: seniorityInput.trim(),
-      militaryId: seniorityInput.trim(),
+      militaryId: existingOfficer?.militaryId || seniorityInput.trim(),
       fullName: existingOfficer?.fullName || form.fullName,
       rank: existingOfficer?.rank || form.rank,
-      employmentStatus: "active",
+      isInUnit: true,
       joinDate: returnDate,
     });
     setStep("form");
   };
 
   const handleFile121Upload = async (): Promise<string | null> => {
+    console.log("DEBUG: handleFile121Upload started. file121:", file121?.name, file121?.size, file121?.type);
     if (!file121) return form.file121Url || null;
     setUploadingFile(true);
     try {
       const formData = new FormData();
       formData.append("file", file121);
-      const res = await fetch(`/api/officers/${initial?.id ?? "new"}/file121`, {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
+      if (!initial?.id) {
+        formData.append("militaryId", form.militaryId);
+      } else {
+        formData.append("id", initial.id);
+      }
+      console.log("DEBUG: Calling uploadOfficerFile121Action...");
+      const data = await uploadOfficerFile121Action(formData);
+      console.log("DEBUG: uploadOfficerFile121Action returned:", data);
+      
       if (data.success && data.data?.fileUrl) {
         return data.data.fileUrl;
       }
       setError(data.error || "فشل رفع ملف 121");
       return null;
-    } catch {
+    } catch (error) {
+      console.error("DEBUG: Exception in handleFile121Upload:", error);
       setError("حدث خطأ في رفع الملف");
       return null;
     } finally {
@@ -281,8 +222,7 @@ export function OfficerForm(props: OfficerFormProps) {
   const handleDeleteFile121 = async () => {
     if (!initial?.id) return;
     try {
-      const res = await fetch(`/api/officers/${initial.id}/file121`, { method: "DELETE" });
-      const data = await res.json();
+      const data = await deleteOfficerFile121Action(initial.id);
       if (data.success) {
         setForm({ ...form, file121Url: "" });
         setFile121(null);
@@ -303,31 +243,25 @@ export function OfficerForm(props: OfficerFormProps) {
       let fileUrl = form.file121Url;
       if (file121) {
         const uploaded = await handleFile121Upload();
-        if (uploaded === null && !isEdit) {
+        if (uploaded === null) {
           setLoading(false);
           return;
         }
         fileUrl = uploaded ?? "";
       }
 
-      let url = "/api/officers";
-      let method = "POST";
-
+      let targetId: string | null = null;
       if (isEdit) {
-        url = `/api/officers/${initial!.id}`;
-        method = "PATCH";
+        targetId = initial!.id;
       } else if (existingOfficer) {
-        url = `/api/officers/${existingOfficer.existingId}`;
-        method = "PATCH";
+        targetId = existingOfficer.existingId;
       }
 
-      const body: Record<string, string> = {
+       const body: Record<string, unknown> = {
         fullName: form.fullName,
         rank: form.rank,
       };
 
-      if (form.unit) body.unit = form.unit;
-      if (form.position) body.position = form.position;
       if (form.batch) body.batch = form.batch;
       if (form.type) body.type = form.type;
       if (form.weapon) body.weapon = form.weapon;
@@ -335,36 +269,31 @@ export function OfficerForm(props: OfficerFormProps) {
       if (form.nationalId) body.nationalId = form.nationalId;
       if (form.birthDate) body.birthDate = form.birthDate;
       if (fileUrl) body.file121Url = fileUrl;
+      body.isArkanHarb = form.isArkanHarb;
 
       if (!isEdit && !existingOfficer) {
         body.militaryId = form.militaryId;
         body.seniorityNumber = form.seniorityNumber;
         body.joinDate = form.joinDate;
-        body.employmentStatus = form.employmentStatus;
+        body.isInUnit = true;
       } else if (existingOfficer) {
-        body.employmentStatus = "active";
+        body.isInUnit = true;
         body.joinDate = form.joinDate;
       } else {
-        body.employmentStatus = form.employmentStatus;
+        body.isInUnit = form.isInUnit;
         if (form.joinDate) body.joinDate = form.joinDate;
       }
 
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+      const data = await saveOfficerAction(targetId, body);
 
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        if (data.details && Array.isArray(data.details)) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const msgs = data.details.map((d: any) => d.message).join("، ");
-          setError(msgs || data.error || `فشل في ${isEdit ? "تحديث" : "إنشاء"} الضابط`);
-        } else {
-          setError(data.error || `فشل في ${isEdit ? "تحديث" : "إنشاء"} الضابط`);
-        }
+       if (!data.success) {
+          const details = (data as any).details;
+          if (details && Array.isArray(details)) {
+            const msgs = details.map((d: { message: string }) => d.message).join("، ");
+            setError(msgs || data.error || `فشل في ${isEdit ? "تحديث" : "إنشاء"} الضابط`);
+          } else {
+            setError(data.error || `فشل في ${isEdit ? "تحديث" : "إنشاء"} الضابط`);
+          }
         return;
       }
 
@@ -394,8 +323,6 @@ export function OfficerForm(props: OfficerFormProps) {
       seniorityNumber: initial?.seniorityNumber ?? "",
       fullName: initial?.fullName ?? "",
       rank: initial?.rank ?? "second_lieutenant",
-      unit: initial?.unit ?? "",
-      position: initial?.position ?? "",
       batch: initial?.batch ?? "",
       type: initial?.type ?? "",
       weapon: initial?.weapon ?? "",
@@ -403,8 +330,9 @@ export function OfficerForm(props: OfficerFormProps) {
       nationalId: initial?.nationalId ?? "",
       joinDate: initial?.joinDate ? initial.joinDate.split("T")[0] : new Date().toISOString().split("T")[0],
       birthDate: initial?.birthDate ? (typeof initial.birthDate === "string" ? initial.birthDate.split("T")[0] : "") : "",
-      employmentStatus: initial?.employmentStatus ?? "active",
+      isInUnit: initial?.isInUnit ?? true,
       file121Url: initial?.file121Url ?? "",
+      isArkanHarb: initial?.isArkanHarb ?? false,
     });
   };
 
@@ -472,7 +400,7 @@ export function OfficerForm(props: OfficerFormProps) {
     <ModalShell
       title={<span className="text-base font-semibold text-(--color-primary)">{modalTitle}</span>}
       onClose={resetAndClose}
-      overlayClassName="bg-black/40 backdrop-blur-sm"
+      overlayClassName="bg-black/40"
       panelClassName="max-h-[85vh] max-w-xl border-(--app-border) shadow-depth-xl"
       bodyClassName="p-6 no-scrollbar"
       footer={modalFooter}
@@ -489,7 +417,7 @@ export function OfficerForm(props: OfficerFormProps) {
         <div className="space-y-4">
           <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100">
             <div className="space-y-1.5">
-              <label htmlFor="seniority-input" className="text-xs font-bold text-slate-600 block mr-1">رقم الأقدمية <span className="text-red-500">*</span></label>
+              <label htmlFor="seniority-input" className="text-xs font-bold text-(--app-muted-foreground) block mr-1">رقم الأقدمية <span className="text-red-500">*</span></label>
               <div className="relative">
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                   <UserPlus className="w-4 h-4 text-(--color-primary)" />
@@ -500,7 +428,7 @@ export function OfficerForm(props: OfficerFormProps) {
                   value={seniorityInput}
                   onChange={(e) => setSeniorityInput(e.target.value)}
                   placeholder="أدخل رقم الأقدمية"
-                  className="w-full pr-9 pl-3 py-2.5 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-right"
+                  className="w-full pr-9 pl-3 py-2.5 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 placeholder:text-slate-400 focus:outline-none  focus:ring-blue-500/20 focus:border-blue-500 transition-all text-right"
                   onKeyDown={(e) => e.key === "Enter" && handleSeniorityCheck()}
                 />
               </div>
@@ -533,13 +461,13 @@ export function OfficerForm(props: OfficerFormProps) {
               required
             />
             <div className="space-y-1.5">
-              <label htmlFor="return-reason" className="text-xs font-bold text-slate-600 block mr-1">سبب العودة *</label>
+              <label htmlFor="return-reason" className="text-xs font-bold text-(--app-muted-foreground) block mr-1">سبب العودة *</label>
               <div className="relative">
                 <select
                   id="return-reason"
                   value={returnReason}
                   onChange={(e) => setReturnReason(e.target.value)}
-                  className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none"
+                  className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none  focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none"
                 >
                   {RETURN_REASON_OPTIONS.map((r) => (
                     <option key={r.value} value={r.value}>{r.label}</option>
@@ -556,40 +484,55 @@ export function OfficerForm(props: OfficerFormProps) {
       {(isEdit || step === "form") && (
         <form id={officerFormId} onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-3 text-right">
-            {/* الرتبة */}
+            {/* الرتبة وأركان حرب */}
             <div className="space-y-1.5">
-              <label htmlFor="officer-rank" className="text-xs font-bold text-slate-600 block mr-1">الرتبة <span className="text-red-500">*</span></label>
-              <div className="relative">
-                <select
-                  id="officer-rank"
-                  value={form.rank}
-                  onChange={(e) => setForm({ ...form, rank: e.target.value })}
-                  className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none"
-                >
-                  {RANK_OPTIONS.map((r) => (
-                    <option key={r.value} value={r.value}>{r.label}</option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              <label htmlFor="officer-rank" className="text-xs font-bold text-(--app-muted-foreground) block mr-1">الرتبة <span className="text-red-500">*</span></label>
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <select
+                    id="officer-rank"
+                    value={form.rank}
+                    onChange={(e) => setForm({ ...form, rank: e.target.value })}
+                    className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none"
+                  >
+                    {RANK_OPTIONS.map((r) => (
+                      <option key={r.value} value={r.value}>{r.label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                </div>
+                
+                <div className="flex items-center gap-2 bg-(--app-surface) border border-(--app-border) rounded-xl px-3 py-2 shrink-0 h-[38px]">
+                  <label htmlFor="officer-isArkanHarb" className="text-xs font-bold text-slate-500 cursor-pointer whitespace-nowrap">أ ح</label>
+                  <input
+                    id="officer-isArkanHarb"
+                    type="checkbox"
+                    checked={form.isArkanHarb}
+                    onChange={(e) => setForm({ ...form, isArkanHarb: e.target.checked })}
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  />
+                </div>
               </div>
             </div>
 
             {/* الاسم */}
             <div className="space-y-1.5">
-              <label htmlFor="officer-fullName" className="text-xs font-bold text-slate-600 block mr-1">الاسم <span className="text-red-500">*</span></label>
+              <label htmlFor="officer-fullName" className="text-xs font-bold text-(--app-muted-foreground) block mr-1">الاسم <span className="text-red-500">*</span></label>
               <input
                 id="officer-fullName"
                 type="text"
                 value={form.fullName}
                 onChange={(e) => setForm({ ...form, fullName: e.target.value })}
                 required
-                className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-right"
+                className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none  focus:ring-blue-500/20 focus:border-blue-500 transition-all text-right"
               />
             </div>
 
+
+
             {/* أقدمية (readonly) */}
             <div className="space-y-1.5">
-              <label htmlFor="officer-seniority" className="text-xs font-bold text-slate-600 block mr-1">أقدمية</label>
+              <label htmlFor="officer-seniority" className="text-xs font-bold text-(--app-muted-foreground) block mr-1">أقدمية</label>
               <input
                 id="officer-seniority"
                 type="text"
@@ -602,7 +545,7 @@ export function OfficerForm(props: OfficerFormProps) {
 
             {/* الرقم العسكري */}
             <div className="space-y-1.5">
-              <label htmlFor="officer-militaryId" className="text-xs font-bold text-slate-600 block mr-1">الرقم العسكري</label>
+              <label htmlFor="officer-militaryId" className="text-xs font-bold text-(--app-muted-foreground) block mr-1">الرقم العسكري</label>
               <input
                 id="officer-militaryId"
                 type="text"
@@ -611,13 +554,17 @@ export function OfficerForm(props: OfficerFormProps) {
                 disabled={isEdit}
                 inputMode="numeric"
                 dir="ltr"
-                className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-70 disabled:cursor-not-allowed transition-all text-right"
+                className={`w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none  focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-70 disabled:cursor-not-allowed transition-all text-right ${
+                  props.highlightIncomplete && !form.militaryId ? 'border-amber-400 bg-amber-50' : ''
+                }`}
               />
             </div>
 
+
+
             {/* الدفعة */}
             <div className="space-y-1.5">
-              <label htmlFor="officer-batch" className="text-xs font-bold text-slate-600 block mr-1">الدفعة</label>
+              <label htmlFor="officer-batch" className="text-xs font-bold text-(--app-muted-foreground) block mr-1">الدفعة</label>
               <input
                 id="officer-batch"
                 type="text"
@@ -625,13 +572,15 @@ export function OfficerForm(props: OfficerFormProps) {
                 onChange={(e) => setForm({ ...form, batch: e.target.value.replace(/\D/g, '') })}
                 inputMode="numeric"
                 dir="ltr"
-                className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-right"
+                className={`w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none  focus:ring-blue-500/20 focus:border-blue-500 transition-all text-right ${
+                  props.highlightIncomplete && !form.batch ? 'border-amber-400 bg-amber-50' : ''
+                }`}
               />
             </div>
 
             {/* الهاتف */}
             <div className="space-y-1.5">
-              <label htmlFor="officer-phone" className="text-xs font-bold text-slate-600 block mr-1">الهاتف</label>
+              <label htmlFor="officer-phone" className="text-xs font-bold text-(--app-muted-foreground) block mr-1">الهاتف</label>
               <input
                 id="officer-phone"
                 type="text"
@@ -639,19 +588,23 @@ export function OfficerForm(props: OfficerFormProps) {
                 onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, '') })}
                 inputMode="numeric"
                 dir="ltr"
-                className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-right"
+                className={`w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none  focus:ring-blue-500/20 focus:border-blue-500 transition-all text-right ${
+                  props.highlightIncomplete && !form.phone ? 'border-amber-400 bg-amber-50' : ''
+                }`}
               />
             </div>
 
             {/* النوع */}
             <div className="space-y-1.5">
-              <label htmlFor="officer-type" className="text-xs font-bold text-slate-600 block mr-1">النوع</label>
+              <label htmlFor="officer-type" className="text-xs font-bold text-(--app-muted-foreground) block mr-1">النوع</label>
               <div className="relative">
                 <select
                   id="officer-type"
                   value={form.type}
                   onChange={(e) => setForm({ ...form, type: e.target.value })}
-                  className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none"
+                  className={`w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none  focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none ${
+                    props.highlightIncomplete && !form.type ? 'border-amber-400 bg-amber-50' : ''
+                  }`}
                 >
                   <option value="">اختر النوع</option>
                   {TYPE_OPTIONS.map((t) => (
@@ -664,13 +617,15 @@ export function OfficerForm(props: OfficerFormProps) {
 
             {/* السلاح */}
             <div className="space-y-1.5">
-              <label htmlFor="officer-weapon" className="text-xs font-bold text-slate-600 block mr-1">السلاح</label>
+              <label htmlFor="officer-weapon" className="text-xs font-bold text-(--app-muted-foreground) block mr-1">السلاح</label>
               <div className="relative">
                 <select
                   id="officer-weapon"
                   value={form.weapon}
                   onChange={(e) => setForm({ ...form, weapon: e.target.value })}
-                  className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none"
+                  className={`w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none  focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none ${
+                    props.highlightIncomplete && !form.weapon ? 'border-amber-400 bg-amber-50' : ''
+                  }`}
                 >
                   <option value="">اختر السلاح</option>
                   {WEAPON_OPTIONS.map((w) => (
@@ -702,7 +657,7 @@ export function OfficerForm(props: OfficerFormProps) {
 
             {/* الرقم القومي */}
             <div className="space-y-1.5">
-              <label htmlFor="officer-nationalId" className="text-xs font-bold text-slate-600 block mr-1">الرقم القومي</label>
+              <label htmlFor="officer-nationalId" className="text-xs font-bold text-(--app-muted-foreground) block mr-1">الرقم القومي</label>
               <input
                 id="officer-nationalId"
                 type="text"
@@ -711,35 +666,17 @@ export function OfficerForm(props: OfficerFormProps) {
                 maxLength={14}
                 inputMode="numeric"
                 dir="ltr"
-                className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-right"
+                className={`w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none  focus:ring-blue-500/20 focus:border-blue-500 transition-all text-right ${
+                  props.highlightIncomplete && !form.nationalId ? 'border-amber-400 bg-amber-50' : ''
+                }`}
               />
             </div>
 
-            {/* حالة الضابط — edit only */}
-            {isEdit && (
-              <div className="col-span-2 space-y-1.5">
-                <label className="text-xs font-bold text-slate-600 block mr-1">حالة الضابط</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {["active", "inactive", "retired"].map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => setForm({ ...form, employmentStatus: s })}
-                      className={`py-2 rounded-xl text-xs font-bold border transition-all ${form.employmentStatus === s
-                        ? "bg-(--color-primary) text-(--app-white) border-(--color-primary)"
-                        : "bg-(--app-surface) border-(--app-border) text-(--app-muted-foreground) hover:bg-(--app-surface-container)"
-                        }`}
-                    >
-                      {s === "active" ? "نشط" : s === "inactive" ? "غير نشط" : "متقاعد"}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+
 
             {/* ملف 121 */}
             <div className="col-span-2 space-y-1.5">
-              <label className="text-xs font-bold text-slate-600 block mr-1">ملف 121 (PDF)</label>
+              <label className="text-xs font-bold text-(--app-muted-foreground) block mr-1">ملف 121 (PDF)</label>
               {form.file121Url && !file121 ? (
                 <div className="flex items-center gap-3 rounded-xl bg-(--app-surface-container) border border-(--app-border) p-3">
                   <FileText className="w-4 h-4 text-(--color-primary) shrink-0" />
@@ -763,11 +700,15 @@ export function OfficerForm(props: OfficerFormProps) {
                       onChange={(e) => setFile121(e.target.files?.[0] ?? null)}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                     />
-                    <div className="px-4 py-1.5 bg-(--app-surface-container) border border-(--app-border) rounded-lg text-xs font-black text-(--color-primary) hover:bg-white/10 transition-all flex items-center gap-2">
+                    <div className={`px-4 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-2 border ${
+                      props.highlightIncomplete && !form.file121Url && !file121
+                        ? 'border-amber-400 bg-amber-50 text-amber-700'
+                        : 'bg-(--app-surface-container) border-(--app-border) text-(--color-primary) hover:bg-white/10'
+                    }`}>
                       Browse
                     </div>
                   </div>
-                  <span className="text-xs font-bold text-slate-600">ملف 121 (PDF)</span>
+                  <span className="text-xs font-bold text-(--app-muted-foreground)">ملف 121 (PDF)</span>
                   {file121 && (
                     <span className="text-[10px] font-bold text-slate-400 truncate max-w-[200px]" title={file121.name}>
                       {file121.name}

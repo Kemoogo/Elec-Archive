@@ -1,27 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, Upload, Trash2, ExternalLink, AlertCircle, FileLock2 } from "lucide-react";
-
-interface OfficerDoc {
-  id: string;
-  originalName: string;
-  storedPath: string;
-  mimeType: string;
-  sizeBytes: number;
-  uploadedAt: string;
-}
+import { FileText, Upload, Trash2, ExternalLink, AlertCircle, FileLock2, Eye } from "lucide-react";
+import { PdfViewerModal } from "./PdfViewerModal";
 
 interface OfficerDocumentsProps {
   officerId: string;
-  documents: OfficerDoc[];
+  file121Url?: string; // We use the single URL now
+  file121UpdatedAt?: string;
+  officerLabel: string;
   canEdit: boolean;
 }
 
-export function OfficerDocuments({ officerId, documents, canEdit }: OfficerDocumentsProps) {
-  const [docs, setDocs] = useState(documents);
+export function OfficerDocuments({ officerId, file121Url, file121UpdatedAt, officerLabel, canEdit }: OfficerDocumentsProps) {
+  const [currentFile, setCurrentFile] = useState(file121Url);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -34,30 +29,19 @@ export function OfficerDocuments({ officerId, documents, canEdit }: OfficerDocum
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch(`/api/officers/${officerId}/documents`, {
+      const res = await fetch(`/api/officers/${officerId}/file121`, {
         method: "POST",
         body: formData,
       });
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        setError(data.error || "فشل في رفع المستند");
+        setError(data.error || "فشل في رفع الملف");
         return;
       }
 
-      setDocs((prev) => [
-        ...prev,
-        {
-          id: data.data.document.id,
-          originalName: data.data.document.originalName,
-          storedPath: "",
-          mimeType: "application/pdf",
-          sizeBytes: 0,
-          uploadedAt: data.data.document.uploadedAt,
-        },
-      ]);
-
-      window.location.reload();
+      setCurrentFile(data.data.fileUrl);
+      window.location.reload(); // Refresh to update all views
     } catch {
       setError("حدث خطأ في الاتصال");
     } finally {
@@ -66,53 +50,46 @@ export function OfficerDocuments({ officerId, documents, canEdit }: OfficerDocum
     }
   };
 
-  const handleDelete = async (documentId: string) => {
-    if (!confirm("هل أنت متأكد من حذف هذا المستند؟")) return;
+  const handleDelete = async () => {
+    if (!confirm("هل أنت متأكد من حذف الملف بالكامل؟")) return;
 
     try {
-      const res = await fetch(`/api/officers/${officerId}/documents`, {
+      const res = await fetch(`/api/officers/${officerId}/file121`, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ documentId }),
       });
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        setError(data.error || "فشل في حذف المستند");
+        setError(data.error || "فشل في حذف الملف");
         return;
       }
 
-      setDocs((prev) => prev.filter((d) => d.id !== documentId));
+      setCurrentFile(undefined);
+      window.location.reload();
     } catch {
       setError("حدث خطأ في الاتصال");
     }
   };
 
-  const formatSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} بايت`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} ك.ب`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} م.ب`;
-  };
-
   return (
-    <div className="bg-(--app-surface) border border-(--app-border) rounded-xl p-6">
+    <>
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-(--app-surface-container) border border-(--app-border) rounded-lg">
             <FileLock2 className="h-5 w-5 text-(--color-primary)" />
           </div>
-          <h2 className="text-lg font-semibold text-(--color-primary)">الوثائق الرقمية</h2>
+          <h2 className="text-lg font-semibold text-(--color-primary)">ملف 121 ش ض</h2>
         </div>
-        
+
         {canEdit && (
           <label className="cursor-pointer flex items-center gap-2 btn-primary px-4 py-2 rounded-lg font-bold text-sm">
             {uploading ? (
-               <span className="animate-pulse">جاري الرفع...</span>
+              <span className="animate-pulse">جاري الرفع...</span>
             ) : (
-               <>
-                 <Upload className="h-4 w-4" />
-                 رفع وثيقة PDF
-               </>
+              <>
+                <Upload className="h-4 w-4" />
+                {currentFile ? "تحديث" : "رفع ملف"}
+              </>
             )}
             <input
               type="file"
@@ -132,57 +109,60 @@ export function OfficerDocuments({ officerId, documents, canEdit }: OfficerDocum
         </div>
       )}
 
-      {docs.length === 0 ? (
+      {!currentFile ? (
         <div className="text-center py-8 bg-(--app-surface-container) rounded-lg border border-dashed border-(--app-border)">
           <FileText className="h-12 w-12 text-(--app-muted-foreground)/20 mx-auto mb-4" />
-          <p className="text-(--app-muted-foreground) font-bold">لا توجد وثائق مؤرشفة لهذا الضابط</p>
+          <p className="text-(--app-muted-foreground) font-bold">لم يتم رفع ملف 121 ش ض بعد</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {docs.map((doc) => (
-            <div
-              key={doc.id}
-              className="group flex items-center justify-between rounded-lg bg-(--app-surface-container) border border-(--app-border) p-4 hover:bg-(--app-surface-container)"
-            >
-              <div className="flex items-center gap-4">
-                 <div className="p-2.5 bg-(--app-surface-container) rounded-lg border border-(--app-border) text-(--app-muted-foreground)">
-                   <FileText className="h-5 w-5" />
-                 </div>
-                 <div className="space-y-0.5">
-                    <p className="text-sm font-bold text-(--color-primary) line-clamp-1">{doc.originalName}</p>
-                    <p className="text-xs text-(--app-muted-foreground) font-mono">
-                      {doc.sizeBytes > 0 && `${formatSize(doc.sizeBytes)} ― `}
-                      {new Date(doc.uploadedAt).toLocaleDateString("ar-EG")}
-                    </p>
-                 </div>
+          <div className="group flex items-center justify-between rounded-lg bg-(--app-surface-container) border border-(--app-border) p-4 hover:border-(--color-primary)/30 transition-all">
+            <div className="flex items-center gap-4">
+              <div className="p-2.5 bg-(--app-surface-container) rounded-lg border border-(--app-border) text-(--color-primary)">
+                <FileText className="h-5 w-5" />
               </div>
-              
-              <div className="flex items-center gap-2">
-                {doc.storedPath && (
-                  <a
-                    href={doc.storedPath}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 bg-(--app-surface-container) rounded-lg border border-(--app-border) text-(--color-primary) hover:bg-(--color-primary) hover:text-white transition-all"
-                    title="عرض المستند"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </a>
-                )}
-                {canEdit && (
-                  <button
-                    onClick={() => handleDelete(doc.id)}
-                    className="p-2 bg-(--app-surface-container) rounded-lg border border-(--app-border) text-(--app-muted-foreground) hover:bg-(--app-error) hover:text-white transition-all"
-                    title="حذف المستند"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                )}
+              <div className="space-y-0.5">
+                <p 
+                  className="text-sm font-bold text-(--color-primary) cursor-pointer hover:underline transition-all inline-block"
+                  onClick={() => setIsViewerOpen(true)}
+                >
+                  عرض الملف
+                </p>
+                <p className="text-xs text-(--app-muted-foreground) font-mono text-right">
+                  {file121UpdatedAt ? `تاريخ الرفع: ${new Date(file121UpdatedAt).toLocaleDateString("ar-EG")}` : "سيتم استبدال هذا الملف في حالة رفع ملف جديد"}
+                </p>
               </div>
             </div>
-          ))}
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsViewerOpen(true)}
+                className="p-2 bg-(--app-surface-container) rounded-lg border border-(--app-border) text-(--color-primary) hover:bg-(--color-primary) hover:text-white transition-all shadow-sm"
+                title="عرض المستند"
+              >
+                <Eye className="h-4 w-4" />
+              </button>
+              {canEdit && (
+                <button
+                  onClick={handleDelete}
+                  className="p-2 bg-(--app-surface-container) rounded-lg border border-(--app-border) text-(--app-muted-foreground) hover:bg-(--app-error) hover:text-white transition-all shadow-sm"
+                  title="حذف المستند"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
-    </div>
+      {currentFile && (
+        <PdfViewerModal
+          isOpen={isViewerOpen}
+          onClose={() => setIsViewerOpen(false)}
+          fileUrl={currentFile}
+          title={`${officerLabel}`}
+        />
+      )}
+    </>
   );
 }

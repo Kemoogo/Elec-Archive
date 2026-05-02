@@ -18,6 +18,8 @@ interface DispensedItem {
   quantity: number;
 }
 
+import { Stethoscope } from "lucide-react";
+
 export default function NewVisitPage() {
   const router = useRouter();
   const [medicines, setMedicines] = useState<MedicineOption[]>([]);
@@ -105,6 +107,7 @@ export default function NewVisitPage() {
     <PageContainer className="p-6 max-w-2xl mx-auto">
       <PageHeader
         title="تسجيل زيارة طبية جديدة"
+        icon={<Stethoscope className="w-6 h-6" />}
         backHref="/medical/visits"
         backLabel="العودة"
       />

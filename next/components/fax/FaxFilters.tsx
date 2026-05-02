@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState } from "react";
+import { DateField } from "@/components/ui/date-field";
 
 export function FaxFilters() {
   const router = useRouter();
@@ -51,19 +52,22 @@ export function FaxFilters() {
         <option value="closed">مغلق</option>
       </select>
 
-      <input
-        type="date"
-        value={dateFrom}
-        onChange={(e) => setDateFrom(e.target.value)}
-        className="rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-white) focus:border-(--app-info) focus:outline-none"
-      />
-
-      <input
-        type="date"
-        value={dateTo}
-        onChange={(e) => setDateTo(e.target.value)}
-        className="rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-white) focus:border-(--app-info) focus:outline-none"
-      />
+      <div className="flex gap-2 items-center">
+        <DateField
+          id="dateFrom"
+          label="من"
+          value={dateFrom}
+          onChange={(v) => setDateFrom(v)}
+          className="min-w-[150px]"
+        />
+        <DateField
+          id="dateTo"
+          label="إلى"
+          value={dateTo}
+          onChange={(v) => setDateTo(v)}
+          className="min-w-[150px]"
+        />
+      </div>
 
       <button
         onClick={applyFilters}

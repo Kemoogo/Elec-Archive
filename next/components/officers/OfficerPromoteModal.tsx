@@ -7,6 +7,8 @@ import { useToast } from "@/components/ui/toast";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { ModalShell } from "@/components/ui/modal-shell";
 
+import { DateField } from "@/components/ui/date-field";
+
 const RANK_OPTIONS = [
   { value: "second_lieutenant", label: "ملازم" },
   { value: "first_lieutenant", label: "ملازم أول" },
@@ -84,25 +86,25 @@ export function OfficerPromoteModal({ officer, trigger }: OfficerPromoteModalPro
       </div>
       {open && (
         <ModalShell title="تسجيل ترقية" onClose={() => setOpen(false)}>
-          <div className="mb-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/50 p-4 rounded-2xl text-right">
-            <p className="text-sm font-bold text-amber-800 dark:text-amber-200">
+          <div className="mb-4 bg-amber-50 border border-amber-100 p-4 rounded-2xl text-right">
+            <p className="text-sm font-bold text-amber-800">
               تسجيل ترقية جديدة للضابط وتحديث الرتبة الحالية.
             </p>
-            <p className="text-sm text-amber-600 dark:text-amber-400 mt-1">
+            <p className="text-sm text-amber-600 mt-1">
               {officer.rankLabel || officer.rank} / {officer.fullName}
             </p>
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
               <div className="space-y-1.5 text-right">
-                <label htmlFor="promote-rank" className="text-xs font-bold text-slate-600 block mr-1">
+                <label htmlFor="promote-rank" className="text-xs font-bold text-(--app-muted-foreground) block mr-1">
                   الرتبة الجديدة <span className="text-red-500">*</span>
                 </label>
                 <select
                   id="promote-rank"
                   value={newRank}
                   onChange={(e) => setNewRank(e.target.value)}
-                  className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all appearance-none"
+                  className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none  focus:ring-amber-500/20 focus:border-amber-500 transition-all appearance-none"
                   required
                 >
                   {RANK_OPTIONS.map((r) => (
@@ -113,23 +115,17 @@ export function OfficerPromoteModal({ officer, trigger }: OfficerPromoteModalPro
                 </select>
               </div>
 
-              <div className="space-y-1.5 text-right">
-                <label htmlFor="effective-date" className="text-xs font-bold text-slate-600 block mr-1">
-                  تاريخ السريان <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  id="effective-date"
-                  value={effectiveDate}
-                  onChange={(e) => setEffectiveDate(e.target.value)}
-                  className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
-                  required
-                />
-              </div>
+              <DateField
+                id="effective-date"
+                label="تاريخ السريان"
+                value={effectiveDate}
+                onChange={setEffectiveDate}
+                required
+              />
             </div>
 
             <div className="space-y-1.5 text-right">
-              <label htmlFor="order-number" className="text-xs font-bold text-slate-600 block mr-1">
+              <label htmlFor="order-number" className="text-xs font-bold text-(--app-muted-foreground) block mr-1">
                 رقم الأمر / القرار
               </label>
               <input
@@ -138,12 +134,12 @@ export function OfficerPromoteModal({ officer, trigger }: OfficerPromoteModalPro
                 value={orderNumber}
                 onChange={(e) => setOrderNumber(e.target.value)}
                 placeholder="مثلاً: 123 لسنة 2024"
-                className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all text-right"
+                className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none  focus:ring-amber-500/20 focus:border-amber-500 transition-all text-right"
               />
             </div>
 
             <div className="space-y-1.5 text-right">
-              <label htmlFor="notes" className="text-xs font-bold text-slate-600 block mr-1">
+              <label htmlFor="notes" className="text-xs font-bold text-(--app-muted-foreground) block mr-1">
                 ملاحظات إضافية
               </label>
               <textarea
@@ -151,7 +147,7 @@ export function OfficerPromoteModal({ officer, trigger }: OfficerPromoteModalPro
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}
-                className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all text-right resize-none"
+                className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none  focus:ring-amber-500/20 focus:border-amber-500 transition-all text-right resize-none"
               />
             </div>
 

@@ -1,13 +1,9 @@
 import { redirect } from "next/navigation";
 import { authenticate } from "@/lib/auth/middleware";
 import { connectToDatabase } from "@/lib/db/connect";
-import { Student } from "@/lib/db/models/Student";
+import { Student, type IStudent } from "@/lib/db/models/Student";
 import { studentsListQuerySchema } from "@/lib/validations/student";
-import { StudentList } from "@/components/students/StudentList";
-import { StudentForm } from "@/components/students/StudentForm";
-import { PageContainer } from "@/components/layout/PageContainer";
-import { ModernPageHeader as PageHeader } from "@/components/layout/ModernPageHeader";
-import { GraduationCap } from "lucide-react";
+import { StudentsPageClient } from "@/components/students/StudentsPageClient";
 import type { Types } from "mongoose";
 
 interface StudentsPageProps {
@@ -82,20 +78,13 @@ export default async function StudentsPage({ searchParams }: StudentsPageProps) 
   const canEdit = user.role === "admin" || user.permissions.students === "edit";
 
   return (
-    <PageContainer className="max-w-[1600px] mx-auto pb-12">
-      <PageHeader
-        title="شئون الطلبة"
-        description="إدارة سجلات الطلبة وملفاتهم"
-        icon={<GraduationCap className="w-6 h-6" />}
-        action={canEdit && <StudentForm mode="create" />}
-      />
-
-      <StudentList
-        students={serialized}
-        page={page}
-        totalPages={totalPages}
-        total={total}
-      />
-    </PageContainer>
+    <StudentsPageClient
+      students={serialized as unknown as IStudent[]}
+      total={total}
+      totalPages={totalPages}
+      page={page}
+      canEdit={canEdit}
+      initialFilters={{ search, status }}
+    />
   );
 }

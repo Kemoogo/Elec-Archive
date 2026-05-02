@@ -35,9 +35,9 @@ export const CommanderSummary: React.FC<CommanderSummaryProps> = ({
       <div className="flex items-center justify-between mb-4">
         <div className="text-center">
           <p className="text-sm text-slate-500">إجمالي القوة</p>
-          <p className="text-2xl font-black text-slate-800 dark:text-slate-200">{totalOfficers}</p>
+          <p className="text-2xl font-black text-(--app-foreground)">{totalOfficers}</p>
         </div>
-        <div className="flex-1 mx-8 h-4 bg-slate-100 dark:bg-slate-800 rounded-full flex overflow-hidden shadow-inner">
+        <div className="flex-1 mx-8 h-4 bg-slate-100 rounded-full flex overflow-hidden shadow-inner">
           {stats.map((stat) => (
             <div 
               key={stat.label}
@@ -51,9 +51,9 @@ export const CommanderSummary: React.FC<CommanderSummaryProps> = ({
 
       <div className="grid grid-cols-4 gap-4">
         {stats.map((stat) => (
-          <div key={stat.label} className="text-center p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
+          <div key={stat.label} className="text-center p-3 bg-slate-50 rounded-xl">
             <p className="text-xs text-slate-500 mb-1">{stat.label}</p>
-            <p className="font-bold text-slate-800 dark:text-slate-200">{stat.value}</p>
+            <p className="font-bold text-(--app-foreground)">{stat.value}</p>
           </div>
         ))}
       </div>

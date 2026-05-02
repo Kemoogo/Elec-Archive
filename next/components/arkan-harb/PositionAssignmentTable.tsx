@@ -46,9 +46,9 @@ function getStatusBadgeClass(status: PositionStatus): string {
     case "active":
       return "bg-green-100 text-green-800";
     case "ended":
-      return "bg-slate-100 text-slate-800";
+      return "bg-slate-100 text-(--app-foreground)";
     default:
-      return "bg-slate-100 text-slate-800";
+      return "bg-slate-100 text-(--app-foreground)";
   }
 }
 
@@ -94,7 +94,7 @@ export function PositionAssignmentTable({
   isLoading?: boolean;
 }) {
   const [showFilters, setShowFilters] = useState(false);
-  
+
   const columns: TableColumn<Position>[] = [
     {
       header: "الضابط",
@@ -105,7 +105,7 @@ export function PositionAssignmentTable({
         <div className="flex items-center gap-2">
           <User className="h-4 w-4 text-(--app-muted-foreground)" />
           <div className="flex flex-col">
-            <span className="text-sm font-bold text-(--app-foreground)">{(value as string) || "غير معروف"}</span>
+            <span className="text-sm font-bold text-foreground">{(value as string) || "غير معروف"}</span>
           </div>
         </div>
       ),
@@ -156,7 +156,7 @@ export function PositionAssignmentTable({
       cellAlign: "center" as const,
       headerAlign: "center" as const,
       render: (value: unknown) => (
-        <Badge 
+        <Badge
           variant="secondary"
           className={`${getStatusBadgeClass(value as PositionStatus)} text-[10px] font-bold px-2 py-0.5 border-none`}
         >
@@ -171,7 +171,7 @@ export function PositionAssignmentTable({
       headerAlign: "center" as const,
       className: "w-[80px]",
       render: (_: unknown, row: Position) => (
-        <Button 
+        <Button
           variant="ghost"
           size="icon"
           onClick={() => onEditPosition(row)}
@@ -186,65 +186,6 @@ export function PositionAssignmentTable({
 
   return (
     <div className="space-y-4">
-      {/* Filters section */}
-      <div className="border border-(--app-border) rounded-2xl p-4 bg-(--app-surface) shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-4 bg-(--color-primary) rounded-full"></div>
-            <h3 className="text-(--app-foreground) font-extrabold text-sm">
-              أدوات البحث والفلترة
-            </h3>
-          </div>
-          <Button 
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowFilters(!showFilters)}
-            className="h-8 text-xs font-bold text-(--app-muted-foreground)"
-          >
-            {showFilters ? "إخفاء الفلاتر" : "إظهار الفلاتر"}
-            <ChevronDown className={`mr-2 h-4 w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
-          </Button>
-        </div>
-
-        {showFilters && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
-            {/* Officer filter */}
-            <div className="space-y-2">
-              <label htmlFor="officer-filter" className="text-[10px] font-black uppercase tracking-wider text-(--app-muted-foreground) mr-1">
-                الضابط
-              </label>
-              <select
-                id="officer-filter"
-                value={officerFilter}
-                onChange={(e) => onOfficerFilterChange(e.target.value)}
-                className="w-full px-4 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-(--app-foreground) focus:outline-none focus:ring-2 focus:ring-(--color-primary)/20 focus:border-(--color-primary) transition-all appearance-none"
-              >
-                <option value="">الكل</option>
-                {officers.map(off => (
-                  <option key={off.id} value={off.id}>{off.rank} / {off.name}</option>
-                ))}
-              </select>
-            </div>
-            
-            {/* Status filter */}
-            <div className="space-y-2">
-              <label htmlFor="status-filter" className="text-[10px] font-black uppercase tracking-wider text-(--app-muted-foreground) mr-1">
-                الحالة
-              </label>
-              <select
-                id="status-filter"
-                value={statusFilter}
-                onChange={(e) => onStatusFilterChange(e.target.value)}
-                className="w-full px-4 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-(--app-foreground) focus:outline-none focus:ring-2 focus:ring-(--color-primary)/20 focus:border-(--color-primary) transition-all appearance-none"
-              >
-                <option value="">كل الحالات</option>
-                <option value="active">ساري</option>
-                <option value="ended">منتهي</option>
-              </select>
-            </div>
-          </div>
-        )}
-      </div>
 
       {/* Table section */}
       <div className="border border-(--app-border) rounded-2xl overflow-hidden bg-(--app-surface) shadow-sm">
@@ -263,11 +204,11 @@ export function PositionAssignmentTable({
             <div className="text-(--app-muted-foreground) text-[10px] font-bold">
               عرض {Math.min((page - 1) * limit + 1, total)} - {Math.min(page * limit, total)} من {total} نتيجة
             </div>
-            
+
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1">
                 {[5, 10, 20].map((l) => (
-                  <Button 
+                  <Button
                     key={l}
                     variant="ghost"
                     size="sm"
@@ -280,9 +221,9 @@ export function PositionAssignmentTable({
               </div>
 
               <div className="w-px h-4 bg-(--app-border)"></div>
-              
+
               <div className="flex items-center gap-2">
-                <Button 
+                <Button
                   variant="outline"
                   size="sm"
                   onClick={() => onPageChange(page - 1)}
@@ -291,10 +232,10 @@ export function PositionAssignmentTable({
                 >
                   السابق
                 </Button>
-                <span className="text-[10px] font-black text-(--app-foreground)">
+                <span className="text-[10px] font-black text-foreground">
                   {page} / {Math.max(1, Math.ceil(total / limit))}
                 </span>
-                <Button 
+                <Button
                   variant="outline"
                   size="sm"
                   onClick={() => onPageChange(page + 1)}

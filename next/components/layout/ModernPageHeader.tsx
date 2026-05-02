@@ -163,7 +163,7 @@ export function ModernPageHeader({
                 value={searchQuery}
                 onChange={(e) => onSearchChange?.(e.target.value)}
                 placeholder={searchPlaceholder}
-                className="w-full pr-9 pl-9 py-2 bg-(--app-surface-container) border border-(--app-border) rounded-xl text-sm font-bold text-(--color-primary) placeholder:text-(--app-muted-foreground) focus:outline-none focus:ring-(--color-primary)/20 focus:border-(--color-primary) transition-all"
+                className="w-full pr-9 pl-9 py-2 bg-slate-100 border-none rounded-xl text-sm font-bold text-(--color-primary) placeholder:text-(--app-muted-foreground) focus:outline-none transition-all"
                 dir="rtl"
               />
               {searchQuery && (
@@ -186,10 +186,10 @@ export function ModernPageHeader({
             onClick={handleToggleSearch}
             title="بحث"
             className={[
-              "p-2 rounded-xl transition-all active:scale-95",
+              "px-4 py-2 rounded-xl text-sm font-bold transition-all active:scale-95 focus:outline-none",
               isSearchOpen
-                ? "bg-(--color-primary)/10 text-(--color-primary) border border-(--color-primary)/20"
-                : "bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border) hover:bg-(--app-border)",
+                ? "bg-slate-200 text-(--color-primary)"
+                : "bg-slate-100 text-(--color-primary) hover:bg-slate-200",
             ].join(" ")}
           >
             <Search className="w-5 h-5" />

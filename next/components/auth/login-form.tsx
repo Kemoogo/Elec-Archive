@@ -50,7 +50,7 @@ export function LoginForm() {
   };
 
   return (
-    <div className="bg-white w-full rounded-3xl shadow-2xl relative overflow-hidden text-slate-700 border border-slate-100" dir="rtl">
+    <div className="bg-white w-full rounded-3xl shadow-2xl relative overflow-hidden text-(--app-muted-foreground) border border-slate-100" dir="rtl">
       <div className="p-7">
         <div className="text-center mb-6">
           <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-blue-100">
@@ -62,14 +62,14 @@ export function LoginForm() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2 text-right">
-            <label htmlFor='username-login' className="text-sm font-bold text-slate-600 block mr-1">اسم المستخدم</label>
+            <label htmlFor='username-login' className="text-sm font-bold text-(--app-muted-foreground) block mr-1">اسم المستخدم</label>
             <div className="relative">
               <User className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               <input
                 id='username-login'
                 type="text"
                 required
-                className="w-full pl-4 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:placeholder-transparent transition-all text-right text-slate-800"
+                className="w-full pl-4 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none  focus:ring-blue-500/20 focus:border-blue-500 focus:placeholder-transparent transition-all text-right text-(--app-foreground)"
                 placeholder="اسم المستخدم"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -78,14 +78,14 @@ export function LoginForm() {
           </div>
 
           <div className="space-y-2 text-right">
-            <label htmlFor='password-login' className="text-sm font-bold text-slate-600 block mr-1">كلمة المرور</label>
+            <label htmlFor='password-login' className="text-sm font-bold text-(--app-muted-foreground) block mr-1">كلمة المرور</label>
             <div className="relative">
               <Lock className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               <input
                 id='password-login'
                 type={showPassword ? "text" : "password"}
                 required
-                className="w-full pl-12 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:placeholder-transparent transition-all text-right text-slate-800"
+                className="w-full pl-12 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none  focus:ring-blue-500/20 focus:border-blue-500 focus:placeholder-transparent transition-all text-right text-(--app-foreground)"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

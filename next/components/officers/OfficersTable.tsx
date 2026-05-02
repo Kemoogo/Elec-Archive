@@ -8,6 +8,7 @@ import MainTable, { TableColumn } from "@/components/ui/Table";
 import { OfficerForm } from "./OfficerForm";
 import { OfficerPromoteModal } from "./OfficerPromoteModal";
 import { OfficerTransferModal } from "./OfficerTransferModal";
+import { OfficerReturnModal } from "./OfficerReturnModal";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const ActionButton = ({ icon, color, title, onClick }: any) => {
@@ -50,6 +51,7 @@ interface OfficerListItem {
   birthDate: string;
   employmentStatus: string;
   employmentStatusLabel: string;
+  isInUnit: boolean;
   file121Url: string;
 }
 
@@ -67,7 +69,7 @@ export function OfficersTable({ officers, page, totalPages, total, canEdit }: Of
   const sortedOfficers = [...officers].sort((a, b) => compareSeniority(a.seniorityNumber, b.seniorityNumber))
   .map(officer => {
     // A record is complete if all descriptive fields are filled
-    const isComplete = Boolean(officer.batch && officer.type && officer.weapon && officer.phone && officer.nationalId && officer.unit && officer.position && officer.militaryId);
+    const isComplete = Boolean(officer.batch && officer.type && officer.weapon && officer.phone && officer.nationalId && officer.militaryId && officer.file121Url);
     return {
       ...officer,
       _isComplete: isComplete,
@@ -142,6 +144,7 @@ export function OfficersTable({ officers, page, totalPages, total, canEdit }: Of
               <OfficerForm
                 mode="edit"
                 initialValues={row}
+                highlightIncomplete={true}
                 trigger={
                   <ActionButton
                     icon={<AlertTriangle className="w-4 h-4 text-amber-600" />}
@@ -152,7 +155,7 @@ export function OfficersTable({ officers, page, totalPages, total, canEdit }: Of
               />
             )}
             
-            {canEdit && row.employmentStatus === "active" && (
+            {canEdit && row.isInUnit && (
               <>
                 <OfficerPromoteModal
                   officer={row}
@@ -177,6 +180,19 @@ export function OfficersTable({ officers, page, totalPages, total, canEdit }: Of
                 />
               </>
             )}
+
+            {canEdit && !row.isInUnit && (
+              <OfficerReturnModal
+                officer={row}
+                trigger={
+                  <ActionButton
+                    icon={<ArrowRightCircle className="w-4 h-4 text-blue-600 -rotate-180" />}
+                    color="bg-blue-50 hover:bg-blue-100 border border-blue-200"
+                    title="عودة للخدمة / إعادة انضمام"
+                  />
+                }
+              />
+            )}
           </div>
         );
       },
@@ -188,8 +204,6 @@ export function OfficersTable({ officers, page, totalPages, total, canEdit }: Of
       <MainTable
         columns={columns}
         data={sortedOfficers}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onRowClick={(row: any) => router.push(`/officers/${row.id}`)}
       // showSerialNumber 
       />
 

@@ -11,14 +11,15 @@ import {
   UserPlus
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/ui/empty-state";
 
-export type TimelineEventType = "join" | "promotion" | "mission" | "transfer" | "termination";
+export type TimelineEventType = "join" | "promotion" | "mission" | "transfer" | "termination" | "return" | "death" | "retirement";
 
 export interface TimelineEvent {
   id: string;
   type: TimelineEventType;
-  date: Date;
-  endDate?: Date;
+  date: Date | string | number;
+  endDate?: Date | string | number;
   title: string;
   description?: string;
   badge?: string;
@@ -59,21 +60,34 @@ const EVENT_CONFIG: Record<TimelineEventType, { icon: React.ElementType, color: 
     color: "bg-rose-500", 
     label: "إنهاء خدمة" 
   },
+  return: { 
+    icon: History, 
+    color: "bg-cyan-500", 
+    label: "عودة للخدمة" 
+  },
+  death: { 
+    icon: XCircle, 
+    color: "bg-slate-800", 
+    label: "وفاة" 
+  },
+  retirement: { 
+    icon: XCircle, 
+    color: "bg-orange-500", 
+    label: "تقاعد" 
+  },
 };
 
 export function CareerTimeline({ events, officerName }: CareerTimelineProps) {
   // Sort events by date descending (newest first)
-  const sortedEvents = [...events].sort((a, b) => b.date.getTime() - a.date.getTime());
+  const sortedEvents = [...events].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   if (events.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 px-4 bg-(--app-surface-container)/50 rounded-xl border border-dashed border-(--app-border)">
-        <History className="h-12 w-12 text-(--app-muted-foreground)/20 mb-4" />
-        <h3 className="text-lg font-semibold text-(--app-muted-foreground) mb-1">لا يوجد سجل مهني</h3>
-        <p className="text-sm text-(--app-muted-foreground)/60 text-center max-w-xs">
-          لم يتم توثيق أي أحداث مهنية لـ {officerName} حتى الآن.
-        </p>
-      </div>
+      <EmptyState
+        icon={History}
+        title="لا يوجد سجل تاريخي"
+        description={`لم يتم تسجيل أي أحداث تاريخية للضابط ${officerName} حتى الآن`}
+      />
     );
   }
 
@@ -135,13 +149,13 @@ export function CareerTimeline({ events, officerName }: CareerTimelineProps) {
                   <div className="flex items-center gap-2 text-(--app-muted-foreground) font-mono text-xs bg-(--app-surface-container) px-3 py-1.5 rounded-lg border border-(--app-border)">
                     <Calendar className="h-3.5 w-3.5" />
                     <span dir="ltr">
-                      {event.date.toLocaleDateString("ar-EG", { year: 'numeric', month: 'long', day: 'numeric' })}
+                      {new Date(event.date).toLocaleDateString("ar-EG", { year: 'numeric', month: 'long', day: 'numeric' })}
                     </span>
                     {event.endDate && (
                       <>
                         <span className="opacity-30 mx-1">/</span>
                         <span dir="ltr">
-                          {event.endDate.toLocaleDateString("ar-EG", { year: 'numeric', month: 'long', day: 'numeric' })}
+                          {new Date(event.endDate).toLocaleDateString("ar-EG", { year: 'numeric', month: 'long', day: 'numeric' })}
                         </span>
                       </>
                     )}

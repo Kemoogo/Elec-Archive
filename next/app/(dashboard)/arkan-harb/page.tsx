@@ -2,10 +2,10 @@ import { redirect } from "next/navigation";
 import { authenticate } from "@/lib/auth/middleware";
 import { canViewModule } from "@/lib/auth/authorization";
 import { connectToDatabase } from "@/lib/db/connect";
-import { 
-  Leave, 
-  Mission, 
-  DailyRollcall, 
+import {
+  Leave,
+  Mission,
+  DailyRollcall,
   PositionAssignment,
   AuditLog,
   Officer,
@@ -16,13 +16,14 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/ModernPageHeader";
 import { DashboardCard } from "@/components/dashboard/DashboardCard";
 import { CommanderSummary } from "@/components/arkan-harb/CommanderSummary";
-import { 
-  Swords, 
-  Users, 
-  ScrollText, 
-  Shield, 
+import {
+  Swords,
+  Users,
+  ScrollText,
+  Shield,
   ArrowLeft,
-  CalendarCheck,
+  ClipboardList,
+  FileText,
   Clock,
   Activity
 } from "lucide-react";
@@ -50,26 +51,26 @@ export default async function ArkanHarbDashboard() {
   tomorrow.setDate(tomorrow.getDate() + 1);
 
   const [
-    activeLeaves, 
-    activeMissions, 
+    activeLeaves,
+    activeMissions,
     activePositions,
     todayRollcall,
     recentActivities,
     totalOfficers
   ] = await Promise.all([
-    Leave.countDocuments({ 
-      startDate: { $lte: new Date() }, 
+    Leave.countDocuments({
+      startDate: { $lte: new Date() },
       endDate: { $gte: new Date() },
       status: "approved"
     }),
-    Mission.countDocuments({ 
-      status: "active" 
+    Mission.countDocuments({
+      status: "active"
     }),
     PositionAssignment.countDocuments({
       status: "active"
     }),
-    DailyRollcall.findOne({ 
-      date: { $gte: today, $lt: tomorrow } 
+    DailyRollcall.findOne({
+      date: { $gte: today, $lt: tomorrow }
     }).lean(),
     AuditLog.find({ module: "arkan_harb" })
       .sort({ createdAt: -1 })
@@ -123,7 +124,7 @@ export default async function ArkanHarbDashboard() {
       />
 
       {(user.role === "admin" || user.role === "commander") && (
-        <CommanderSummary 
+        <CommanderSummary
           totalOfficers={totalOfficers}
           present={attendeesCount}
           mission={activeMissions}
@@ -147,25 +148,25 @@ export default async function ArkanHarbDashboard() {
               روابط سريعة
             </h3>
             <div className="space-y-3">
-              <QuickLink 
-                href="/arkan-harb/rollcall" 
-                label="تسجيل التمام اليومي" 
-                icon={<CalendarCheck className="w-4 h-4" />} 
+              <QuickLink
+                href="/arkan-harb/rollcall"
+                label="تسجيل التمام اليومي"
+                icon={<ClipboardList className="w-4 h-4" />}
               />
-              <QuickLink 
-                href="/arkan-harb/leaves" 
-                label="سجل الإجازات" 
-                icon={<ScrollText className="w-4 h-4" />} 
+              <QuickLink
+                href="/arkan-harb/leaves"
+                label="سجل الإجازات"
+                icon={<ScrollText className="w-4 h-4" />}
               />
-              <QuickLink 
-                href="/arkan-harb/missions" 
-                label="المأموريات والمهام" 
-                icon={<Shield className="w-4 h-4" />} 
+              <QuickLink
+                href="/arkan-harb/missions"
+                label="المأموريات والمهام"
+                icon={<FileText className="w-4 h-4" />}
               />
-              <QuickLink 
-                href="/arkan-harb/positions" 
-                label="التنظيم والوظائف" 
-                icon={<Users className="w-4 h-4" />} 
+              <QuickLink
+                href="/arkan-harb/positions"
+                label="التنظيم والوظائف"
+                icon={<Shield className="w-4 h-4" />}
               />
             </div>
           </div>
@@ -182,13 +183,13 @@ export default async function ArkanHarbDashboard() {
             {recentActivities.length > 0 ? (
               <div className="space-y-4">
                 {(recentActivities as unknown as IAuditLog[]).map((log: IAuditLog) => (
-                  <div key={log._id?.toString()} className="flex items-start gap-4 p-3 bg-slate-50/50 dark:bg-slate-900/30 rounded-xl border border-transparent hover:border-slate-100 dark:hover:border-slate-800 transition-all group">
-                    <div className="p-2 bg-white dark:bg-slate-800 rounded-lg shadow-sm group-hover:bg-(--color-primary)/10 transition-colors">
+                  <div key={log._id?.toString()} className="flex items-start gap-4 p-3 bg-slate-50/50 rounded-xl border border-transparent hover:border-slate-100 transition-all group">
+                    <div className="p-2 bg-white rounded-lg shadow-sm group-hover:bg-(--color-primary)/10 transition-colors">
                       <Activity className="w-4 h-4 text-slate-400 group-hover:text-(--color-primary)" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2 mb-1">
-                        <span className="text-[13px] font-bold text-slate-700 dark:text-slate-300">
+                        <span className="text-[13px] font-bold text-(--app-muted-foreground)">
                           {log.userName}
                         </span>
                         <span className="text-[11px] text-slate-400 flex items-center gap-1">
@@ -211,7 +212,7 @@ export default async function ArkanHarbDashboard() {
             )}
 
             {recentActivities.length > 0 && (
-              <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <div className="mt-6 pt-4 border-t border-slate-100">
                 <Link href="/audit-logs?module=arkan_harb" className="text-[11px] font-bold text-(--color-primary) hover:underline flex items-center justify-center gap-1">
                   عرض سجل التدقيق الكامل
                   <ArrowLeft className="w-3 h-3 rotate-180" />
@@ -227,19 +228,19 @@ export default async function ArkanHarbDashboard() {
 
 function QuickLink({ href, label, icon }: { href: string; label: string; icon: React.ReactNode }) {
   return (
-    <Link 
+    <Link
       href={href}
-      className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 hover:bg-(--color-primary)/5 border border-transparent hover:border-(--color-primary)/20 rounded-xl transition-all group"
+      className="flex items-center justify-between p-3 bg-slate-50 hover:bg-(--color-primary)/5 border border-transparent hover:border-(--color-primary)/20 rounded-xl transition-all group"
     >
       <div className="flex items-center gap-3">
         <div className="text-slate-400 group-hover:text-(--color-primary) transition-colors">
           {icon}
         </div>
-        <span className="text-sm font-bold text-slate-600 dark:text-slate-400 group-hover:text-(--color-primary)">
+        <span className="text-sm font-bold text-(--app-muted-foreground) group-hover:text-(--color-primary)">
           {label}
         </span>
       </div>
-      <ArrowLeft className="w-4 h-4 text-slate-300 group-hover:text-(--color-primary) -translate-x-2 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all transition-transform" />
+      <ArrowLeft className="w-4 h-4 text-slate-300 group-hover:text-(--color-primary) -translate-x-2 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all" />
     </Link>
   );
 }

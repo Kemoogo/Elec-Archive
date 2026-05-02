@@ -1,14 +1,11 @@
 import { connectToDatabase } from "@/lib/db/connect";
 import { authenticate } from "@/lib/auth/middleware";
 import { redirect } from "next/navigation";
-import { Fax } from "@/lib/db/models/Fax";
+import { Fax, type IFax } from "@/lib/db/models/Fax";
 import { faxListQuerySchema } from "@/lib/validations/fax";
 import { buildFaxListSort } from "@/lib/fax/queries";
 import { FaxTable } from "@/components/fax/FaxTable";
-import { FaxFilters } from "@/components/fax/FaxFilters";
-import { PageContainer } from "@/components/layout/PageContainer";
-import { ModernPageHeader as PageHeader, PrimaryHeaderBtn } from "@/components/layout/ModernPageHeader";
-import { Mail, Plus } from "lucide-react";
+import { FaxPageClient } from "@/components/fax/FaxPageClient";
 import type { Types } from "mongoose";
 
 interface FaxListPageProps {
@@ -94,45 +91,13 @@ export default async function FaxListPage({ searchParams }: FaxListPageProps) {
   const canCreate = auth.user!.permissions.fax === "edit";
 
   return (
-    <PageContainer className="max-w-[1600px] mx-auto pb-12">
-      <PageHeader 
-        title="قسم الفاكس"
-        description={`إجمالي ${total} فاكس`}
-        icon={<Mail className="w-6 h-6" />}
-        action={
-          canCreate && (
-            <PrimaryHeaderBtn href="/fax/new" label="رفع فاكس جديد" icon={<Plus className="w-4 h-4" />} />
-          )
-        }
-      />
-
-      <FaxFilters />
-
-      <FaxTable faxes={serializedFaxes} />
-
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2" dir="ltr">
-          {page > 1 && (
-            <a
-              href={`/fax?${new URLSearchParams({ ...params, page: String(page - 1) }).toString()}`}
-              className="rounded-md bg-(--app-surface) px-3 py-2 text-sm text-(--app-white) hover:bg-white/10"
-            >
-              السابق
-            </a>
-          )}
-          <span className="text-sm text-(--app-muted-foreground)">
-            صفحة {page} من {totalPages}
-          </span>
-          {page < totalPages && (
-            <a
-              href={`/fax?${new URLSearchParams({ ...params, page: String(page + 1) }).toString()}`}
-              className="rounded-md bg-(--app-surface) px-3 py-2 text-sm text-(--app-white) hover:bg-white/10"
-            >
-              التالي
-            </a>
-          )}
-        </div>
-      )}
-    </PageContainer>
+    <FaxPageClient
+      initialFaxes={serializedFaxes as unknown as IFax[]}
+      total={total}
+      totalPages={totalPages}
+      page={page}
+      canCreate={canCreate}
+      initialFilters={{ search, status, dateFrom, dateTo }}
+    />
   );
 }

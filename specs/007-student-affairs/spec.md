@@ -2,7 +2,7 @@
 
 **Feature Branch**: `[007-student-affairs]`  
 **Created**: 2026-03-28  
-**Status**: Draft  
+**Status**: Completed  
 **Input**: User description: "read @master-plan.md and create a specification for PHASE 6 — شئون الطلبة"
 
 ## Overview

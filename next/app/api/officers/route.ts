@@ -50,12 +50,26 @@ export async function GET(request: Request) {
 
     const query: Record<string, unknown> = {};
     if (status) {
-      query.employmentStatus = status;
+      if (status === "active") {
+        query.isInUnit = true;
+      } else {
+        query.isInUnit = false;
+        query.employmentStatus = status; // Keep for backward compat if needed
+      }
     }
     if (search) {
       const escapedSearch = escapeRegex(search);
       const searchRegex = { $regex: escapedSearch, $options: "i" };
-      query.$or = [{ fullName: searchRegex }, { militaryId: searchRegex }, { seniorityNumber: searchRegex }];
+      query.$or = [
+        { fullName: searchRegex },
+        { militaryId: searchRegex },
+        { seniorityNumber: searchRegex },
+        { nationalId: searchRegex },
+        { phone: searchRegex },
+        { batch: searchRegex },
+        { position: searchRegex },
+        { unit: searchRegex },
+      ];
     }
 
     const skip = (page - 1) * limit;
@@ -168,9 +182,22 @@ export async function POST(request: Request) {
       phone: data.phone,
       nationalId: data.nationalId,
       employmentStatus: data.employmentStatus,
+      isInUnit: true,
       joinDate: data.joinDate ? new Date(data.joinDate) : new Date(),
       birthDate: data.birthDate ? new Date(data.birthDate) : undefined,
       file121Url: data.file121Url,
+      isArkanHarb: data.isArkanHarb,
+    });
+
+    // Create initial join movement record
+    const { ServiceHistory } = await import("@/lib/db/models/ServiceHistory");
+    await ServiceHistory.create({
+      officerId: officer._id,
+      type: "join",
+      action: "join",
+      date: officer.joinDate,
+      createdBy: auth.user!.id,
+      updatedBy: auth.user!.id,
     });
 
     await logAuditEvent({

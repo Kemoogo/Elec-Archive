@@ -132,6 +132,20 @@ if [[ -z "$DEFAULT_BRANCH" ]]; then
     fi
 fi
 
+# Fallback: check local main
+if [[ -z "$DEFAULT_BRANCH" ]]; then
+    if git rev-parse --verify main >/dev/null 2>&1; then
+        DEFAULT_BRANCH="main"
+    fi
+fi
+
+# Fallback: check local master
+if [[ -z "$DEFAULT_BRANCH" ]]; then
+    if git rev-parse --verify master >/dev/null 2>&1; then
+        DEFAULT_BRANCH="master"
+    fi
+fi
+
 # --- 1c. Get Changed Files ---
 
 CHANGED_FILES=()
@@ -139,7 +153,9 @@ MODE=""
 
 if [[ -n "$CURRENT_BRANCH" && -n "$DEFAULT_BRANCH" && "$CURRENT_BRANCH" != "$DEFAULT_BRANCH" ]]; then
     # Mode A — Feature Branch
-    MERGE_BASE=$(git merge-base "origin/$DEFAULT_BRANCH" HEAD 2>/dev/null || echo "")
+    
+    # Try origin first, then local
+    MERGE_BASE=$(git merge-base "origin/$DEFAULT_BRANCH" HEAD 2>/dev/null || git merge-base "$DEFAULT_BRANCH" HEAD 2>/dev/null || echo "")
 
     if [[ -n "$MERGE_BASE" ]]; then
         # Committed changes since merge-base

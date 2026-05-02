@@ -56,48 +56,29 @@ export const OFFICER_WEAPON_LABELS: Record<OfficerWeapon, string> = {
   infantry: "مشاه",
 };
 
-export interface IOfficerDocument {
-  _id: Types.ObjectId;
-  originalName: string;
-  storedPath: string;
-  mimeType: string;
-  sizeBytes: number;
-  uploadedAt: Date;
-  uploadedBy: Types.ObjectId;
-}
-
 export interface IOfficer extends Document {
   militaryId: string;
   seniorityNumber: string;
   fullName: string;
   rank: OfficerRank;
-  unit: string;
-  position: string;
   batch?: string;
   type?: OfficerType;
   weapon?: OfficerWeapon;
   phone?: string;
   nationalId?: string;
+  unit?: string;
+  position?: string;
   employmentStatus: EmploymentStatus;
+  isInUnit: boolean;
   joinDate: Date;
   birthDate?: Date;
   file121Url?: string;
-  documents: IOfficerDocument[];
+  file121UpdatedAt?: Date;
+  photoUrl?: string;
+  isArkanHarb: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
-
-const OfficerDocumentSchema = new Schema<IOfficerDocument>(
-  {
-    originalName: { type: String, required: true },
-    storedPath: { type: String, required: true },
-    mimeType: { type: String, required: true, default: "application/pdf" },
-    sizeBytes: { type: Number, required: true, min: 1, max: 5 * 1024 * 1024 },
-    uploadedAt: { type: Date, default: Date.now },
-    uploadedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
-  },
-  { _id: true },
-);
 
 const OfficerSchema = new Schema<IOfficer>(
   {
@@ -121,8 +102,6 @@ const OfficerSchema = new Schema<IOfficer>(
       required: true,
       enum: OFFICER_RANKS,
     },
-    unit: { type: String, trim: true },
-    position: { type: String, trim: true },
     batch: { type: String, trim: true },
     type: { type: String, enum: OFFICER_TYPES },
     weapon: { type: String, enum: OFFICER_WEAPONS },
@@ -134,26 +113,28 @@ const OfficerSchema = new Schema<IOfficer>(
       enum: EMPLOYMENT_STATUSES,
       default: "active",
     },
+    isInUnit: {
+      type: Boolean,
+      required: true,
+      default: true,
+    },
+    unit: { type: String, trim: true },
+    position: { type: String, trim: true },
     joinDate: { type: Date, required: true },
     birthDate: { type: Date },
     file121Url: { type: String, trim: true },
-    documents: {
-      type: [OfficerDocumentSchema],
-      validate: {
-        validator: (docs: IOfficerDocument[]) => docs.length <= 20,
-        message: "لا يمكن إرفاق أكثر من 20 مستندًا لكل ضابط",
-      },
-    },
+    file121UpdatedAt: { type: Date },
+    photoUrl: { type: String, trim: true },
+    isArkanHarb: { type: Boolean, default: false },
   },
   { timestamps: true },
 );
 
 OfficerSchema.index({ fullName: 1 });
-OfficerSchema.index({ seniorityNumber: 1 });
 OfficerSchema.index({ employmentStatus: 1, fullName: 1 });
 OfficerSchema.index({ createdAt: -1 });
 
-OfficerSchema.pre("validate", function () {
+OfficerSchema.pre("validate", function (this: IOfficer) {
   if (this.birthDate && this.joinDate && this.birthDate >= this.joinDate) {
     this.invalidate("birthDate", "تاريخ الميلاد يجب أن يكون قبل تاريخ الانضمام");
   }

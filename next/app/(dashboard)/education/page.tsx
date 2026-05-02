@@ -1,13 +1,9 @@
 import { redirect } from "next/navigation";
 import { authenticate } from "@/lib/auth/middleware";
 import { connectToDatabase } from "@/lib/db/connect";
-import { Course } from "@/lib/db/models/Course";
+import { Course, type ICourse } from "@/lib/db/models/Course";
 import { courseListQuerySchema } from "@/lib/validations/education";
-import { CourseGrid } from "@/components/education/CourseGrid";
-import { CourseForm } from "@/components/education/CourseForm";
-import { PageContainer } from "@/components/layout/PageContainer";
-import { ModernPageHeader as PageHeader } from "@/components/layout/ModernPageHeader";
-import { BookOpen } from "lucide-react";
+import { EducationPageClient } from "@/components/education/EducationPageClient";
 import { escapeRegex } from "@/lib/utils";
 import type { Types } from "mongoose";
 
@@ -57,19 +53,13 @@ export default async function EducationPage({ searchParams }: EducationPageProps
   const canEdit = user.role === "admin" || user.permissions.education === "edit";
 
   return (
-    <PageContainer className="max-w-[1600px] mx-auto pb-12">
-      <PageHeader
-        title="التعليم والدورات"
-        description="إدارة الدورات والتدريبات"
-        icon={<BookOpen className="w-6 h-6" />}
-        action={canEdit && <CourseForm mode="create" />}
-      />
-      <CourseGrid
-        courses={serialized}
-        page={page}
-        totalPages={totalPages}
-        total={total}
-      />
-    </PageContainer>
+    <EducationPageClient
+      courses={serialized as unknown as ICourse[]}
+      total={total}
+      totalPages={totalPages}
+      page={page}
+      canEdit={canEdit}
+      initialFilters={{ search, status }}
+    />
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import MainTable from "@/components/ui/Table";
+import { useRouter } from "next/navigation";
 
 interface AuditEntry {
   _id: string;
@@ -37,6 +38,7 @@ const moduleLabels: Record<string, string> = {
   medical: "الطبي",
   students: "الطلبة",
   education: "التعليم",
+  arkan_harb: "أركان حرب",
 };
 
 const actionColors: Record<string, string> = {
@@ -51,30 +53,33 @@ const actionColors: Record<string, string> = {
   UNLOCK: "bg-blue-500/20 text-blue-400",
 };
 
-export function AuditLogTable() {
+interface AuditLogTableProps {
+  action?: string;
+  module?: string;
+  startDate?: string;
+  endDate?: string;
+  page?: number;
+}
+
+export function AuditLogTable({ action, module, startDate, endDate, page = 1 }: AuditLogTableProps) {
+  const router = useRouter();
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
-  const [filterAction, setFilterAction] = useState("");
-  const [filterModule, setFilterModule] = useState("");
-  const [filterStartDate, setFilterStartDate] = useState("");
-  const [filterEndDate, setFilterEndDate] = useState("");
-
-  const fetchEntries = useCallback(async (pageNum: number) => {
+  const fetchEntries = useCallback(async () => {
     setLoading(true);
 
     const params = new URLSearchParams({
-      page: String(pageNum),
+      page: String(page),
       limit: "20",
     });
 
-    if (filterAction) params.set("action", filterAction);
-    if (filterModule) params.set("module", filterModule);
-    if (filterStartDate) params.set("startDate", filterStartDate);
-    if (filterEndDate) params.set("endDate", filterEndDate);
+    if (action) params.set("action", action);
+    if (module) params.set("module", module);
+    if (startDate) params.set("startDate", startDate);
+    if (endDate) params.set("endDate", endDate);
 
     try {
       const res = await fetch(`/api/audit?${params.toString()}`);
@@ -87,97 +92,36 @@ export function AuditLogTable() {
     } finally {
       setLoading(false);
     }
-  }, [filterAction, filterModule, filterStartDate, filterEndDate]);
+  }, [action, module, startDate, endDate, page]);
 
   useEffect(() => {
-    fetchEntries(page);
-  }, [page, fetchEntries]);
+    fetchEntries();
+  }, [fetchEntries]);
 
-  const applyFilters = () => {
-    setPage(1);
-    fetchEntries(1);
-  };
-
-  const clearFilters = () => {
-    setFilterAction("");
-    setFilterModule("");
-    setFilterStartDate("");
-    setFilterEndDate("");
-    setPage(1);
+  const setPage = (p: number) => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("page", String(p));
+    router.push(`/audit-log?${params.toString()}`);
   };
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end gap-3 rounded-lg bg-(--app-surface) p-4">
-        <div>
-          <label className="mb-1 block text-sm text-(--app-muted-foreground)">العملية</label>
-          <select
-            value={filterAction}
-            onChange={(e) => setFilterAction(e.target.value)}
-            className="rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-white)"
-          >
-            <option value="">الكل</option>
-            {Object.entries(actionLabels).map(([key, label]) => (
-              <option key={key} value={key}>{label}</option>
-            ))}
-          </select>
+      <div className="flex items-center justify-between">
+        <div className="text-sm font-bold text-(--app-muted-foreground)">
+          إجمالي السجلات: <span className="text-(--color-primary)">{total}</span>
         </div>
-        <div>
-          <label className="mb-1 block text-sm text-(--app-muted-foreground)">الوحدة</label>
-          <select
-            value={filterModule}
-            onChange={(e) => setFilterModule(e.target.value)}
-            className="rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-white)"
-          >
-            <option value="">الكل</option>
-            {Object.entries(moduleLabels).map(([key, label]) => (
-              <option key={key} value={key}>{label}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="mb-1 block text-sm text-(--app-muted-foreground)">من تاريخ</label>
-          <input
-            type="date"
-            value={filterStartDate}
-            onChange={(e) => setFilterStartDate(e.target.value)}
-            className="rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-white)"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-sm text-(--app-muted-foreground)">إلى تاريخ</label>
-          <input
-            type="date"
-            value={filterEndDate}
-            onChange={(e) => setFilterEndDate(e.target.value)}
-            className="rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-white)"
-          />
-        </div>
-        <button
-          onClick={applyFilters}
-          className="rounded-md bg-(--app-accent) px-4 py-2 text-sm text-(--app-accent-foreground) font-medium hover:bg-(--app-accent)/90"
-        >
-          تطبيق
-        </button>
-        <button
-          onClick={clearFilters}
-          className="rounded-md bg-(--app-border) px-4 py-2 text-sm text-(--app-white) hover:bg-white/10"
-        >
-          مسح
-        </button>
-      </div>
-
-      <div className="text-sm text-(--app-muted-foreground)">
-        إجمالي السجلات: {total}
       </div>
 
       {loading ? (
-        <div className="rounded-lg bg-(--app-surface) p-8 text-center text-(--app-muted-foreground)">
-          جاري التحميل...
+        <div className="rounded-2xl bg-(--app-surface) border border-(--app-border) p-12 text-center animate-pulse">
+          <div className="flex flex-col items-center gap-3 text-(--app-muted-foreground)">
+             <div className="w-10 h-10 border-4 border-(--color-primary) border-t-transparent rounded-full animate-spin"></div>
+             <p className="font-bold text-sm">جاري جلب سجلات النظام...</p>
+          </div>
         </div>
       ) : entries.length === 0 ? (
-        <div className="rounded-lg bg-(--app-surface) p-8 text-center text-(--app-muted-foreground)">
-          لا توجد سجلات
+        <div className="rounded-2xl bg-(--app-surface) border border-(--app-border) p-12 text-center text-(--app-muted-foreground)">
+          لا توجد سجلات مطابقة للبحث
         </div>
       ) : (
         <MainTable
@@ -186,14 +130,14 @@ export function AuditLogTable() {
             {
               header: "المستخدم",
               accessor: "userName",
-              className: "font-medium text-(--app-white)",
+              className: "font-bold text-(--app-white)",
             },
             {
               header: "العملية",
               accessor: "action",
               render: (val) => (
-                <span className={`rounded-full px-2 py-1 text-xs ${actionColors[val as string] ?? "bg-(--app-border) text-foreground"}`}>
-                  {actionLabels[val as string] ?? val}
+                <span className={`rounded-lg px-2.5 py-1 text-[10px] font-black tracking-wider ${actionColors[val as string] ?? "bg-(--app-border) text-foreground"}`}>
+                  {(actionLabels[val as string] ?? val).toUpperCase()}
                 </span>
               ),
             },
@@ -201,18 +145,19 @@ export function AuditLogTable() {
               header: "الوحدة",
               accessor: "module",
               tdClassName: "text-(--app-muted-foreground)",
-              render: (val) => moduleLabels[val as string] ?? val,
+              render: (val) => <span className="text-xs font-bold">{moduleLabels[val as string] ?? val}</span>,
             },
             {
               header: "الوصف",
               accessor: "description",
-              tdClassName: "text-(--app-muted-foreground) max-w-xs truncate",
+              tdClassName: "text-(--app-muted-foreground) max-w-sm",
+              render: (val) => <span className="text-[11px] leading-relaxed">{val as string}</span>
             },
             {
               header: "التاريخ",
               accessor: "createdAt",
               tdClassName: "text-(--app-muted-foreground) whitespace-nowrap",
-              render: (val) => new Date(val as string).toLocaleString("ar"),
+              render: (val) => <span className="text-[11px] font-mono">{new Date(val as string).toLocaleString("ar")}</span>,
             },
           ]}
           data={entries}
@@ -220,21 +165,28 @@ export function AuditLogTable() {
       )}
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
+        <div className="flex items-center justify-center gap-4 mt-8" dir="ltr">
           <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            onClick={() => setPage(Math.max(1, page - 1))}
             disabled={page === 1}
-            className="rounded-md bg-(--app-surface) px-3 py-1 text-sm text-(--app-white) disabled:opacity-40"
+            className="btn-secondary px-4 py-2 text-xs font-bold disabled:opacity-50"
           >
             السابق
           </button>
-          <span className="text-sm text-(--app-muted-foreground)">
-            صفحة {page} من {totalPages}
-          </span>
+          
+          <div className="flex items-center gap-2">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-(--color-primary) text-xs font-bold text-white shadow-sm">
+              {page}
+            </span>
+            <span className="text-xs font-bold text-(--color-muted)">
+              من {totalPages}
+            </span>
+          </div>
+
           <button
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            onClick={() => setPage(Math.min(totalPages, page + 1))}
             disabled={page === totalPages}
-            className="rounded-md bg-(--app-surface) px-3 py-1 text-sm text-(--app-white) disabled:opacity-40"
+            className="btn-secondary px-4 py-2 text-xs font-bold disabled:opacity-50"
           >
             التالي
           </button>

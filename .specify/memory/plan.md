@@ -130,3 +130,130 @@ docker-compose.yml                           # MODIFY: add local officers remind
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|--------------------------------------|
 | *None* | — | — |
+
+---
+
+# Feature: النقطة الطبية — Medical Point Module [Source: specs/006-medical-point]
+
+## Project Structure Updates
+
+```text
+next/
+├── app/
+│   ├── api/
+│   │   └── medical/             # API routes for visits, inventory, dashboard
+│   └── (dashboard)/
+│       └── medical/             # Medical dashboard, visits list, inventory
+├── components/
+│   └── medical/                 # Module UI components
+├── lib/
+│   ├── db/models/
+│   │   ├── Patient.ts           # Medical visits model
+│   │   └── Medicine.ts          # Pharmacy inventory model
+│   ├── medical/                 # Business logic for stock and checks
+│   └── validations/
+│       └── medical.ts           # Zod schemas for medical module
+```
+
+## Routing & Navigation
+- `/medical`: Dashboard (SSR)
+- `/medical/visits`: Visits list with search/filter
+- `/medical/visits/new`: Patient visit entry
+- `/medical/medicines`: Inventory management
+- `/api/medical/*`: REST endpoints for all medical operations
+
+## Revision Note: Merged 006-medical-point on 2026-04-20
+
+---
+
+# Feature: شئون الطلبة — Student Affairs Module [Source: specs/007-student-affairs]
+
+## Project Structure Updates
+
+```text
+next/
+├── app/
+│   ├── api/
+│   │   └── students/             # API routes for student CRUD and uploads
+│   └── (dashboard)/
+│       └── students/             # Student list, profile, and forms
+├── components/
+│   └── students/                # Student module components
+├── lib/
+│   ├── db/models/
+│   │   └── Student.ts           # Student model
+│   └── students/                # Shared student logic
+```
+
+## Routing & Navigation
+- `/students`: Student list with search/filter
+- `/students/[id]`: Detailed student profile
+- `/api/students/*`: REST endpoints for student management
+
+## Revision Note: Merged 007-student-affairs on 2026-04-20
+
+---
+
+# Feature: التعليم — Education & Courses Module [Source: specs/008-education]
+
+## Project Structure Updates
+
+```text
+next/
+├── app/
+│   ├── api/
+│   │   └── education/           # API routes for course management and enrollment
+│   └── (dashboard)/
+│       └── education/           # Course catalog, detail view, and forms
+├── components/
+│   └── education/               # Education module components
+├── lib/
+│   ├── db/models/
+│   │   └── Course.ts            # Course model with participant enrollment
+│   └── education/               # Shared education logic
+```
+
+## Routing & Navigation
+- `/education`: Course catalog (card grid)
+- `/education/[id]`: Detailed course view
+- `/api/education/*`: REST endpoints for courses and participants
+
+## Revision Note: Merged 008-education on 2026-04-20
+
+---
+
+# Feature: فرع أركان الحرب — Staff Operations Module [Source: docs/aide/vision.md]
+
+## Project Structure Updates
+
+```text
+next/
+├── app/
+│   ├── api/
+│   │   └── arkan-harb/           # API routes for rollcall, leaves, missions, positions
+│   └── (dashboard)/
+│       └── arkan-harb/           # Staff Ops dashboard, missions, positions
+├── components/
+│   ├── arkan-harb/              # Module specific components
+│   └── officers/
+│       ├── OfficerDetailTabs.tsx # New tabbed layout for officer profile
+│       └── PositionHistory.tsx   # Position history table
+├── lib/
+│   ├── db/models/
+│   │   ├── Mission.ts            # Official missions model
+│   │   ├── Promotion.ts          # Rank promotion model
+│   │   └── PositionAssignment.ts # Job position tracking model
+│   └── arkan-harb/              # Business logic for Staff Ops
+└── scripts/
+    └── migrate-assignments.ts    # Data migration script (legacy to new models)
+```
+
+## Routing & Navigation
+- `/arkan-harb`: Module dashboard
+- `/arkan-harb/rollcall`: Daily rollcall management (transferred)
+- `/arkan-harb/leaves`: Leave tracking (transferred)
+- `/arkan-harb/missions`: Mission management
+- `/arkan-harb/positions`: Job position assignments
+- `/api/arkan-harb/*`: REST endpoints for all module data
+
+## Revision Note: Merged 009-arkan-harb on 2026-04-20

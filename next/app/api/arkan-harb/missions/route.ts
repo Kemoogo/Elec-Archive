@@ -5,6 +5,7 @@ import { canViewModule, canEditModule } from "@/lib/auth/authorization";
 import { logAuditEvent } from "@/lib/auth/audit";
 import { errors } from "@/lib/auth/errors";
 import { Mission } from "@/lib/db/models/Mission";
+import { Officer, RANK_LABELS, type OfficerRank } from "@/lib/db/models/Officer";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
 import { missionsListQuerySchema, createMissionSchema } from "@/lib/validations/arkan-harb";
 
@@ -44,7 +45,18 @@ export async function GET(request: Request) {
 
     // 5. Build query
     const query: Record<string, unknown> = {};
-    if (officerId) query.officerId = officerId;
+    let officerDisplayName = "";
+
+    if (officerId) {
+      query.officerId = officerId;
+      const officer = await Officer.findById(officerId).select("rank fullName").lean();
+      if (officer) {
+        officerDisplayName = `${RANK_LABELS[officer.rank as OfficerRank]} / ${officer.fullName}`;
+      } else {
+        officerDisplayName = officerId;
+      }
+    }
+
     if (status) query.status = status;
 
     const skip = (page - 1) * limit;
@@ -59,7 +71,7 @@ export async function GET(request: Request) {
       userName: auth.user!.fullName,
       action: "VIEW",
       module: "arkan_harb",
-      description: `عرض قائمة المأموريات (صفحة ${page})${officerId ? ` للضابط ${officerId}` : ""}`,
+      description: `عرض قائمة المأموريات (صفحة ${page})${officerDisplayName ? ` للضابط: ${officerDisplayName}` : ""}`,
       ipAddress: ip,
     });
 
@@ -138,13 +150,18 @@ export async function POST(request: Request) {
     });
 
     // 6. Audit
+    const officer = await Officer.findById(data.officerId).select("rank fullName").lean();
+    const officerDisplayName = officer 
+      ? `${RANK_LABELS[officer.rank as OfficerRank]} / ${officer.fullName}` 
+      : data.officerId;
+
     await logAuditEvent({
       userId: auth.user!.id,
       userName: auth.user!.fullName,
       action: "CREATE",
       module: "arkan_harb",
       targetId: mission._id.toString(),
-      description: `تم إنشاء مأمورية جديدة: ${data.title} للضابط ${data.officerId}`,
+      description: `تم إنشاء مأمورية جديدة: ${data.title} للضابط: ${officerDisplayName}`,
       ipAddress: ip,
     });
 

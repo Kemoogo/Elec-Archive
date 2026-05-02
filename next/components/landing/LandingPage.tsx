@@ -56,8 +56,8 @@ export default function LandingPage() {
             <main className="flex-1">
                 {/* Background Decorative Elements */}
                 <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-                    <div className="absolute -top-[10%] -right-[10%] w-[40%] h-[40%] bg-blue-100/50 rounded-full blur-3xl opacity-50 dark:opacity-10" />
-                    <div className="absolute top-[20%] -left-[5%] w-[30%] h-[30%] bg-indigo-50 rounded-full blur-3xl opacity-50 dark:opacity-10" />
+                    <div className="absolute -top-[10%] -right-[10%] w-[40%] h-[40%] bg-blue-100/50 rounded-full blur-3xl opacity-50" />
+                    <div className="absolute top-[20%] -left-[5%] w-[30%] h-[30%] bg-indigo-50 rounded-full blur-3xl opacity-50" />
                 </div>
 
                 {/* Hero Section */}
@@ -86,7 +86,7 @@ export default function LandingPage() {
                                     const element = document.getElementById('services');
                                     element?.scrollIntoView({ behavior: 'smooth' });
                                 }}
-                                className="group flex items-center gap-2 px-8 py-4 rounded-2xl bg-white text-slate-600 font-bold text-lg border border-slate-200 shadow-sm hover:shadow-md hover:bg-slate-50 transition-all active:scale-95 cursor-pointer"
+                                className="group flex items-center gap-2 px-8 py-4 rounded-2xl bg-white text-(--app-muted-foreground) font-bold text-lg border border-slate-200 shadow-sm hover:shadow-md hover:bg-slate-50 transition-all active:scale-95 cursor-pointer"
                             >
                                 استكشف الخدمات
                                 <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />

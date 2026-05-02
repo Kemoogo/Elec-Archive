@@ -8,7 +8,7 @@ interface NavbarProps {
 
 const Navbar = ({ onLoginClick }: NavbarProps) => {
   return (
-    <header className="w-full text-(--app-white) shadow-xl sticky top-0 z-50 overflow-visible bg-(--color-primary) bg-linear-to-r from-(--color-primary) to-[#2a5298]">
+    <header className="w-full text-(--app-white) shadow-xl sticky top-0 z-50 overflow-visible bg-primary-gradient">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 relative">
           <Link className="font-bold tracking-tight flex items-center gap-3 shrink-0" href="/">

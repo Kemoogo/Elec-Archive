@@ -2,7 +2,7 @@
 
 **Feature Branch**: `006-medical-point`  
 **Created**: 2026-03-27  
-**Status**: Draft  
+**Status**: Completed  
 **Input**: User description: "read @master-plan.md and create a specification for PHASE 5 — النقطة الطبية"
 
 ## User Scenarios & Testing

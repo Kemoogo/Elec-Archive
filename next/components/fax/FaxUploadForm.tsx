@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/toast";
+import { DateField } from "@/components/ui/date-field";
 
 const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png"];
 const MAX_SIZE = 10 * 1024 * 1024;
@@ -104,7 +105,7 @@ export function FaxUploadForm() {
   }
 
   const inputClass = (field: string) =>
-    `mt-1 block w-full rounded-md border bg-(--app-surface) px-3 py-2 text-(--app-white) placeholder-(--app-muted-foreground) focus:outline-none focus:ring-1 ${
+    `mt-1 block w-full rounded-md border bg-(--app-surface) px-3 py-2 text-(--app-white) placeholder-(--app-muted-foreground) focus:outline-none  ${
       errors[field]
         ? "border-(--app-error) focus:border-(--app-error) focus:ring-(--app-error)"
         : "border-(--app-border) focus:border-(--app-info) focus:ring-(--app-info)"
@@ -132,24 +133,19 @@ export function FaxUploadForm() {
         )}
       </div>
 
-      <div>
-        <label htmlFor="date" className="block text-sm font-medium text-foreground">
-          التاريخ
-        </label>
-        <input
-          id="date"
-          type="date"
-          value={formData.date}
-          onChange={(e) => {
-            setFormData((prev) => ({ ...prev, date: e.target.value }));
-            setErrors((prev) => ({ ...prev, date: "" }));
-          }}
-          className={inputClass("date")}
-        />
-        {errors.date && (
-          <p className="mt-1 text-sm text-(--app-error)">{errors.date}</p>
-        )}
-      </div>
+      <DateField
+        id="date"
+        label="التاريخ"
+        value={formData.date}
+        onChange={(v) => {
+          setFormData((prev) => ({ ...prev, date: v }));
+          setErrors((prev) => ({ ...prev, date: "" }));
+        }}
+        required
+      />
+      {errors.date && (
+        <p className="mt-1 text-sm text-(--app-error)">{errors.date}</p>
+      )}
 
       <div>
         <label htmlFor="fromEntity" className="block text-sm font-medium text-foreground">
@@ -238,7 +234,7 @@ export function FaxUploadForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-md bg-(--app-accent) px-4 py-3 text-(--app-accent-foreground) hover:bg-(--app-accent)/90 font-medium focus:outline-none focus:ring-2 focus:ring-(--app-info) focus:ring-offset-2 disabled:opacity-50"
+        className="w-full rounded-md bg-(--app-accent) px-4 py-3 text-(--app-accent-foreground) hover:bg-(--app-accent)/90 font-medium focus:outline-none  focus:ring-(--app-info) focus:ring-offset-2 disabled:opacity-50"
       >
         {loading ? "جاري الرفع..." : "رفع الفاكس"}
       </button>

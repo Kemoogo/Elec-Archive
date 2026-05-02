@@ -6,7 +6,7 @@ import { Trash2 } from "lucide-react";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { ModalActions } from "@/components/ui/modal-actions";
 
-export function DeleteOfficerButton({ officerId, officerName }: { officerId: string, officerName: string }) {
+export function DeleteOfficerButton({ officerId, officerLabel }: { officerId: string, officerLabel: string }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -39,8 +39,8 @@ export function DeleteOfficerButton({ officerId, officerName }: { officerId: str
       {open && (
         <ModalShell title={<span className="text-base font-semibold text-(--app-error)">تأكيد الحذف</span>} onClose={() => setOpen(false)}>
           <div className="p-6">
-            <p className="text-sm font-bold text-slate-600 mb-6 font-sans">
-              هل أنت متأكد من حذف الضابط <span className="text-(--app-error)">{officerName}</span>؟ هذا الإجراء لا يمكن التراجع عنه.
+            <p className="text-sm font-bold text-(--app-muted-foreground) mb-6 font-sans">
+              هل أنت متأكد من حذف الضابط <span className="text-(--app-error)">{officerLabel}</span>؟ هذا الإجراء لا يمكن التراجع عنه.
             </p>
             <ModalActions>
               <button onClick={handleDelete} disabled={loading} className="btn-destructive flex-1 justify-center">

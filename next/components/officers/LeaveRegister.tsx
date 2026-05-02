@@ -82,14 +82,6 @@ export function LeaveRegister({ leaves, canEdit }: LeaveRegisterProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-         <div className="flex items-center gap-3">
-           <div className="p-2 bg-(--app-surface-container) border border-(--app-border) rounded-lg">
-             <CalendarRange className="h-5 w-5 text-(--color-primary)" />
-           </div>
-           <h2 className="text-lg font-semibold text-(--color-primary)">سجل الإجازات والغياب</h2>
-        </div>
-      </div>
 
       {leaves.length === 0 ? (
         <div className="rounded-lg bg-(--app-surface) p-8 text-center text-(--app-muted-foreground)">

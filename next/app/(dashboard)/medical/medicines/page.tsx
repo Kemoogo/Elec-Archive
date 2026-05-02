@@ -8,6 +8,8 @@ import { PageHeader } from "@/components/layout/ModernPageHeader";
 
 import type { Types } from "mongoose";
 
+import { Pill } from "lucide-react";
+
 export default async function MedicalMedicinesPage() {
   const auth = await authenticate();
   if (!auth.success || auth.user!.permissions.medical === "none") {
@@ -29,6 +31,7 @@ export default async function MedicalMedicinesPage() {
     <PageContainer className="max-w-[1600px] mx-auto pb-12">
       <PageHeader
         title="مخزون الأدوية"
+        icon={<Pill className="w-6 h-6" />}
         action={
           <button className="btn-accent">
             إضافة دواء

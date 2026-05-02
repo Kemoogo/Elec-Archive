@@ -5,6 +5,7 @@ import { canEditModule } from "@/lib/auth/authorization";
 import { logAuditEvent } from "@/lib/auth/audit";
 import { errors } from "@/lib/auth/errors";
 import { PositionAssignment, type PositionStatus } from "@/lib/db/models/PositionAssignment";
+import { Officer, RANK_LABELS, type OfficerRank } from "@/lib/db/models/Officer";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
 import { updatePositionAssignmentSchema } from "@/lib/validations/arkan-harb";
 
@@ -178,13 +179,18 @@ export async function DELETE(
     await PositionAssignment.findByIdAndDelete(id);
 
     // 6. Audit
+    const officer = await Officer.findById(position.officerId).select("rank fullName").lean();
+    const officerDisplayName = officer 
+      ? `${RANK_LABELS[officer.rank as OfficerRank]} / ${officer.fullName}` 
+      : position.officerId;
+
     await logAuditEvent({
       userId: auth.user!.id,
       userName: auth.user!.fullName,
       action: "DELETE",
       module: "arkan_harb",
       targetId: id,
-      description: `تم حذف التعيين الوظيفي: ${position.positionTitle} للضابط ${position.officerId}`,
+      description: `تم حذف التعيين الوظيفي: ${position.positionTitle} للضابط: ${officerDisplayName}`,
       ipAddress: ip,
     });
 

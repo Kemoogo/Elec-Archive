@@ -5,6 +5,7 @@ import { canEditModule, canViewModule } from "@/lib/auth/authorization";
 import { logAuditEvent } from "@/lib/auth/audit";
 import { errors } from "@/lib/auth/errors";
 import { PositionAssignment } from "@/lib/db/models/PositionAssignment";
+import { Officer, RANK_LABELS, type OfficerRank } from "@/lib/db/models/Officer";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
 import { positionsListQuerySchema, createPositionAssignmentSchema } from "@/lib/validations/arkan-harb";
 
@@ -26,7 +27,18 @@ export async function GET(request: Request) {
 
     const { officerId, status, page, limit } = parsed.data;
     const query: Record<string, unknown> = {};
-    if (officerId) query.officerId = officerId;
+    let officerDisplayName = "";
+
+    if (officerId) {
+      query.officerId = officerId;
+      const officer = await Officer.findById(officerId).select("rank fullName").lean();
+      if (officer) {
+        officerDisplayName = `${RANK_LABELS[officer.rank as OfficerRank]} / ${officer.fullName}`;
+      } else {
+        officerDisplayName = officerId;
+      }
+    }
+
     if (status) query.status = status;
 
     const skip = (page - 1) * limit;
@@ -40,7 +52,7 @@ export async function GET(request: Request) {
       userName: auth.user!.fullName,
       action: "VIEW",
       module: "arkan_harb",
-      description: `عرض قائمة التعيينات الوظيفية (صفحة ${page})${officerId ? ` للضابط ${officerId}` : ""}`,
+      description: `عرض قائمة التعيينات الوظيفية (صفحة ${page})${officerDisplayName ? ` للضابط: ${officerDisplayName}` : ""}`,
       ipAddress: ip,
     });
 
@@ -131,13 +143,18 @@ export async function POST(request: Request) {
       updatedBy: auth.user!.id,
     });
 
+    const officer = await Officer.findById(data.officerId).select("rank fullName").lean();
+    const officerDisplayName = officer 
+      ? `${RANK_LABELS[officer.rank as OfficerRank]} / ${officer.fullName}` 
+      : data.officerId;
+
     await logAuditEvent({
       userId: auth.user!.id,
       userName: auth.user!.fullName,
       action: "CREATE",
       module: "arkan_harb",
       targetId: position._id.toString(),
-      description: `تم إنشاء تعيين وظيفي جديد: ${data.positionTitle} للضابط ${data.officerId}`,
+      description: `تم إنشاء تعيين وظيفي جديد: ${data.positionTitle} للضابط: ${officerDisplayName}`,
       ipAddress: ip,
     });
 

@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { ModalActions } from "@/components/ui/modal-actions";
-import { Calendar, Building, ListPlus } from "lucide-react";
+import { DateField } from "@/components/ui/date-field";
+import { Building, ListPlus } from "lucide-react";
 
 interface OfficerOption {
   id: string;
@@ -122,7 +123,7 @@ export function PositionAssignmentForm({ position, officers, isOpen, onClose, on
           <div className={`p-1.5 rounded-lg ${isEditing ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'}`}>
             <ListPlus className="h-4 w-4" />
           </div>
-          <span className="text-base font-black text-slate-800">
+          <span className="text-base font-black text-(--app-foreground)">
             {isEditing ? "تعديل تعيين وظيفي" : "إضافة تعيين وظيفي جديد"}
           </span>
         </div>
@@ -147,7 +148,7 @@ export function PositionAssignmentForm({ position, officers, isOpen, onClose, on
               required
               value={form.officerId}
               onChange={(e) => setForm({ ...form, officerId: e.target.value })}
-              className="w-full h-11 px-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all appearance-none"
+              className="w-full h-11 px-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-(--app-foreground) focus:outline-none  focus:ring-blue-500/10 focus:border-blue-500 transition-all appearance-none"
             >
               <option value="" disabled>اختر الضابط...</option>
               {officers.map(off => (
@@ -168,7 +169,7 @@ export function PositionAssignmentForm({ position, officers, isOpen, onClose, on
                   placeholder="رئيس فرع، قائد..."
                   value={form.positionTitle}
                   onChange={(e) => setForm({ ...form, positionTitle: e.target.value })}
-                  className="w-full h-11 pr-10 pl-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-right"
+                  className="w-full h-11 pr-10 pl-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-(--app-foreground) focus:outline-none  focus:ring-blue-500/10 focus:border-blue-500 transition-all text-right"
                 />
                 <Building className="absolute right-3 top-3.5 h-4 w-4 text-slate-400" />
               </div>
@@ -182,7 +183,7 @@ export function PositionAssignmentForm({ position, officers, isOpen, onClose, on
                 required
                 value={form.positionType}
                 onChange={(e) => setForm({ ...form, positionType: e.target.value as "primary" | "substitute" })}
-                className="w-full h-11 px-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all appearance-none"
+                className="w-full h-11 px-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-(--app-foreground) focus:outline-none  focus:ring-blue-500/10 focus:border-blue-500 transition-all appearance-none"
               >
                 <option value="primary">أساسي</option>
                 <option value="substitute">بديل</option>
@@ -199,7 +200,7 @@ export function PositionAssignmentForm({ position, officers, isOpen, onClose, on
                 required
                 value={form.substituteForOfficerId}
                 onChange={(e) => setForm({ ...form, substituteForOfficerId: e.target.value })}
-                className="w-full h-11 px-4 bg-amber-50/50 border border-amber-200 rounded-xl text-sm font-bold text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all appearance-none"
+                className="w-full h-11 px-4 bg-amber-50/50 border border-amber-200 rounded-xl text-sm font-bold text-amber-900 focus:outline-none  focus:ring-amber-500/20 focus:border-amber-500 transition-all appearance-none"
               >
                 <option value="" disabled>اختر الضابط الأصلي...</option>
                 {officers.filter(o => o.id !== form.officerId).map(off => (
@@ -211,35 +212,21 @@ export function PositionAssignmentForm({ position, officers, isOpen, onClose, on
 
           <div className="grid grid-cols-2 gap-4">
             {/* Start Date */}
-            <div className="space-y-1.5">
-              <label htmlFor="startDate" className="text-[10px] font-black uppercase text-slate-400 mr-1">تاريخ البداية</label>
-              <div className="relative">
-                <input
-                  id="startDate"
-                  type="date"
-                  required
-                  value={form.startDate}
-                  onChange={(e) => setForm({ ...form, startDate: e.target.value })}
-                  className="w-full h-11 pr-10 pl-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
-                />
-                <Calendar className="absolute right-3 top-3.5 h-4 w-4 text-slate-400" />
-              </div>
-            </div>
+            <DateField
+              id="startDate"
+              label="تاريخ البداية"
+              value={form.startDate}
+              onChange={(v) => setForm({ ...form, startDate: v })}
+              required
+            />
 
             {/* End Date */}
-            <div className="space-y-1.5">
-              <label htmlFor="endDate" className="text-[10px] font-black uppercase text-slate-400 mr-1">تاريخ الانتهاء (اختياري)</label>
-              <div className="relative">
-                <input
-                  id="endDate"
-                  type="date"
-                  value={form.endDate}
-                  onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-                  className="w-full h-11 pr-10 pl-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
-                />
-                <Calendar className="absolute right-3 top-3.5 h-4 w-4 text-slate-400" />
-              </div>
-            </div>
+            <DateField
+              id="endDate"
+              label="تاريخ الانتهاء (اختياري)"
+              value={form.endDate}
+              onChange={(v) => setForm({ ...form, endDate: v })}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -252,7 +239,7 @@ export function PositionAssignmentForm({ position, officers, isOpen, onClose, on
                 placeholder="أدخل رقم البند/الأمر"
                 value={form.orderNumber}
                 onChange={(e) => setForm({ ...form, orderNumber: e.target.value })}
-                className="w-full h-11 px-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-right"
+                className="w-full h-11 px-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-(--app-foreground) focus:outline-none  focus:ring-blue-500/10 focus:border-blue-500 transition-all text-right"
               />
             </div>
 
@@ -263,7 +250,7 @@ export function PositionAssignmentForm({ position, officers, isOpen, onClose, on
                 id="status"
                 value={form.status}
                 onChange={(e) => setForm({ ...form, status: e.target.value as "active" | "ended" })}
-                className="w-full h-11 px-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all appearance-none"
+                className="w-full h-11 px-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-(--app-foreground) focus:outline-none  focus:ring-blue-500/10 focus:border-blue-500 transition-all appearance-none"
               >
                 <option value="active">ساري</option>
                 <option value="ended">منتهي</option>
@@ -279,7 +266,7 @@ export function PositionAssignmentForm({ position, officers, isOpen, onClose, on
               placeholder="أي تفاصيل أخرى..."
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              className="w-full min-h-[60px] p-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-right resize-none"
+              className="w-full min-h-[60px] p-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-(--app-foreground) focus:outline-none  focus:ring-blue-500/10 focus:border-blue-500 transition-all text-right resize-none"
             />
           </div>
         </div>

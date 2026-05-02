@@ -59,7 +59,7 @@ export default function LoginModal({ isOpen, onOpenChange }: LoginModalProps) {
                 <DialogDescription className="sr-only">تسجيل الدخول إلى النظام</DialogDescription>
                 <div className="bg-white w-full rounded-3xl shadow-2xl relative overflow-hidden" dir="rtl">
                     <DialogClose
-                        className="absolute top-4 right-4 p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-400 hover:text-slate-600 focus:outline-none"
+                        className="absolute top-4 right-4 p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-400 hover:text-(--app-muted-foreground) focus:outline-none"
                     >
                         <X className="w-5 h-5" />
                     </DialogClose>
@@ -75,14 +75,14 @@ export default function LoginModal({ isOpen, onOpenChange }: LoginModalProps) {
 
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div className="space-y-2 text-right">
-                                <label htmlFor='modal-username' className="text-sm font-bold text-slate-600 block mr-1">اسم المستخدم</label>
+                                <label htmlFor='modal-username' className="text-sm font-bold text-(--app-muted-foreground) block mr-1">اسم المستخدم</label>
                                 <div className="relative">
                                     <User className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                                     <input
                                         id='modal-username'
                                         type="text"
                                         required
-                                        className="w-full pl-4 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:placeholder-transparent transition-all text-right text-slate-800"
+                                        className="w-full pl-4 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none  focus:ring-blue-500/20 focus:border-blue-500 focus:placeholder-transparent transition-all text-right text-(--app-foreground)"
                                         placeholder="اسم المستخدم"
                                         value={formData.username}
                                         onChange={(e) => setFormData({ ...formData, username: e.target.value })}
@@ -92,14 +92,14 @@ export default function LoginModal({ isOpen, onOpenChange }: LoginModalProps) {
                             </div>
 
                             <div className="space-y-2 text-right">
-                                <label htmlFor='modal-password' className="text-sm font-bold text-slate-600 block mr-1">كلمة المرور</label>
+                                <label htmlFor='modal-password' className="text-sm font-bold text-(--app-muted-foreground) block mr-1">كلمة المرور</label>
                                 <div className="relative">
                                     <Lock className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                                     <input
                                         id='modal-password'
                                         type={showPassword ? "text" : "password"}
                                         required
-                                        className="w-full pl-12 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:placeholder-transparent transition-all text-right text-slate-800"
+                                        className="w-full pl-12 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none  focus:ring-blue-500/20 focus:border-blue-500 focus:placeholder-transparent transition-all text-right text-(--app-foreground)"
                                         placeholder="••••••••"
                                         value={formData.password}
                                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
