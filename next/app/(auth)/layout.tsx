@@ -10,6 +10,10 @@ export default async function AuthLayout({
 }>) {
   const result = await authenticate();
 
+  if (!result.success && result.status === 503) {
+    redirect("/db-error");
+  }
+
   if (result.success) {
     const headersList = await headers();
     const url = new URL(headersList.get("x-url") ?? "http://localhost/login", "http://localhost");

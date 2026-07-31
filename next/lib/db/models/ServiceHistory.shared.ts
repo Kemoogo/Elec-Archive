@@ -11,10 +11,10 @@ export const MOVEMENT_LABELS: Record<MovementType, string> = {
 };
 
 export const MOVEMENT_COLORS: Record<MovementType, string> = {
-  join: "bg-blue-500",
-  transfer: "bg-emerald-500",
-  retirement: "bg-orange-500",
-  death: "bg-slate-800",
-  return: "bg-cyan-500",
-  termination: "bg-rose-500",
+  join: "bg-(--app-info)",
+  transfer: "bg-(--app-success)",
+  retirement: "bg-(--app-warning)",
+  death: "bg-(--app-muted-foreground)",
+  return: "bg-(--app-info)",
+  termination: "bg-(--app-error)",
 };

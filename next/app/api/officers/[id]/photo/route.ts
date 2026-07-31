@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { authenticate } from "@/lib/auth/middleware";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Officer } from "@/lib/db/models/Officer";
+import { handleApiError } from "@/lib/utils/api-error";
 import { canEditOfficers } from "@/lib/officers/access";
 import { join } from "path";
 import { writeFile, unlink, mkdir } from "fs/promises";
@@ -76,8 +77,7 @@ export async function POST(
       data: { fileUrl: relativeUrl }
     });
   } catch (error) {
-    console.error("Upload Error:", error);
-    return NextResponse.json({ success: false, error: "حدث خطأ أثناء رفع الصورة" }, { status: 500 });
+    return handleApiError(error, "حدث خطأ أثناء رفع الصورة");
   }
 }
 
@@ -108,7 +108,6 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Delete Error:", error);
-    return NextResponse.json({ success: false, error: "حدث خطأ أثناء حذف الصورة" }, { status: 500 });
+    return handleApiError(error, "حدث خطأ أثناء حذف الصورة");
   }
 }

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { ModalShell } from "@/components/ui/modal-shell";
+import { useToast } from "@/components/ui/toast";
 
 interface SerializedStudent {
   _id: string;
@@ -37,6 +38,7 @@ const statusColors: Record<string, string> = {
 
 export function StudentProfile({ student, canEdit }: StudentProfileProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -45,8 +47,11 @@ export function StudentProfile({ student, canEdit }: StudentProfileProps) {
     try {
       const res = await fetch(`/api/students/${student._id}`, { method: "DELETE" });
       if (res.ok) {
+        showToast("تم إيقاف الطالب بنجاح", "success");
         router.push("/students");
         router.refresh();
+      } else {
+        showToast("فشل في إيقاف الطالب", "error");
       }
     } finally {
       setIsDeleting(false);
@@ -68,7 +73,7 @@ export function StudentProfile({ student, canEdit }: StudentProfileProps) {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-(--app-white)">{student.fullName}</h1>
+          <h1 className="text-2xl font-bold text-(--app-foreground)">{student.fullName}</h1>
           <p className="mt-1 text-sm text-(--app-muted-foreground)">رقم الطالب: {student.studentId}</p>
           <span
             className={`mt-2 inline-block rounded-full border px-3 py-1 text-xs ${
@@ -96,20 +101,20 @@ export function StudentProfile({ student, canEdit }: StudentProfileProps) {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <span className="text-xs text-(--app-muted-foreground)">تاريخ التسجيل</span>
-            <p className="text-sm text-(--app-white)">
+            <p className="text-sm text-(--app-foreground)">
               {new Date(student.enrollDate).toLocaleDateString("ar-EG")}
             </p>
           </div>
           <div>
             <span className="text-xs text-(--app-muted-foreground)">الحالة</span>
-            <p className="text-sm text-(--app-white)">
+            <p className="text-sm text-(--app-foreground)">
               {statusLabels[student.status] ?? student.status}
             </p>
           </div>
           {student.notes && (
             <div className="col-span-2">
               <span className="text-xs text-(--app-muted-foreground)">ملاحظات</span>
-              <p className="text-sm text-(--app-white)">{student.notes}</p>
+              <p className="text-sm text-(--app-foreground)">{student.notes}</p>
             </div>
           )}
         </div>
@@ -128,7 +133,7 @@ export function StudentProfile({ student, canEdit }: StudentProfileProps) {
                 className="flex items-center justify-between rounded-md border border-(--app-border) p-3"
               >
                 <div>
-                  <p className="text-sm text-(--app-white)">{doc.name}</p>
+                  <p className="text-sm text-(--app-foreground)">{doc.name}</p>
                   <p className="text-xs text-(--app-muted-foreground)">
                     {new Date(doc.uploadedAt).toLocaleDateString("ar-EG")}
                   </p>
@@ -159,7 +164,7 @@ export function StudentProfile({ student, canEdit }: StudentProfileProps) {
                 type="button"
                 onClick={handleDeactivate}
                 disabled={isDeleting}
-                className="rounded-md bg-(--app-error) px-4 py-2 text-sm text-(--app-white) hover:bg-(--app-error)/90 disabled:opacity-50"
+                className="btn-destructive-sm"
               >
                 {isDeleting ? "جاري الإيقاف..." : "تأكيد الإيقاف"}
               </button>

@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { useToast } from "@/components/ui/toast";
+import { extractApiError } from "@/lib/utils";
+import { FormField, FormInput, FormSelect, FormLabel } from "@/components/ui/form-fields";
 
 interface UserSummary {
   id: string;
@@ -98,7 +100,8 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
       const data = await res.json();
 
       if (!res.ok) {
-        showToast(data.error ?? "فشل في تحديث المستخدم", "error");
+        const errorMsg = extractApiError(data, "فشل في تحديث المستخدم");
+        showToast(errorMsg, "error");
         return;
       }
 
@@ -140,18 +143,11 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
         <div className="py-10 text-center text-(--app-muted-foreground)">جاري تحميل بيانات المستخدم...</div>
       ) : (
         <form id={formId} onSubmit={handleSave} className="space-y-4">
-          <div>
-            <label className="block text-sm text-foreground">الاسم الكامل</label>
-            <input
-              type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              className="mt-1 w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-white)"
-              dir="rtl"
-            />
-          </div>
+          <FormField label="الاسم الكامل" required>
+            <FormInput type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} dir="rtl" />
+          </FormField>
 
-          <div className="mb-4 rounded-md border border-(--app-border) bg-(--app-surface) p-3">
+          <div className="mb-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-3">
             <div className="mb-2 flex items-center gap-2">
               <input
                 type="checkbox"
@@ -164,7 +160,7 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
                     setConfirmPassword("");
                   }
                 }}
-                className="h-4 w-4 rounded border-(--app-border) bg-(--app-border) text-blue-600 focus:ring-blue-600"
+                className="h-4 w-4 rounded border-(--app-border) bg-(--app-border) text-(--app-info) focus:ring-(--app-info)"
               />
               <label htmlFor="change-password" className="text-sm font-medium text-foreground">
                 تغيير كلمة المرور
@@ -173,76 +169,62 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
 
             {changePassword && (
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-(--app-muted-foreground)">كلمة المرور الجديدة</label>
-                  <input
+                <FormField label="كلمة المرور الجديدة">
+                  <FormInput
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="mt-1 w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-white)"
                     dir="rtl"
                     autoComplete="new-password"
                   />
-                </div>
-                <div>
-                  <label className="block text-xs text-(--app-muted-foreground)">تأكيد كلمة المرور</label>
-                  <input
+                </FormField>
+                <FormField label="تأكيد كلمة المرور">
+                  <FormInput
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="mt-1 w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-white)"
                     dir="rtl"
                     autoComplete="new-password"
                   />
-                </div>
+                </FormField>
               </div>
             )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-foreground">الدور</label>
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                className="mt-1 w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-white)"
-              >
+            <FormField label="الدور" required>
+              <FormSelect value={role} onChange={(e) => setRole(e.target.value)}>
                 {ROLES.map((r) => (
                   <option key={r} value={r}>{r}</option>
                 ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm text-foreground">القسم</label>
-              <select
-                value={department}
-                onChange={(e) => setDepartment(e.target.value)}
-                className="mt-1 w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-white)"
-              >
+              </FormSelect>
+            </FormField>
+            <FormField label="القسم" required>
+              <FormSelect value={department} onChange={(e) => setDepartment(e.target.value)}>
                 {DEPARTMENTS.map((d) => (
                   <option key={d} value={d}>{d}</option>
                 ))}
-              </select>
-            </div>
+              </FormSelect>
+            </FormField>
           </div>
 
           <div>
-            <label className="mb-2 block text-sm text-foreground">الصلاحيات</label>
+            <FormLabel className="mb-2 block">الصلاحيات</FormLabel>
             <div className="grid grid-cols-5 gap-2">
               {MODULES.map((mod) => (
                 <div key={mod}>
                   <label className="block text-xs text-(--app-muted-foreground)">{mod}</label>
-                  <select
+                  <FormSelect
                     value={permissions[mod]}
                     onChange={(e) =>
                       setPermissions({ ...permissions, [mod]: e.target.value })
                     }
-                    className="mt-1 w-full rounded-md border border-(--app-border) bg-(--app-surface) px-2 py-1 text-sm text-(--app-white)"
+                    selectSize="sm"
                   >
                     {PERMISSION_LEVELS.map((p) => (
                       <option key={p} value={p}>{p}</option>
                     ))}
-                  </select>
+                  </FormSelect>
                 </div>
               ))}
             </div>

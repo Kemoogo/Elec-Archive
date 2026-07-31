@@ -38,13 +38,13 @@ export function FaxFilters() {
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="بحث برقم الفاكس أو الموضوع أو الجهة..."
-        className="min-w-[250px] flex-1 rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-white) placeholder-(--app-muted-foreground) focus:border-(--app-info) focus:outline-none"
+        className="min-w-[250px] flex-1 rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-foreground) placeholder-(--app-muted-foreground) focus:border-(--app-info) focus:outline-none"
       />
 
       <select
         value={status}
         onChange={(e) => setStatus(e.target.value)}
-        className="rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-white) focus:border-(--app-info) focus:outline-none"
+        className="btn-filter-sm max-w-[180px]"
       >
         <option value="">جميع الحالات</option>
         <option value="pending">معلق</option>
@@ -78,7 +78,7 @@ export function FaxFilters() {
 
       <button
         onClick={clearFilters}
-        className="rounded-md bg-(--app-border) px-4 py-2 text-(--app-white) hover:bg-white/10"
+        className="rounded-md bg-(--app-border) px-4 py-2 text-(--app-foreground) hover:bg-white/10"
       >
         مسح
       </button>

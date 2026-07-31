@@ -10,6 +10,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { authenticate } from "@/lib/auth/middleware";
 import { logAuditEvent } from "@/lib/auth/audit";
 import { errors } from "@/lib/auth/errors";
+import { handleApiError } from "@/lib/utils/api-error";
 import { Officer } from "@/lib/db/models/Officer";
 import { Assignment } from "@/lib/db/models/Assignment";
 import { canViewOfficers, canEditOfficers } from "@/lib/officers/access";
@@ -33,9 +34,10 @@ export async function GET(request: Request) {
     return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
   }
 
-  await connectToDatabase();
+  try {
+    await connectToDatabase();
 
-  const { searchParams } = new URL(request.url);
+    const { searchParams } = new URL(request.url);
   const parsed = assignmentsListQuerySchema.safeParse(Object.fromEntries(searchParams.entries()));
   if (!parsed.success) {
     return NextResponse.json({ success: false, error: errors.validationFailed, details: parsed.error.issues }, { status: 400 });
@@ -70,6 +72,9 @@ export async function GET(request: Request) {
       totalPages: Math.max(1, Math.ceil(total / limit)),
     },
   });
+  } catch (error) {
+    return handleApiError(error);
+  }
 }
 
 export async function POST(request: Request) {
@@ -88,9 +93,8 @@ export async function POST(request: Request) {
     return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
   }
 
-  await connectToDatabase();
-
   try {
+    await connectToDatabase();
     const body = await request.json();
     const parsed = createAssignmentSchema.safeParse(body);
     if (!parsed.success) {
@@ -126,7 +130,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ success: true, data: { id: assignment._id.toString() } }, { status: 201 });
-  } catch {
-    return NextResponse.json({ success: false, error: errors.internalError }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

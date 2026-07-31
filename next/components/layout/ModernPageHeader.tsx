@@ -103,10 +103,17 @@ export function ModernPageHeader({
   onSearchChange,
   searchPlaceholder = "بحث...",
 }: ModernPageHeaderProps) {
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(Boolean(searchQuery));
   const inputRef = useRef<HTMLInputElement>(null);
   const displaySubtitle = subtitle || description;
   const displayActions = actions || action;
+
+  /* Auto-open search if searchQuery exists */
+  useEffect(() => {
+    if (searchQuery && !isSearchOpen) {
+      setIsSearchOpen(true);
+    }
+  }, [searchQuery]);
 
   /* Auto-focus input when search opens */
   useEffect(() => {
@@ -117,15 +124,21 @@ export function ModernPageHeader({
   }, [isSearchOpen]);
 
   const handleToggleSearch = () => {
-    if (isSearchOpen) onSearchChange?.("");
-    setIsSearchOpen((prev) => !prev);
+    if (isSearchOpen) {
+      if (searchQuery) {
+        onSearchChange?.("");
+      }
+      setIsSearchOpen(false);
+    } else {
+      setIsSearchOpen(true);
+    }
   };
 
   return (
     <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-6 py-4 bg-(--color-surface) rounded-2xl shadow-sm border border-(--color-border) mb-6">
       {/* Icon + Title */}
-      <div className="flex items-center gap-4 flex-1 min-w-0">
-        <div className="bg-(--color-primary) p-3 rounded-xl text-white shadow-md shadow-blue-900/10 flex items-center justify-center shrink-0">
+      <div className="flex items-center gap-4 flex-1 min-w-0 group">
+        <div className="bg-(--color-primary) p-3 rounded-xl text-white shadow-md shadow-blue-900/10 flex items-center justify-center shrink-0 transition-all duration-300 group-hover:scale-105 group-hover:rotate-3 group-hover:shadow-lg">
           {icon || <LayoutDashboard className="w-6 h-6" />}
         </div>
         <div className="min-w-0">
@@ -149,51 +162,55 @@ export function ModernPageHeader({
 
       {/* Right side: expanding search + action buttons */}
       <div className="flex gap-2 items-center flex-wrap justify-end">
-        {/* Expanding search field — CodeGeex style */}
+        {/* Expanding search field with fixed-width inner container */}
         {showSearch && (
-          <div
-            className={`transition-all duration-300 overflow-hidden ${isSearchOpen ? "w-64 opacity-100" : "w-0 opacity-0"
+          <div className="flex items-center gap-1.5">
+            <div
+              className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                isSearchOpen
+                  ? "max-w-[260px] opacity-100"
+                  : "max-w-0 opacity-0 pointer-events-none"
               }`}
-          >
-            <div className="relative">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-(--app-muted-foreground)" />
-              <input
-                ref={inputRef}
-                type="text"
-                value={searchQuery}
-                onChange={(e) => onSearchChange?.(e.target.value)}
-                placeholder={searchPlaceholder}
-                className="w-full pr-9 pl-9 py-2 bg-slate-100 border-none rounded-xl text-sm font-bold text-(--color-primary) placeholder:text-(--app-muted-foreground) focus:outline-none transition-all"
-                dir="rtl"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => onSearchChange?.("")}
-                  className="absolute left-2.5 top-1/2 -translate-y-1/2 p-0.5 hover:bg-(--app-border) rounded-md text-(--app-muted-foreground) transition-colors"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
+            >
+              <div className="w-[200px] sm:w-[240px] relative">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-(--app-muted-foreground) pointer-events-none" />
+                <input
+                  ref={inputRef}
+                  type="text"
+                  tabIndex={isSearchOpen ? 0 : -1}
+                  value={searchQuery}
+                  onChange={(e) => onSearchChange?.(e.target.value)}
+                  placeholder={searchPlaceholder}
+                  className="w-full pr-9 pl-8 py-2 bg-(--app-surface-container) border border-(--app-border)/60 rounded-xl text-sm font-bold text-(--color-primary) placeholder:text-(--app-muted-foreground)/60 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-xs"
+                  dir="rtl"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => onSearchChange?.("")}
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 p-0.5 hover:bg-(--app-border) rounded-md text-(--app-muted-foreground) hover:text-(--app-foreground) transition-colors cursor-pointer"
+                    title="مسح النص"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-        )}
 
-        {/* Search toggle button */}
-        {showSearch && (
-          <button
-            type="button"
-            onClick={handleToggleSearch}
-            title="بحث"
-            className={[
-              "px-4 py-2 rounded-xl text-sm font-bold transition-all active:scale-95 focus:outline-none",
-              isSearchOpen
-                ? "bg-slate-200 text-(--color-primary)"
-                : "bg-slate-100 text-(--color-primary) hover:bg-slate-200",
-            ].join(" ")}
-          >
-            <Search className="w-5 h-5" />
-          </button>
+            {/* Search toggle button with smooth icon morphing */}
+            <button
+              type="button"
+              onClick={handleToggleSearch}
+              title={isSearchOpen ? "إغلاق البحث" : "فتح البحث"}
+              className={`p-2 rounded-xl text-sm font-bold transition-all active:scale-95 focus:outline-none cursor-pointer ${
+                isSearchOpen
+                  ? "bg-(--app-surface-container) text-(--color-primary) border border-(--app-border)/60 shadow-xs"
+                  : "bg-(--app-surface-container-low) text-(--color-primary) hover:bg-(--app-surface-container)"
+              }`}
+            >
+              {isSearchOpen ? <X className="w-5 h-5 text-(--app-muted-foreground)" /> : <Search className="w-5 h-5" />}
+            </button>
+          </div>
         )}
 
         {children}

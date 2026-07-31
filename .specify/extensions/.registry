@@ -1,45 +1,6 @@
 {
   "schema_version": "1.0",
   "extensions": {
-    "git": {
-      "version": "1.0.0",
-      "source": "local",
-      "manifest_hash": "sha256:9731aa8143a72fbebfdb440f155038ab42642517c2b2bdbbf67c8fdbe076ed79",
-      "enabled": true,
-      "priority": 10,
-      "registered_commands": {
-        "agy": [
-          "speckit.git.feature",
-          "speckit.git.validate",
-          "speckit.git.remote",
-          "speckit.git.initialize",
-          "speckit.git.commit"
-        ],
-        "kilocode": [
-          "speckit.git.feature",
-          "speckit.git.validate",
-          "speckit.git.remote",
-          "speckit.git.initialize",
-          "speckit.git.commit"
-        ],
-        "opencode": [
-          "speckit.git.feature",
-          "speckit.git.validate",
-          "speckit.git.remote",
-          "speckit.git.initialize",
-          "speckit.git.commit"
-        ],
-        "qwen": [
-          "speckit.git.feature",
-          "speckit.git.validate",
-          "speckit.git.remote",
-          "speckit.git.initialize",
-          "speckit.git.commit"
-        ]
-      },
-      "registered_skills": [],
-      "installed_at": "2026-04-08T22:13:04.941401+00:00"
-    },
     "aide": {
       "version": "1.0.0",
       "source": "local",
@@ -104,35 +65,6 @@
       },
       "registered_skills": [],
       "installed_at": "2026-04-19T19:07:06.263110+00:00"
-    },
-    "verify": {
-      "version": "1.0.3",
-      "source": "local",
-      "manifest_hash": "sha256:74202b2c3bb17058b10787838cdf30c9ebe11e8793fc1de04bee75d5f111949a",
-      "enabled": true,
-      "priority": 10,
-      "registered_commands": {
-        "agy": [
-          "speckit.verify.run"
-        ],
-        "codex": [
-          "speckit.verify.run"
-        ],
-        "gemini": [
-          "speckit.verify.run"
-        ],
-        "kilocode": [
-          "speckit.verify.run"
-        ],
-        "opencode": [
-          "speckit.verify.run"
-        ],
-        "qwen": [
-          "speckit.verify.run"
-        ]
-      },
-      "registered_skills": [],
-      "installed_at": "2026-04-19T19:07:51.645704+00:00"
     },
     "archive": {
       "version": "1.0.0",
@@ -356,6 +288,88 @@
       },
       "registered_skills": [],
       "installed_at": "2026-04-19T19:10:40.883532+00:00"
+    },
+    "git": {
+      "version": "1.0.0",
+      "source": "local",
+      "manifest_hash": "sha256:9731aa8143a72fbebfdb440f155038ab42642517c2b2bdbbf67c8fdbe076ed79",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "agy": [
+          "speckit.git.feature",
+          "speckit.git.validate",
+          "speckit.git.remote",
+          "speckit.git.initialize",
+          "speckit.git.commit"
+        ],
+        "codex": [
+          "speckit.git.feature",
+          "speckit.git.validate",
+          "speckit.git.remote",
+          "speckit.git.initialize",
+          "speckit.git.commit"
+        ],
+        "gemini": [
+          "speckit.git.feature",
+          "speckit.git.validate",
+          "speckit.git.remote",
+          "speckit.git.initialize",
+          "speckit.git.commit"
+        ],
+        "kilocode": [
+          "speckit.git.feature",
+          "speckit.git.validate",
+          "speckit.git.remote",
+          "speckit.git.initialize",
+          "speckit.git.commit"
+        ],
+        "opencode": [
+          "speckit.git.feature",
+          "speckit.git.validate",
+          "speckit.git.remote",
+          "speckit.git.initialize",
+          "speckit.git.commit"
+        ],
+        "qwen": [
+          "speckit.git.feature",
+          "speckit.git.validate",
+          "speckit.git.remote",
+          "speckit.git.initialize",
+          "speckit.git.commit"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-05-18T09:33:22.904043+00:00"
+    },
+    "verify": {
+      "version": "1.0.3",
+      "source": "local",
+      "manifest_hash": "sha256:74202b2c3bb17058b10787838cdf30c9ebe11e8793fc1de04bee75d5f111949a",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "agy": [
+          "speckit.verify.run"
+        ],
+        "codex": [
+          "speckit.verify.run"
+        ],
+        "gemini": [
+          "speckit.verify.run"
+        ],
+        "kilocode": [
+          "speckit.verify.run"
+        ],
+        "opencode": [
+          "speckit.verify.run"
+        ],
+        "qwen": [
+          "speckit.verify.run"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-05-18T09:53:12.083223+00:00"
     }
   }
 }

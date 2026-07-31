@@ -5,6 +5,7 @@ import { signToken, setTokenCookie } from "@/lib/auth/jwt";
 import { logAuditEvent } from "@/lib/auth/audit";
 import { loginSchema } from "@/validations/auth";
 import { errors } from "@/lib/auth/errors";
+import { handleApiError } from "@/lib/utils/api-error";
 import { checkLoginRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
 
 export async function POST(request: Request) {
@@ -124,10 +125,6 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
-    console.error("Login error:", error);
-    return NextResponse.json(
-      { success: false, error: errors.internalError },
-      { status: 500 },
-    );
+    return handleApiError(error, "حدث خطأ أثناء تسجيل الدخول");
   }
 }

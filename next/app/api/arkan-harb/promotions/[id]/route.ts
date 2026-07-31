@@ -5,6 +5,7 @@ import { canEditModule } from "@/lib/auth/authorization";
 import { logAuditEvent } from "@/lib/auth/audit";
 import { errors } from "@/lib/auth/errors";
 import { Promotion } from "@/lib/db/models/Promotion";
+import { handleApiError } from "@/lib/utils/api-error";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
 import { updatePromotionSchema } from "@/lib/validations/arkan-harb";
 
@@ -80,7 +81,6 @@ export async function PATCH(
     // 8. Response
     return NextResponse.json({ success: true, data: { id } });
   } catch (error) {
-    console.error("Promotion PATCH error:", error);
-    return NextResponse.json({ success: false, error: errors.internalError }, { status: 500 });
+    return handleApiError(error, "حدث خطأ أثناء تحديث الترقية");
   }
 }

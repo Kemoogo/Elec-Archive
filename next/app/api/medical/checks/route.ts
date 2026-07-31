@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { authenticate } from "@/lib/auth/middleware";
 import { errors } from "@/lib/auth/errors";
 import { runAllChecks } from "@/lib/medical/checks";
+import { handleApiError } from "@/lib/utils/api-error";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
 
 export async function POST(request: Request) {
@@ -26,10 +27,14 @@ export async function POST(request: Request) {
     return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
   }
 
-  const result = await runAllChecks();
+  try {
+    const result = await runAllChecks();
 
-  return NextResponse.json({
-    success: true,
-    data: result,
-  });
+    return NextResponse.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    return handleApiError(error, "حدث خطأ أثناء تشغيل الفحوصات الطبية");
+  }
 }

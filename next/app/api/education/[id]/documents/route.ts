@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { authenticate } from "@/lib/auth/middleware";
 import { logAuditEvent } from "@/lib/auth/audit";
 import { errors } from "@/lib/auth/errors";
+import { handleApiError } from "@/lib/utils/api-error";
 import { Course } from "@/lib/db/models/Course";
 import { deleteDocumentSchema } from "@/lib/validations/education";
 import { writeFile, unlink, mkdir } from "fs/promises";
@@ -26,15 +27,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!rl.allowed) {
     return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
   }
-  await connectToDatabase();
-
-  const { id } = await params;
-  const course = await Course.findById(id);
-  if (!course) {
-    return NextResponse.json({ success: false, error: "الدورة غير موجودة" }, { status: 404 });
-  }
-
   try {
+    await connectToDatabase();
+
+    const { id } = await params;
+    const course = await Course.findById(id);
+    if (!course) {
+      return NextResponse.json({ success: false, error: "الدورة غير موجودة" }, { status: 404 });
+    }
+
+    if (course.status === "completed") {
+      return NextResponse.json({ success: false, error: "لا يمكن رفع مستندات لدورة منتهية" }, { status: 400 });
+    }
+
     const formData = await request.formData();
     const file = formData.get("file");
     const name = formData.get("name") as string | null;
@@ -75,8 +80,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     });
 
     return NextResponse.json({ success: true, data: { name: name.trim(), fileUrl } }, { status: 201 });
-  } catch {
-    return NextResponse.json({ success: false, error: errors.internalError }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -93,45 +98,49 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   if (!rl.allowed) {
     return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
   }
-  await connectToDatabase();
+  try {
+    await connectToDatabase();
 
-  const { id } = await params;
-  const course = await Course.findById(id);
-  if (!course) {
-    return NextResponse.json({ success: false, error: "الدورة غير موجودة" }, { status: 404 });
+    const { id } = await params;
+    const course = await Course.findById(id);
+    if (!course) {
+      return NextResponse.json({ success: false, error: "الدورة غير موجودة" }, { status: 404 });
+    }
+
+    const body = await request.json();
+    const parsed = deleteDocumentSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ success: false, error: errors.validationFailed, details: parsed.error.issues }, { status: 400 });
+    }
+
+    const { fileUrl } = parsed.data;
+    const docs = course.documents as { name: string; fileUrl: string }[];
+    const idx = docs.findIndex((d) => d.fileUrl === fileUrl);
+    if (idx === -1) {
+      return NextResponse.json({ success: false, error: "المستند غير موجود" }, { status: 404 });
+    }
+
+    const resolvedPath = join(process.cwd(), "public", fileUrl);
+    const expectedDir = join(process.cwd(), "public", "uploads", "courses");
+    if (!resolvedPath.startsWith(expectedDir)) {
+      return NextResponse.json({ success: false, error: "مسار الملف غير صالح" }, { status: 400 });
+    }
+    try { await unlink(resolvedPath); } catch (err: unknown) { if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err; }
+    course.documents.splice(idx, 1);
+    await course.save();
+
+    await logAuditEvent({
+      userId: auth.user!.id,
+      userName: auth.user!.fullName,
+      action: "DELETE",
+      module: "education",
+      targetId: id,
+      description: `تم حذف مستند من الدورة ${course.title}`,
+      ipAddress: ip,
+    });
+
+    return NextResponse.json({ success: true, message: "تم حذف المستند بنجاح" });
+  } catch (error) {
+    return handleApiError(error);
   }
-
-  const body = await request.json();
-  const parsed = deleteDocumentSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ success: false, error: errors.validationFailed, details: parsed.error.issues }, { status: 400 });
-  }
-
-  const { fileUrl } = parsed.data;
-  const docs = course.documents as { name: string; fileUrl: string }[];
-  const idx = docs.findIndex((d) => d.fileUrl === fileUrl);
-  if (idx === -1) {
-    return NextResponse.json({ success: false, error: "المستند غير موجود" }, { status: 404 });
-  }
-
-  const resolvedPath = join(process.cwd(), "public", fileUrl);
-  const expectedDir = join(process.cwd(), "public", "uploads", "courses");
-  if (!resolvedPath.startsWith(expectedDir)) {
-    return NextResponse.json({ success: false, error: "مسار الملف غير صالح" }, { status: 400 });
-  }
-  try { await unlink(resolvedPath); } catch (err: unknown) { if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err; }
-  course.documents.splice(idx, 1);
-  await course.save();
-
-  await logAuditEvent({
-    userId: auth.user!.id,
-    userName: auth.user!.fullName,
-    action: "DELETE",
-    module: "education",
-    targetId: id,
-    description: `تم حذف مستند من الدورة ${course.title}`,
-    ipAddress: ip,
-  });
-
-  return NextResponse.json({ success: true, message: "تم حذف المستند بنجاح" });
 }

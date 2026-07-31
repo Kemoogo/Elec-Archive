@@ -14,8 +14,8 @@ export const MISSION_STATUS_LABELS: Record<MissionStatus, string> = {
 };
 
 export const MISSION_STATUS_COLORS: Record<MissionStatus, string> = {
-  scheduled: "bg-amber-50 text-amber-700 border-amber-100",
+  scheduled: "bg-(--app-warning)/10 text-(--app-warning) border-(--app-warning)/20",
   active: "bg-(--app-success)/10 text-(--app-success) border-(--app-success)/20",
   completed: "bg-(--app-surface-container) text-(--app-muted-foreground) border-(--app-border)",
-  cancelled: "bg-rose-50 text-rose-700 border-rose-100",
+  cancelled: "bg-(--app-error)/10 text-(--app-error) border-(--app-error)/20",
 };

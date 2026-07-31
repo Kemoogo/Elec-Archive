@@ -51,7 +51,12 @@ export default async function OfficersListPage({
   }
 
   const [officers, total] = await Promise.all([
-    Officer.find(query).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+    Officer.find(query)
+      .collation({ locale: "en", numericOrdering: true })
+      .sort({ seniorityNumber: 1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean(),
     Officer.countDocuments(query),
   ]);
 

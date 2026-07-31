@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useToast } from "@/components/ui/toast";
+import { extractApiError } from "@/lib/utils";
 
 interface FaxLinkSearchProps {
   faxId: string;
@@ -53,7 +54,8 @@ export function FaxLinkSearch({ faxId, onLinked }: FaxLinkSearchProps) {
       const data = await res.json();
 
       if (!res.ok) {
-        showToast(data.error ?? "حدث خطأ أثناء الربط", "error");
+        const errorMsg = extractApiError(data, "حدث خطأ أثناء الربط");
+        showToast(errorMsg, "error");
         return;
       }
 
@@ -70,7 +72,7 @@ export function FaxLinkSearch({ faxId, onLinked }: FaxLinkSearchProps) {
 
   return (
     <div className="rounded-lg bg-(--app-surface) p-6" dir="rtl">
-      <h2 className="mb-4 text-lg font-semibold text-(--app-white)">ربط فاكس</h2>
+      <h2 className="mb-4 text-lg font-semibold text-(--app-foreground)">ربط فاكس</h2>
 
       <div className="flex gap-2">
         <input
@@ -79,7 +81,7 @@ export function FaxLinkSearch({ faxId, onLinked }: FaxLinkSearchProps) {
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSearch()}
           placeholder="ابحث برقم الفاكس أو الموضوع..."
-          className="flex-1 rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-white) placeholder-(--app-muted-foreground) focus:border-(--app-info) focus:outline-none"
+          className="flex-1 rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-foreground) placeholder-(--app-muted-foreground) focus:border-(--app-info) focus:outline-none"
         />
         <button
           onClick={handleSearch}
@@ -98,17 +100,16 @@ export function FaxLinkSearch({ faxId, onLinked }: FaxLinkSearchProps) {
               className="flex items-center justify-between rounded-md border border-(--app-border) p-3"
             >
               <div>
-                <span className="font-medium text-(--app-white)">{fax.faxNumber}</span>
+                <span className="font-medium text-(--app-foreground)">{fax.faxNumber}</span>
                 <span className="mr-3 text-sm text-(--app-muted-foreground)">
-                  {new Date(fax.date).toLocaleDateString("ar")}
+                  {new Date(fax.date).toLocaleDateString("ar-EG")}
                 </span>
                 <p className="text-sm text-foreground">{fax.subject}</p>
               </div>
               <button
                 onClick={() => handleLink(fax._id)}
                 disabled={linking}
-                className="rounded-md bg-(--app-success) px-3 py-1 text-sm text-(--app-white) hover:bg-(--app-success)/90 disabled:opacity-50"
-              >
+                className="rounded-md bg-(--app-success) px-3 py-1 text-sm text-(--app-white) hover:bg-(--app-success)/90 disabled:opacity-50">
                 ربط
               </button>
             </div>

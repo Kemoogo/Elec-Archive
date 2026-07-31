@@ -7,19 +7,33 @@ import { StudentForm } from "@/components/students/StudentForm";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { ModernPageHeader as PageHeader } from "@/components/layout/ModernPageHeader";
 import { GraduationCap } from "lucide-react";
-import type { IStudent } from "@/lib/db/models/Student";
+
+interface SerializedStudent {
+  _id: string;
+  studentId: string;
+  fullName: string;
+  enrollDate: string;
+  status: string;
+  documents: { name: string; fileUrl: string; uploadedAt: string }[];
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 interface StudentsPageClientProps {
-  students: any[];
+  students: SerializedStudent[];
   total: number;
   totalPages: number;
   page: number;
   canEdit: boolean;
   initialFilters: {
     search?: string;
+    level?: string;
+    class?: string;
     status?: string;
   };
 }
+
 
 export function StudentsPageClient({
   students,
@@ -75,7 +89,7 @@ export function StudentsPageClient({
             <select
               value={statusFilter}
               onChange={(e) => handleStatusChange(e.target.value)}
-              className="px-4 py-2 rounded-xl text-sm font-bold transition-all bg-slate-100 text-(--color-primary) hover:bg-slate-200 focus:outline-none appearance-none cursor-pointer"
+              className="btn-secondary-sm"
             >
               <option value="all">جميع السجلات</option>
               <option value="active">الطلبة الفعليون</option>

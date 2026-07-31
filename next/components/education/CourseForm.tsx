@@ -6,6 +6,9 @@ import { BookOpen } from "lucide-react";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { DateField } from "@/components/ui/date-field";
+import { FormField, FormInput, FormSelect, FormTextarea } from "@/components/ui/form-fields";
+import { useToast } from "@/components/ui/toast";
+import { extractApiError } from "@/lib/utils";
 
 interface CourseFormProps {
   mode: "create" | "edit";
@@ -23,6 +26,7 @@ interface CourseFormProps {
 
 export function CourseForm({ mode, initialData, onSuccess }: CourseFormProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [isOpen, setIsOpen] = useState(mode === "edit");
   const [error, setError] = useState("");
@@ -65,18 +69,22 @@ export function CourseForm({ mode, initialData, onSuccess }: CourseFormProps) {
         });
         const data = await res.json();
         if (!res.ok) {
-          setError(data.error ?? "حدث خطأ");
+        const errorMsg = extractApiError(data, "حدث خطأ");
+          setError(errorMsg);
           return;
         }
         setIsOpen(false);
         if (mode === "create") {
+          showToast("تم إضافة الدورة بنجاح", "success");
           router.push(`/education/${data.data._id}`);
         } else {
+          showToast("تم تحديث الدورة بنجاح", "success");
           router.refresh();
         }
         onSuccess?.();
       } catch {
         setError("حدث خطأ في الاتصال");
+        showToast("حدث خطأ في الاتصال بالخادم", "error");
       }
     });
   }
@@ -168,14 +176,14 @@ function FormFields({
 }) {
   return (
     <div className="space-y-3">
-      <div>
-        <label htmlFor="course-title" className="mb-1 block text-xs text-(--app-muted-foreground)">عنوان الدورة *</label>
-        <input id="course-title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} required className="w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-white) placeholder:text-(--app-muted-foreground)" placeholder="دورة الأمن السيبراني" />
-      </div>
-      <div>
-        <label htmlFor="course-description" className="mb-1 block text-xs text-(--app-muted-foreground)">الوصف</label>
-        <textarea id="course-description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-white) placeholder:text-(--app-muted-foreground)" placeholder="وصف الدورة..." />
-      </div>
+      <FormField label="عنوان الدورة" required>
+        <FormInput id="course-title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="دورة الأمن السيبراني" />
+      </FormField>
+
+      <FormField label="الوصف">
+        <FormTextarea id="course-description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="وصف الدورة..." />
+      </FormField>
+
       <div className="grid grid-cols-2 gap-3">
         <DateField
           id="course-startDate"
@@ -192,24 +200,24 @@ function FormFields({
           required
         />
       </div>
+
       {mode === "create" && (
-        <div>
-          <label htmlFor="course-participantModel" className="mb-1 block text-xs text-(--app-muted-foreground)">نوع المشاركين *</label>
-          <select id="course-participantModel" value={participantModel} onChange={(e) => setParticipantModel(e.target.value)} className="w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-white)">
+        <FormField label="نوع المشاركين" required>
+          <FormSelect id="course-participantModel" value={participantModel} onChange={(e) => setParticipantModel(e.target.value)}>
             <option value="Officer">ضباط</option>
             <option value="Student">طلبة</option>
-          </select>
-        </div>
+          </FormSelect>
+        </FormField>
       )}
+
       {mode === "edit" && setStatus && (
-        <div>
-          <label htmlFor="course-status" className="mb-1 block text-xs text-(--app-muted-foreground)">الحالة</label>
-          <select id="course-status" value={status} onChange={(e) => setStatus(e.target.value)} className="w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-white)">
+        <FormField label="الحالة">
+          <FormSelect id="course-status" value={status} onChange={(e) => setStatus(e.target.value)}>
             <option value="upcoming">قادمة</option>
             <option value="ongoing">جارية</option>
             <option value="completed">منتهية</option>
-          </select>
-        </div>
+          </FormSelect>
+        </FormField>
       )}
     </div>
   );

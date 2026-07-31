@@ -2,10 +2,15 @@ import { NextResponse } from "next/server";
 import { authenticate } from "@/lib/auth/middleware";
 import { connectToDatabase } from "@/lib/db/connect";
 import { AuditLog } from "@/lib/db/models/AuditLog";
+import { User } from "@/lib/db/models/User";
 import { auditQuerySchema } from "@/lib/validations/dashboard-notifications";
+import { handleApiError } from "@/lib/utils/api-error";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
 
 export async function GET(request: Request) {
+  // Ensure User model is registered for mongoose populate
+  const _userModel = User;
+
   const auth = await authenticate();
 
   if (!auth.success) {
@@ -69,6 +74,7 @@ export async function GET(request: Request) {
     const total = await AuditLog.countDocuments(query);
 
     const entries = await AuditLog.find(query)
+      .populate("userId", "username fullName")
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
@@ -77,27 +83,40 @@ export async function GET(request: Request) {
     return NextResponse.json({
       success: true,
       data: {
-        entries: entries.map((e) => ({
-          _id: e._id.toString(),
-          userId: e.userId.toString(),
-          userName: e.userName,
-          action: e.action,
-          module: e.module,
-          targetId: e.targetId?.toString(),
-          description: e.description,
-          ipAddress: e.ipAddress,
-          createdAt: e.createdAt.toISOString(),
-        })),
+        entries: entries.map((e) => {
+          const userObj = e.userId as unknown as { _id?: { toString(): string }; username?: string; fullName?: string } | null;
+          let displayName = e.userName;
+          let userIdStr = "";
+
+          if (userObj && typeof userObj === "object" && userObj._id) {
+            userIdStr = userObj._id.toString();
+            if (userObj.fullName) {
+              displayName = userObj.fullName;
+            } else if (userObj.username) {
+              displayName = userObj.username;
+            }
+          } else {
+            userIdStr = e.userId ? e.userId.toString() : "";
+          }
+
+          return {
+            _id: e._id.toString(),
+            userId: userIdStr,
+            userName: displayName,
+            action: e.action,
+            module: e.module,
+            targetId: e.targetId?.toString(),
+            description: e.description,
+            ipAddress: e.ipAddress,
+            createdAt: e.createdAt.toISOString(),
+          };
+        }),
         total,
         page,
         totalPages: Math.ceil(total / limit),
       },
     });
   } catch (error) {
-    console.error("Audit API error:", error);
-    return NextResponse.json(
-      { success: false, error: "حدث خطأ أثناء تحميل سجل العمليات" },
-      { status: 500 },
-    );
+    return handleApiError(error, "حدث خطأ أثناء تحميل سجل العمليات");
   }
 }

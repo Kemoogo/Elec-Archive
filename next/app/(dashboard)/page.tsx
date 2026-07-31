@@ -89,9 +89,8 @@ async function getDashboardData(userRole: string, department: string, canViewArk
 
   try {
     if (isAdminOrCommander || department === "medical") {
-      const expiredCount = await Medicine.countDocuments({ expiryDate: { $lt: new Date() } });
-      const allMeds = await Medicine.find({}).lean();
-      const lowStockCount = allMeds.filter((m) => m.quantity < m.minThreshold).length;
+      const expiredCount = await Medicine.countDocuments({ "batches.expiryDate": { $lt: new Date() } });
+      const lowStockCount = await Medicine.countDocuments({ $expr: { $lt: ["$totalQuantity", "$minThreshold"] } });
       data.medical = { expiredCount, lowStockCount };
     }
   } catch {

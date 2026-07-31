@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { authenticate } from "@/lib/auth/middleware";
 import { logAuditEvent } from "@/lib/auth/audit";
 import { errors } from "@/lib/auth/errors";
+import { handleApiError } from "@/lib/utils/api-error";
 import { Course } from "@/lib/db/models/Course";
 import { courseListQuerySchema, createCourseSchema } from "@/lib/validations/education";
 import { escapeRegex } from "@/lib/utils";
@@ -74,11 +75,8 @@ export async function GET(request: Request) {
       success: true,
       data: { items: serialized, total, page, totalPages: Math.max(1, Math.ceil(total / limit)) },
     });
-  } catch {
-    return NextResponse.json(
-      { success: false, error: errors.internalError },
-      { status: 500 },
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -95,9 +93,8 @@ export async function POST(request: Request) {
   if (!rl.allowed) {
     return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
   }
-  await connectToDatabase();
-
   try {
+    await connectToDatabase();
     const body = await request.json();
     const parsed = createCourseSchema.safeParse(body);
     if (!parsed.success) {
@@ -105,13 +102,16 @@ export async function POST(request: Request) {
     }
 
     const { title, description, startDate, endDate, participantModel } = parsed.data;
+    const trimmedTitle = title.trim();
 
-    if (new Date(endDate) < new Date(startDate)) {
-      return NextResponse.json({ success: false, error: "تاريخ الانتهاء يجب أن يكون بعد أو يساوي تاريخ البداية" }, { status: 400 });
+    // Check for duplicate course title
+    const existing = await Course.findOne({ title: { $regex: `^${escapeRegex(trimmedTitle)}$`, $options: "i" } });
+    if (existing) {
+      return NextResponse.json({ success: false, error: "يوجد دورة مسجلة بنفس العنوان مسبقاً" }, { status: 409 });
     }
 
     const course = await Course.create({
-      title: title.trim(),
+      title: trimmedTitle,
       description: description?.trim(),
       startDate: new Date(startDate),
       endDate: new Date(endDate),

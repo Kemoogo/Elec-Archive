@@ -6,6 +6,8 @@ import Link from "next/link";
 import type { CourseStatus } from "@/lib/db/models/Course";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { ModalShell } from "@/components/ui/modal-shell";
+import { useToast } from "@/components/ui/toast";
+import { extractApiError } from "@/lib/utils";
 
 interface CourseDetailProps {
   course: {
@@ -37,6 +39,7 @@ const statusColors: Record<string, string> = {
 
 export function CourseDetail({ course, canEdit }: CourseDetailProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
@@ -49,10 +52,13 @@ export function CourseDetail({ course, canEdit }: CourseDetailProps) {
       const res = await fetch(`/api/education/${course._id}`, { method: "DELETE" });
       const data = await res.json();
       if (res.ok) {
+        showToast("تم حذف الدورة بنجاح", "success");
         router.push("/education");
         router.refresh();
       } else {
-        setDeleteError(data.error ?? "فشل الحذف");
+        const errMsg = extractApiError(data, "فشل الحذف");
+        setDeleteError(errMsg);
+        showToast(errMsg, "error");
       }
     } finally {
       if (!deleteError) {
@@ -71,7 +77,10 @@ export function CourseDetail({ course, canEdit }: CourseDetailProps) {
         body: JSON.stringify({ participantId }),
       });
       if (res.ok) {
+        showToast("تم إزالة المشارك بنجاح", "success");
         router.refresh();
+      } else {
+        showToast("فشل في إزالة المشارك", "error");
       }
     } finally {
       setRemovingParticipant(null);
@@ -88,7 +97,7 @@ export function CourseDetail({ course, canEdit }: CourseDetailProps) {
 
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-(--app-white)">{course.title}</h1>
+          <h1 className="text-2xl font-bold text-(--app-foreground)">{course.title}</h1>
           <span
             className={`mt-2 inline-block rounded-full border px-3 py-1 text-xs ${
               statusColors[course.status] ?? statusColors.upcoming
@@ -116,24 +125,24 @@ export function CourseDetail({ course, canEdit }: CourseDetailProps) {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <span className="text-xs text-(--app-muted-foreground)">تاريخ البداية</span>
-            <p className="text-sm text-(--app-white)">{new Date(course.startDate).toLocaleDateString("ar-EG")}</p>
+            <p className="text-sm text-(--app-foreground)">{new Date(course.startDate).toLocaleDateString("ar-EG")}</p>
           </div>
           <div>
             <span className="text-xs text-(--app-muted-foreground)">تاريخ الانتهاء</span>
-            <p className="text-sm text-(--app-white)">{new Date(course.endDate).toLocaleDateString("ar-EG")}</p>
+            <p className="text-sm text-(--app-foreground)">{new Date(course.endDate).toLocaleDateString("ar-EG")}</p>
           </div>
           <div>
             <span className="text-xs text-(--app-muted-foreground)">نوع المشاركين</span>
-            <p className="text-sm text-(--app-white)">{course.participantModel === "Officer" ? "ضباط" : "طلبة"}</p>
+            <p className="text-sm text-(--app-foreground)">{course.participantModel === "Officer" ? "ضباط" : "طلبة"}</p>
           </div>
           <div>
             <span className="text-xs text-(--app-muted-foreground)">عدد المشاركين</span>
-            <p className="text-sm text-(--app-white)">{course.participants.length}</p>
+            <p className="text-sm text-(--app-foreground)">{course.participants.length}</p>
           </div>
           {course.description && (
             <div className="col-span-2">
               <span className="text-xs text-(--app-muted-foreground)">الوصف</span>
-              <p className="text-sm text-(--app-white)">{course.description}</p>
+              <p className="text-sm text-(--app-foreground)">{course.description}</p>
             </div>
           )}
         </div>
@@ -151,7 +160,7 @@ export function CourseDetail({ course, canEdit }: CourseDetailProps) {
                 className="flex items-center justify-between rounded-md border border-(--app-border) p-3"
               >
                 <div>
-                  <p className="text-sm text-(--app-white)">{p.fullName}</p>
+                  <p className="text-sm text-(--app-foreground)">{p.fullName}</p>
                   <p className="text-xs text-(--app-muted-foreground)">
                     {p.militaryId ?? p.studentId}
                   </p>
@@ -182,7 +191,7 @@ export function CourseDetail({ course, canEdit }: CourseDetailProps) {
                 key={doc.fileUrl}
                 className="flex items-center justify-between rounded-md border border-(--app-border) p-3"
               >
-                <p className="text-sm text-(--app-white)">{doc.name}</p>
+                <p className="text-sm text-(--app-foreground)">{doc.name}</p>
                 <a
                   href={doc.fileUrl}
                   target="_blank"

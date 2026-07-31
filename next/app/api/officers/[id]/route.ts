@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { authenticate } from "@/lib/auth/middleware";
 import { logAuditEvent } from "@/lib/auth/audit";
 import { errors } from "@/lib/auth/errors";
+import { handleApiError } from "@/lib/utils/api-error";
 import { Officer, RANK_LABELS, type OfficerRank } from "@/lib/db/models/Officer";
 import { canViewOfficers, canEditOfficers } from "@/lib/officers/access";
 import { serializeOfficerDetail } from "@/lib/officers/queries";
@@ -159,11 +160,8 @@ export async function PATCH(
       success: true,
       data: serializeOfficerDetail(officer.toObject() as Parameters<typeof serializeOfficerDetail>[0]),
     });
-  } catch {
-    return NextResponse.json(
-      { success: false, error: errors.internalError },
-      { status: 500 },
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 

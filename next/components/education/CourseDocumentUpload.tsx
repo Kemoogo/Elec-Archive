@@ -2,6 +2,8 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/toast";
+import { extractApiError } from "@/lib/utils";
 
 interface CourseDocumentUploadProps {
   courseId: string;
@@ -9,6 +11,7 @@ interface CourseDocumentUploadProps {
 
 export function CourseDocumentUpload({ courseId }: CourseDocumentUploadProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -48,12 +51,13 @@ export function CourseDocumentUpload({ courseId }: CourseDocumentUploadProps) {
       formData.append("file", file);
       const res = await fetch(`/api/education/${courseId}/documents`, { method: "POST", body: formData });
       const data = await res.json();
-      if (!res.ok) { setError(data.error ?? "فشل في رفع المستند"); return; }
+      if (!res.ok) { const errMsg = extractApiError(data, "فشل في رفع المستند"); setError(errMsg); showToast(errMsg, "error"); return; }
+      showToast("تم رفع المستند بنجاح", "success");
       setName(""); setFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       setIsOpen(false);
       router.refresh();
-    } catch { setError("حدث خطأ في الاتصال"); }
+    } catch { setError("حدث خطأ في الاتصال"); showToast("حدث خطأ في الاتصال بالخادم", "error"); }
     finally { setIsUploading(false); }
   }
 
@@ -67,15 +71,15 @@ export function CourseDocumentUpload({ courseId }: CourseDocumentUploadProps) {
 
   return (
     <div className="rounded-lg border border-(--app-border) bg-(--app-surface) p-4" dir="rtl">
-      <h3 className="mb-3 text-sm font-medium text-(--app-white)">رفع مستند جديد</h3>
+      <h3 className="mb-3 text-sm font-medium text-(--app-foreground)">رفع مستند جديد</h3>
       <form onSubmit={handleUpload} className="space-y-3">
         <div>
           <label className="mb-1 block text-xs text-(--app-muted-foreground)">اسم المستند *</label>
-          <input type="text" value={name} onChange={(e) => setName(e.target.value)} required className="w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-white) placeholder:text-(--app-muted-foreground)" placeholder="مواد التدريب" />
+          <input type="text" value={name} onChange={(e) => setName(e.target.value)} required className="w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-foreground) placeholder:text-(--app-muted-foreground) focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" placeholder="مواد التدريب" />
         </div>
         <div>
           <label className="mb-1 block text-xs text-(--app-muted-foreground)">الملف (PDF, JPEG, PNG — حد أقصى 10MB) *</label>
-          <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFileChange} className="w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-white) file:mr-4 file:rounded-md file:border-0 file:bg-(--app-accent) file:px-4 file:py-1 file:text-sm file:text-(--app-accent-foreground) file:font-medium" />
+          <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFileChange} className="w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-foreground) file:mr-4 file:rounded-md file:border-0 file:bg-(--app-accent) file:px-4 file:py-1 file:text-sm file:text-(--app-accent-foreground) file:font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" />
         </div>
         {error && <p className="text-sm text-(--app-error)">{error}</p>}
         <div className="flex justify-end gap-2">

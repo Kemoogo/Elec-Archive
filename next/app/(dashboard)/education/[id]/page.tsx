@@ -10,6 +10,9 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/ModernPageHeader";
 import type { Types } from "mongoose";
 
+import Link from "next/link";
+import { GraduationCap } from "lucide-react";
+
 interface CourseDetailPageProps {
   params: Promise<{ id: string }>;
 }
@@ -53,9 +56,20 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
   return (
     <PageContainer className="max-w-[1600px] mx-auto pb-12">
       <PageHeader
-        title={course.title}
-        backHref="/education"
-        backLabel="التعليم والدورات"
+        icon={<GraduationCap className="w-6 h-6" />}
+        title={
+          <span className="flex items-center gap-2 flex-wrap">
+            <Link
+              href="/education"
+              className="text-(--color-primary) hover:underline hover:text-blue-600 transition-colors"
+            >
+              التعليم والدورات
+            </Link>
+            <span className="text-(--app-muted-foreground)/50 font-semibold">-</span>
+            <span>{course.title}</span>
+          </span>
+        }
+        description="عرض محتوى وتفاصيل الدورة التدريبية وقائمة المشتركين والمستندات التعليمية"
       />
       <CourseDetail course={serialized} canEdit={canEdit} />
 

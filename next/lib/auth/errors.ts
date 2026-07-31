@@ -10,4 +10,5 @@ export const errors = {
   cannotDeactivateSelf: "لا يمكنك تعطيل حسابك (أنت المسؤول الوحيد النشط)",
   cannotLockSelf: "لا يمكنك قفل حسابك",
   internalError: "حدث خطأ في الخادم",
+  dbConnectionError: "انقطع الاتصال بقاعدة البيانات، يرجى المحاولة لاحقاً",
 } as const;

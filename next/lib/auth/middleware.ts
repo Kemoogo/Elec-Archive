@@ -23,9 +23,16 @@ export async function authenticate(): Promise<AuthResult> {
     return { success: false, error: errors.notAuthenticated, status: 401 };
   }
 
-  await connectToDatabase();
+  try {
+    await connectToDatabase();
+  } catch (error) {
+    if (error instanceof Error && error.name === "DatabaseConnectionError") {
+      return { success: false, error: errors.dbConnectionError, status: 503 };
+    }
+    throw error;
+  }
 
-  const user = await User.findById(payload.userId);
+  const user = await User.findById(payload.userId).lean();
   if (!user) {
     return { success: false, error: errors.notAuthenticated, status: 401 };
   }
@@ -48,7 +55,14 @@ export async function authenticate(): Promise<AuthResult> {
     fullName: user.fullName,
     role: user.role,
     department: user.department ?? "",
-    permissions: user.permissions,
+    permissions: {
+      fax: user.permissions.fax,
+      officers: user.permissions.officers,
+      medical: user.permissions.medical,
+      students: user.permissions.students,
+      education: user.permissions.education,
+      arkan_harb: user.permissions.arkan_harb,
+    },
     isActive: user.isActive,
     isLocked: user.isLocked,
   };

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/toast";
+import { extractApiError } from "@/lib/utils";
 
 interface FaxClosureFormProps {
   faxId: string;
@@ -33,7 +34,8 @@ export function FaxClosureForm({ faxId, canClose }: FaxClosureFormProps) {
       const data = await res.json();
 
       if (!res.ok) {
-        showToast(data.error ?? "حدث خطأ أثناء إغلاق الفاكس", "error");
+        const errorMsg = extractApiError(data, "حدث خطأ أثناء إغلاق الفاكس");
+        showToast(errorMsg, "error");
         return;
       }
 
@@ -48,7 +50,7 @@ export function FaxClosureForm({ faxId, canClose }: FaxClosureFormProps) {
 
   return (
     <div className="rounded-lg bg-(--app-surface) p-6" dir="rtl">
-      <h2 className="mb-4 text-lg font-semibold text-(--app-white)">إغلاق الفاكس</h2>
+      <h2 className="mb-4 text-lg font-semibold text-(--app-foreground)">إغلاق الفاكس</h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -60,7 +62,7 @@ export function FaxClosureForm({ faxId, canClose }: FaxClosureFormProps) {
             value={note}
             onChange={(e) => setNote(e.target.value)}
             rows={2}
-            className="mt-1 block w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-white) placeholder-(--app-muted-foreground) focus:border-(--app-info) focus:outline-none"
+            className="mt-1 block w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-foreground) placeholder-(--app-muted-foreground) focus:border-(--app-info) focus:outline-none"
             placeholder="أضف ملاحظة عند الإغلاق..."
           />
         </div>
@@ -68,7 +70,7 @@ export function FaxClosureForm({ faxId, canClose }: FaxClosureFormProps) {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-md bg-(--app-error) px-4 py-2 text-(--app-white) hover:bg-(--app-error)/90 disabled:opacity-50"
+          className="btn-destructive-sm w-full"
         >
           {loading ? "جاري الإغلاق..." : "إغلاق الفاكس"}
         </button>

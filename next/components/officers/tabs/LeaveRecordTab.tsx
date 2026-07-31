@@ -3,9 +3,10 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { FileText, Loader2, ExternalLink } from "lucide-react";
+import { TabSection } from "@/components/ui/tab-section";
+import { extractApiError } from "@/lib/utils";
 import MainTable, { TableColumn } from "@/components/ui/Table";
 import { Badge } from "@/components/ui/badge";
-import { EmptyState } from "@/components/ui/empty-state";
 import { LEAVE_TYPE_LABELS, LEAVE_STATUS_LABELS } from "@/lib/db/models/Leave.shared";
 
 interface LeaveRecord {
@@ -34,7 +35,6 @@ export function LeaveRecordTab({ officerId, initialData }: LeaveRecordTabProps) 
   useEffect(() => {
     // تخطي الجلب التلقائي إذا تم توفير البيانات أولياً (SSR)
     if (initialData && leaves.length > 0) {
-      setLoading(false);
       return;
     }
 
@@ -48,7 +48,8 @@ export function LeaveRecordTab({ officerId, initialData }: LeaveRecordTabProps) 
         if (result.success) {
           setLeaves(result.data.items);
         } else {
-          setError(result.error || "فشل في جلب سجل الإجازات");
+          const errMsg = extractApiError(result, "فشل في جلب سجل الإجازات");
+          setError(errMsg);
         }
       } catch {
         setError("حدث خطأ أثناء جلب سجل الإجازات");
@@ -112,21 +113,17 @@ export function LeaveRecordTab({ officerId, initialData }: LeaveRecordTabProps) 
 
   if (error) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center text-red-600 font-bold">
+      <div className="rounded-xl border border-(--app-error)/30 bg-(--app-error)/10 p-6 text-center text-(--app-error) font-bold">
         ⚠ {error}
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-(--app-surface-container) border border-(--app-border) rounded-lg">
-            <FileText className="h-5 w-5 text-(--color-primary)" />
-          </div>
-          <h2 className="text-xl font-bold text-(--color-primary)">بيان الإجازات والغيابات</h2>
-        </div>
+    <TabSection
+      title="بيان الإجازات والغيابات"
+      icon={FileText}
+      action={
         <Link 
           href={`/arkan-harb/leaves?officerId=${officerId}`} 
           className="flex items-center gap-2 text-sm font-bold text-(--color-primary) hover:underline group"
@@ -134,22 +131,16 @@ export function LeaveRecordTab({ officerId, initialData }: LeaveRecordTabProps) 
           <span>عرض الكل</span>
           <ExternalLink className="h-4 w-4 transition-transform group-hover:translate-x-[-2px]" />
         </Link>
-      </div>
-
-      {leaves.length === 0 ? (
-        <EmptyState
-          icon={FileText}
-          title="لا توجد سجلات إجازات"
-          description="لم يتم تسجيل أي إجازات أو غيابات لهذا الضابط حتى الآن."
-        />
-      ) : (
-        <MainTable 
-          columns={columns} 
-          data={leaves} 
-          theadClassName="bg-(--app-surface-container) text-(--app-muted-foreground) text-xs"
-          tdClassName="px-5 py-4 text-sm font-medium border-b border-(--app-border) text-(--app-muted-foreground)"
-        />
-      )}
-    </div>
+      }
+    >
+      <MainTable 
+        columns={columns} 
+        data={leaves} 
+        variant="secondary"
+        emptyIcon={FileText}
+        emptyTitle="لا توجد سجلات إجازات"
+        emptyDescription="لم يتم تسجيل أي إجازات أو غيابات لهذا الضابط حتى الآن."
+      />
+    </TabSection>
   );
 }

@@ -7,6 +7,9 @@ import { ModalShell } from "@/components/ui/modal-shell";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { PrimaryHeaderBtn } from "@/components/layout/ModernPageHeader";
 import { DateField } from "@/components/ui/date-field";
+import { FormLabel, FormSelect, FormTextarea } from "@/components/ui/form-fields";
+import { useToast } from "@/components/ui/toast";
+import { extractApiError } from "@/lib/utils";
 
 const LEAVE_TYPE_OPTIONS = [
   { value: "annual", label: "سنوية" },
@@ -18,9 +21,15 @@ const LEAVE_TYPE_OPTIONS = [
   { value: "casual", label: "عارضة" },
 ];
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function LeaveAddModal({ officers }: { officers: any[] }) {
+interface OfficerOption {
+  id: string;
+  fullName: string;
+  militaryId: string;
+}
+
+export function LeaveAddModal({ officers }: { officers: OfficerOption[] }) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -47,16 +56,19 @@ export function LeaveAddModal({ officers }: { officers: any[] }) {
        });
 
        const data = await res.json();
-       if (!res.ok || !data.success) {
-         setError(data.error || "فشل في إنشاء السجل");
-         return;
+      if (!res.ok || !data.success) {
+        const errorMsg = extractApiError(data, "فشل في إنشاء السجل");
+        setError(errorMsg);
+        return;
        }
 
+       showToast("تم تسجيل السجل بنجاح", "success");
        setOpen(false);
        setForm({ officerId: "", category: "leave", type: "annual", startDate: "", endDate: "", reason: "" });
        router.refresh();
      } catch {
        setError("حدث خطأ في الاتصال");
+       showToast("حدث خطأ في الاتصال بالخادم", "error");
      } finally {
        setLoading(false);
      }
@@ -80,24 +92,24 @@ export function LeaveAddModal({ officers }: { officers: any[] }) {
 
           <form onSubmit={handleCreate} className="space-y-4 text-right">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-(--app-muted-foreground) px-1">الضابط المعني *</label>
-                <select
+              <div className="space-y-1.5">
+                <FormLabel htmlFor="leave-officerId" required>الضابط المعني</FormLabel>
+                <FormSelect
+                  id="leave-officerId"
                   value={form.officerId}
                   onChange={(e) => setForm({ ...form, officerId: e.target.value })}
                   required
-                  className="w-full rounded-lg bg-(--app-surface) border border-(--app-border) px-4 py-2.5 text-sm text-(--color-primary) focus:outline-none  "
                 >
-                  <option value="" className="bg-(--app-surface)">اختر ضابط من القائمة</option>
+                  <option value="">اختر ضابط من القائمة</option>
                   {officers.map((o) => (
-                    <option key={o.id} value={o.id} className="bg-(--app-surface)">
+                    <option key={o.id} value={o.id}>
                       {o.fullName} ({o.militaryId})
                     </option>
                   ))}
-                </select>
+                </FormSelect>
               </div>
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-(--app-muted-foreground) px-1">الفئة الرئيسية *</label>
+              <div className="space-y-1.5">
+                <FormLabel required>الفئة الرئيسية</FormLabel>
                 <div className="grid grid-cols-2 gap-2">
                    {["leave", "absence"].map((c) => (
                      <button
@@ -106,7 +118,7 @@ export function LeaveAddModal({ officers }: { officers: any[] }) {
                        onClick={() => setForm({ ...form, category: c })}
                        className={`py-2 rounded-lg text-xs font-medium border transition-all ${
                          form.category === c
-                           ? "bg-blue-50 border-blue-500 text-blue-700"
+                           ? "bg-(--app-info)/10 border-(--app-info) text-(--app-info)"
                            : "bg-(--app-surface-container) border border-(--app-border) text-(--app-muted-foreground) hover:bg-(--app-surface-container)"
                        }`}
                      >
@@ -117,8 +129,8 @@ export function LeaveAddModal({ officers }: { officers: any[] }) {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-(--app-muted-foreground) px-1">نوع الانتداب أو الإجازة *</label>
+            <div className="space-y-1.5">
+              <FormLabel required>نوع الانتداب أو الإجازة</FormLabel>
               <div className="flex flex-wrap gap-2">
                 {LEAVE_TYPE_OPTIONS.map((t) => (
                   <button
@@ -127,8 +139,8 @@ export function LeaveAddModal({ officers }: { officers: any[] }) {
                     onClick={() => setForm({ ...form, type: t.value })}
                     className={`px-4 py-2 rounded-lg text-xs font-medium border transition-all ${
                       form.type === t.value
-                        ? "bg-blue-50 border border-blue-500 text-blue-700"
-                        : "bg-(--app-surface-container) border border-(--app-border) text-(--app-muted-foreground) hover:border-slate-300"
+                        ? "bg-(--app-info)/10 border-(--app-info) text-(--app-info)"
+                        : "bg-(--app-surface-container) border border-(--app-border) text-(--app-muted-foreground) hover:border-(--app-border)"
                     }`}
                   >
                     {t.label}
@@ -154,12 +166,12 @@ export function LeaveAddModal({ officers }: { officers: any[] }) {
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-(--app-muted-foreground) px-1">السبب أو ملاحظات إضافية</label>
-              <textarea
+            <div className="space-y-1.5">
+              <FormLabel>السبب أو ملاحظات إضافية</FormLabel>
+              <FormTextarea
+                id="leave-reason"
                 value={form.reason}
                 onChange={(e) => setForm({ ...form, reason: e.target.value })}
-                className="w-full rounded-lg bg-(--app-surface) border border-(--app-border) px-4 py-2.5 text-sm text-(--color-primary) focus:outline-none  focus:ring-blue-500/20"
                 rows={2}
                 placeholder="تفاصيل إضافية حول السجل..."
               />

@@ -2,7 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Save, CheckCircle2, AlertCircle, ClipboardList, Info, Loader2 } from "lucide-react";
+import { Save, CheckCircle2, AlertCircle, Info, Loader2 } from "lucide-react";
+import { SectionWrapper } from "@/components/ui/section-wrapper";
+import { useToast } from "@/components/ui/toast";
+import { extractApiError } from "@/lib/utils";
 
 interface RosterEntry {
   id: string;
@@ -10,12 +13,16 @@ interface RosterEntry {
   fullName: string;
   rank: string;
   rankLabel: string;
+  suggestedStatus?: string;
+  reason?: string;
+  relatedId?: string;
 }
 
 interface EntryState {
   officerId: string;
   status: string;
   note: string;
+  wasSuggested?: boolean;
 }
 
 interface RollcallSheetProps {
@@ -30,20 +37,30 @@ const STATUS_OPTIONS = [
   { value: "absent", label: "غائب", color: "bg-(--app-error)/10 text-(--app-error) border-(--app-error)/20 active:bg-(--app-error)" },
   { value: "leave", label: "إجازة", color: "bg-(--app-warning)/10 text-(--app-warning) border-(--app-warning)/20 active:bg-(--app-warning)" },
   { value: "mission", label: "مأمورية", color: "bg-(--color-primary)/10 text-(--color-primary) border-(--color-primary)/20 active:bg-(--color-primary)" },
+  { value: "medical", label: "عيادة/راحة", color: "bg-(--app-error)/10 text-(--app-error) border-(--app-error)/20 active:bg-(--app-error)" },
+  { value: "course", label: "فرقة", color: "bg-(--app-info)/10 text-(--app-info) border-(--app-info)/20 active:bg-(--app-info)" },
 ];
 
 const DRAFT_STORAGE_KEY = "rollcall_draft_";
 
 export function RollcallSheet({ date, roster, existingEntries, isDraft }: RollcallSheetProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [entries, setEntries] = useState<Map<string, EntryState>>(() => {
     const map = new Map<string, EntryState>();
     for (const r of roster) {
       const existing = existingEntries.find((e) => e.officerId === r.id);
+      
+      // If it's a new rollcall (status: "not_found" in parent), use suggestions
+      const isNew = existingEntries.length === 0;
+      const initialStatus = isNew ? (r.suggestedStatus ?? "") : (existing?.status ?? "");
+      const initialNote = isNew ? (r.reason ?? "") : (existing?.note ?? "");
+
       map.set(r.id, {
         officerId: r.id,
-        status: existing?.status ?? "",
-        note: existing?.note ?? "",
+        status: initialStatus,
+        note: initialNote,
+        wasSuggested: isNew && !!r.suggestedStatus,
       });
     }
     return map;
@@ -61,14 +78,17 @@ export function RollcallSheet({ date, roster, existingEntries, isDraft }: Rollca
       if (saved) {
         try {
           const parsed = JSON.parse(saved) as EntryState[];
-          setEntries((prev) => {
-            const next = new Map(prev);
-            for (const entry of parsed) {
-              if (next.has(entry.officerId)) {
-                next.set(entry.officerId, entry);
+          // نستخدم requestAnimationFrame لنقل تحديث الحالة خارج نطاق الـ Effect المتزامن لتجنب Re-render المتتالي
+          requestAnimationFrame(() => {
+            setEntries((prev) => {
+              const next = new Map(prev);
+              for (const entry of parsed) {
+                if (next.has(entry.officerId)) {
+                  next.set(entry.officerId, entry);
+                }
               }
-            }
-            return next;
+              return next;
+            });
           });
         } catch {
         }
@@ -117,15 +137,18 @@ export function RollcallSheet({ date, roster, existingEntries, isDraft }: Rollca
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        setError(data.error || "فشل في حفظ المسودة");
+        const errorMsg = extractApiError(data, "فشل في حفظ المسودة");
+        setError(errorMsg);
         return;
       }
 
+      showToast("تم حفظ المسودة بنجاح", "success");
       setSuccess("تم حفظ المسودة بنجاح");
       localStorage.removeItem(draftKey);
       router.refresh();
     } catch {
       setError("حدث خطأ في الاتصال");
+      showToast("حدث خطأ في الاتصال بالخادم", "error");
     } finally {
       setSaving(false);
     }
@@ -155,14 +178,18 @@ export function RollcallSheet({ date, roster, existingEntries, isDraft }: Rollca
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        setError(data.error || "فشل في تسليم التمام");
+        const errorMsg = extractApiError(data, "فشل في تسليم التمام");
+        setError(errorMsg);
+        showToast(errorMsg, "error");
         return;
       }
 
+      showToast("تم تسليم التمام بنجاح", "success");
       localStorage.removeItem(draftKey);
       router.refresh();
     } catch {
       setError("حدث خطأ في الاتصال");
+      showToast("حدث خطأ في الاتصال بالخادم", "error");
     } finally {
       setSubmitting(false);
     }
@@ -174,7 +201,7 @@ export function RollcallSheet({ date, roster, existingEntries, isDraft }: Rollca
 
   return (
     <div className="space-y-6">
-      <div className="bg-(--app-surface) border border-(--app-border) rounded-xl p-6">
+      <SectionWrapper>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
           <div className="space-y-4 flex-1">
             
@@ -230,7 +257,7 @@ export function RollcallSheet({ date, roster, existingEntries, isDraft }: Rollca
               {roster.map((officer) => {
                 const entry = entries.get(officer.id);
                 return (
-                  <tr key={officer.id} className="border-b border-(--app-border) transition hover:bg-white/10">
+                  <tr key={officer.id} className="border-b border-(--app-border) transition hover:bg-(--app-surface-container)">
                     <td className="p-4">
                        <div className="flex flex-col">
                           <span className="text-(--color-primary) font-bold">{officer.fullName}</span>
@@ -243,20 +270,28 @@ export function RollcallSheet({ date, roster, existingEntries, isDraft }: Rollca
                        </span>
                     </td>
                     <td className="p-4">
-                      <div className="flex gap-1.5">
-                        {STATUS_OPTIONS.map((opt) => (
-                          <button
-                            key={opt.value}
-                            onClick={() => updateEntry(officer.id, "status", opt.value)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                              entry?.status === opt.value
-                                ? `${opt.color}`
-                                : "bg-(--app-surface-container) border border-(--app-border) text-(--app-muted-foreground) hover:text-(--app-muted-foreground) hover:bg-(--app-surface-container)"
-                            }`}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
+                      <div className="flex flex-col gap-1">
+                        <div className="flex gap-1.5 flex-wrap">
+                          {STATUS_OPTIONS.map((opt) => (
+                            <button
+                              key={opt.value}
+                              onClick={() => updateEntry(officer.id, "status", opt.value)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                                entry?.status === opt.value
+                                  ? `${opt.color}`
+                                  : "bg-(--app-surface-container) border border-(--app-border) text-(--app-muted-foreground) hover:text-(--app-muted-foreground) hover:bg-(--app-surface-container)"
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                        {entry?.wasSuggested && officer.reason && (
+                          <div className="flex items-center gap-1.5 text-[10px] font-medium text-(--app-success) mt-1 px-1">
+                            <div className="w-1.5 h-1.5 rounded-full bg-(--app-success) animate-pulse" />
+                            <span>اقتراح ذكي: {officer.reason}</span>
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="p-4">
@@ -266,7 +301,7 @@ export function RollcallSheet({ date, roster, existingEntries, isDraft }: Rollca
                           value={entry?.note ?? ""}
                           onChange={(e) => updateEntry(officer.id, "note", e.target.value)}
                           placeholder="تنبيهات أو ملاحظات..."
-                          className="w-full bg-(--app-surface-container) border border-(--app-border) rounded-lg px-3 py-2 text-xs text-(--color-primary) placeholder:text-(--app-muted-foreground)/30 focus:outline-none  "
+                          className="w-full bg-(--app-surface-container) border border-(--app-border) rounded-lg px-3 py-2 text-xs text-(--color-primary) placeholder:text-(--app-muted-foreground)/30 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                         />
                       </div>
                     </td>
@@ -296,7 +331,7 @@ export function RollcallSheet({ date, roster, existingEntries, isDraft }: Rollca
             {submitting ? "جاري التسليم..." : "تسليم التمام النهائي"}
           </button>
         </div>
-      </div>
+      </SectionWrapper>
     </div>
   );
 }

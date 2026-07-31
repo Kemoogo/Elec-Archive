@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { authenticate } from "@/lib/auth/middleware";
 import { errors } from "@/lib/auth/errors";
 import { getDashboardStats } from "@/lib/medical/queries";
+import { handleApiError } from "@/lib/utils/api-error";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
 
 export async function GET(request: Request) {
@@ -27,10 +28,14 @@ export async function GET(request: Request) {
     return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
   }
 
-  const stats = await getDashboardStats();
+  try {
+    const stats = await getDashboardStats();
 
-  return NextResponse.json({
-    success: true,
-    data: stats,
-  });
+    return NextResponse.json({
+      success: true,
+      data: stats,
+    });
+  } catch (error) {
+    return handleApiError(error, "حدث خطأ أثناء تحميل إحصائيات النقطة الطبية");
+  }
 }

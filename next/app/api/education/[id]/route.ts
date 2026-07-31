@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { authenticate } from "@/lib/auth/middleware";
 import { logAuditEvent } from "@/lib/auth/audit";
 import { errors } from "@/lib/auth/errors";
+import { handleApiError } from "@/lib/utils/api-error";
 import { Course } from "@/lib/db/models/Course";
 import { updateCourseSchema } from "@/lib/validations/education";
 import { unlink } from "fs/promises";
@@ -46,25 +47,29 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   if (!rl.allowed) {
     return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
   }
-  await connectToDatabase();
+  try {
+    await connectToDatabase();
 
-  const { id } = await params;
-  const course = await Course.findById(id).populate("participants", "fullName militaryId studentId").lean();
-  if (!course) {
-    return NextResponse.json({ success: false, error: "الدورة غير موجودة" }, { status: 404 });
+    const { id } = await params;
+    const course = await Course.findById(id).populate("participants", "fullName militaryId studentId").lean();
+    if (!course) {
+      return NextResponse.json({ success: false, error: "الدورة غير موجودة" }, { status: 404 });
+    }
+
+    await logAuditEvent({
+      userId: auth.user!.id,
+      userName: auth.user!.fullName,
+      action: "VIEW",
+      module: "education",
+      targetId: id,
+      description: `عرض تفاصيل الدورة: ${(course as Record<string, unknown>).title as string}`,
+      ipAddress: ip,
+    });
+
+    return NextResponse.json({ success: true, data: serializeCourse(course as Record<string, unknown>) });
+  } catch (error) {
+    return handleApiError(error);
   }
-
-  await logAuditEvent({
-    userId: auth.user!.id,
-    userName: auth.user!.fullName,
-    action: "VIEW",
-    module: "education",
-    targetId: id,
-    description: `عرض تفاصيل الدورة: ${(course as Record<string, unknown>).title as string}`,
-    ipAddress: ip,
-  });
-
-  return NextResponse.json({ success: true, data: serializeCourse(course as Record<string, unknown>) });
 }
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -80,9 +85,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!rl.allowed) {
     return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
   }
-  await connectToDatabase();
-
   try {
+    await connectToDatabase();
+
     const { id } = await params;
     const course = await Course.findById(id);
     if (!course) {
@@ -102,11 +107,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (parsed.data.endDate) updateData.endDate = new Date(parsed.data.endDate);
     if (parsed.data.status) updateData.status = parsed.data.status;
 
-    if (updateData.startDate && updateData.endDate && updateData.endDate < updateData.startDate) {
-      return NextResponse.json({ success: false, error: "تاريخ الانتهاء يجب أن يكون بعد أو يساوي تاريخ البداية" }, { status: 400 });
-    }
-
-    const updated = await Course.findByIdAndUpdate(id, updateData, { new: true }).populate("participants", "fullName militaryId studentId").lean();
+    const updated = await Course.findByIdAndUpdate(id, updateData, { returnDocument: "after" }).populate("participants", "fullName militaryId studentId").lean();
     if (!updated) {
       return NextResponse.json({ success: false, error: "الدورة غير موجودة" }, { status: 404 });
     }
@@ -122,8 +123,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     });
 
     return NextResponse.json({ success: true, data: serializeCourse(updated as Record<string, unknown>) });
-  } catch {
-    return NextResponse.json({ success: false, error: errors.internalError }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -140,36 +141,40 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   if (!rl.allowed) {
     return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
   }
-  await connectToDatabase();
+  try {
+    await connectToDatabase();
 
-  const { id } = await params;
-  const course = await Course.findById(id);
-  if (!course) {
-    return NextResponse.json({ success: false, error: "الدورة غير موجودة" }, { status: 404 });
+    const { id } = await params;
+    const course = await Course.findById(id);
+    if (!course) {
+      return NextResponse.json({ success: false, error: "الدورة غير موجودة" }, { status: 404 });
+    }
+
+    if ((course.participants as Types.ObjectId[]).length > 0) {
+      return NextResponse.json({ success: false, error: "لا يمكن حذف الدورة التي لديها مشاركون. يرجى إزالة جميع المشاركين أولاً" }, { status: 400 });
+    }
+
+    // Delete associated files
+    for (const doc of (course.documents as { name: string; fileUrl: string }[])) {
+      try {
+        await unlink(join(process.cwd(), "public", doc.fileUrl));
+      } catch { /* file may not exist */ }
+    }
+
+    await Course.findByIdAndDelete(id);
+
+    await logAuditEvent({
+      userId: auth.user!.id,
+      userName: auth.user!.fullName,
+      action: "DELETE",
+      module: "education",
+      targetId: id,
+      description: `تم حذف الدورة: ${course.title}`,
+      ipAddress: ip,
+    });
+
+    return NextResponse.json({ success: true, message: "تم حذف الدورة بنجاح" });
+  } catch (error) {
+    return handleApiError(error);
   }
-
-  if ((course.participants as Types.ObjectId[]).length > 0) {
-    return NextResponse.json({ success: false, error: "لا يمكن حذف الدورة التي لديها مشاركون. يرجى إزالة جميع المشاركين أولاً" }, { status: 400 });
-  }
-
-  // Delete associated files
-  for (const doc of (course.documents as { name: string; fileUrl: string }[])) {
-    try {
-      await unlink(join(process.cwd(), "public", doc.fileUrl));
-    } catch { /* file may not exist */ }
-  }
-
-  await Course.findByIdAndDelete(id);
-
-  await logAuditEvent({
-    userId: auth.user!.id,
-    userName: auth.user!.fullName,
-    action: "DELETE",
-    module: "education",
-    targetId: id,
-    description: `تم حذف الدورة: ${course.title}`,
-    ipAddress: ip,
-  });
-
-  return NextResponse.json({ success: true, message: "تم حذف الدورة بنجاح" });
 }

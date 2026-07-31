@@ -30,16 +30,16 @@ export default function ServiceCard({
     const actionClassName = [
         "mt-6 inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-all",
         disabled
-            ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+            ? "bg-(--app-surface-container) text-(--app-muted-foreground) cursor-not-allowed"
             : "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)] hover:-translate-y-0.5",
     ].join(" ");
 
     return (
         <div
-            className="group h-full bg-white p-6 md:p-7 rounded-3xl border border-(--color-border) shadow-sm hover:shadow-xl hover:shadow-blue-900/10 hover:-translate-y-1.5 transition-all duration-300 relative overflow-hidden flex flex-col"
+            className="group h-full bg-(--app-surface) p-6 md:p-7 rounded-3xl border border-(--app-border) shadow-sm hover:shadow-xl hover:shadow-blue-900/10 hover:-translate-y-1.5 transition-all duration-300 relative overflow-hidden flex flex-col"
         >
             {badge && (
-                <span className="absolute top-4 left-4 rounded-lg bg-blue-50 border border-blue-100 text-blue-700 text-[10px] font-black px-2 py-1">
+                <span className="absolute top-4 left-4 rounded-lg bg-(--app-info)/10 border border-(--app-info)/20 text-(--app-info) text-[10px] font-black px-2 py-1">
                     {badge}
                 </span>
             )}
@@ -48,8 +48,8 @@ export default function ServiceCard({
                 <Icon className="w-7 h-7" />
             </div>
 
-            <h3 className="text-xl font-black text-(--color-primary) mb-2">{title}</h3>
-            <p className="text-slate-500 text-sm font-medium leading-relaxed flex-1">
+            <h3 className="text-xl font-black text-(--app-foreground) group-hover:text-(--color-primary) transition-colors duration-200 mb-2">{title}</h3>
+            <p className="text-(--app-muted-foreground) text-sm font-bold leading-relaxed flex-1">
                 {description}
             </p>
 
@@ -72,7 +72,7 @@ export default function ServiceCard({
                 )
             ) : null}
 
-            <div className="absolute -bottom-10 -left-10 w-28 h-28 bg-blue-50 rounded-full group-hover:scale-150 transition-transform duration-500 -z-10 opacity-60" />
+            <div className="absolute -bottom-10 -left-10 w-28 h-28 bg-(--app-info)/10 rounded-full group-hover:scale-150 transition-transform duration-500 -z-10 opacity-60" />
         </div>
     );
 }

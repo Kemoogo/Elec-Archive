@@ -1,11 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { ModalActions } from "@/components/ui/modal-actions";
-import { Calendar, MapPin, ClipboardList } from "lucide-react";
+import { FormLabel, FormSelect, FormInput, FormTextarea } from "@/components/ui/form-fields";
+import { MapPin, ClipboardList } from "lucide-react";
 
 import { DateField } from "@/components/ui/date-field";
+import { useToast } from "@/components/ui/toast";
+import { extractApiError } from "@/lib/utils";
 
 interface BaseMission {
   id: string;
@@ -18,19 +21,35 @@ interface BaseMission {
   status: "scheduled" | "active" | "completed" | "cancelled";
 }
 
+interface OfficerOption {
+  id: string;
+  fullName: string;
+  militaryId: string;
+  rank?: string;
+}
+
 interface MissionFormProps {
   mission: BaseMission | null;
+  officers?: OfficerOption[];
   isOpen: boolean;
   onClose: () => void;
   onSave: () => void;
 }
 
-export function MissionForm({ mission, isOpen, onClose, onSave }: MissionFormProps) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const isEditing = !!mission;
+function getInitialMissionForm(mission: BaseMission | null) {
+  if (mission) {
+    return {
+      officerId: mission.officerId,
+      title: mission.title,
+      description: mission.description || "",
+      destination: mission.destination || "",
+      startDate: new Date(mission.startDate).toISOString().split('T')[0],
+      endDate: mission.endDate ? new Date(mission.endDate).toISOString().split('T')[0] : "",
+      status: mission.status,
+    };
+  }
 
-  const [form, setForm] = useState({
+  return {
     officerId: "",
     title: "",
     description: "",
@@ -38,37 +57,59 @@ export function MissionForm({ mission, isOpen, onClose, onSave }: MissionFormPro
     startDate: new Date().toISOString().split('T')[0],
     endDate: "",
     status: "scheduled" as BaseMission["status"],
-  });
+  };
+}
 
-  useEffect(() => {
-    if (mission && isOpen) {
-      setForm({
-        officerId: mission.officerId,
-        title: mission.title,
-        description: mission.description || "",
-        destination: mission.destination || "",
-        startDate: new Date(mission.startDate).toISOString().split('T')[0],
-        endDate: mission.endDate ? new Date(mission.endDate).toISOString().split('T')[0] : "",
-        status: mission.status,
-      });
-    } else if (!mission && isOpen) {
-      setForm({
-        officerId: "",
-        title: "",
-        description: "",
-        destination: "",
-        startDate: new Date().toISOString().split('T')[0],
-        endDate: "",
-        status: "scheduled",
+export function MissionForm({ mission, officers, isOpen, onClose, onSave }: MissionFormProps) {
+  if (!isOpen) return null;
+
+  return (
+    <MissionFormContent
+      key={mission?.id ?? "new"}
+      mission={mission}
+      officers={officers}
+      onClose={onClose}
+      onSave={onSave}
+    />
+  );
+}
+
+function MissionFormContent({ mission, officers, onClose, onSave }: Omit<MissionFormProps, "isOpen">) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const { showToast } = useToast();
+  const isEditing = !!mission;
+
+  const [form, setForm] = useState(() => getInitialMissionForm(mission));
+
+  const updateField = (key: string, value: unknown) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+    if (fieldErrors[key]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
       });
     }
-    setError("");
-  }, [mission, isOpen]);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setFieldErrors({});
+
+    if (!form.officerId.trim()) {
+      setFieldErrors({ officerId: "يرجى تحديد الضابط المعني" });
+      setLoading(false);
+      return;
+    }
+    if (!form.title.trim()) {
+      setFieldErrors({ title: "عنوان المأمورية مطلوب" });
+      setLoading(false);
+      return;
+    }
 
     try {
       const url = isEditing 
@@ -86,18 +127,27 @@ export function MissionForm({ mission, isOpen, onClose, onSave }: MissionFormPro
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.error || "فشل حفظ المأمورية");
+        if (data.details && Array.isArray(data.details)) {
+          const errs: Record<string, string> = {};
+          data.details.forEach((d: { field?: string; message?: string }) => {
+            if (d.field) errs[d.field] = d.message || "بيان غير صالح";
+          });
+          setFieldErrors(errs);
+        }
+        const errorMsg = extractApiError(data, "فشل حفظ المأمورية");
+        throw new Error(errorMsg);
       }
 
+      showToast(isEditing ? "تم تحديث المأمورية بنجاح" : "تم تسجيل المأمورية بنجاح", "success");
       onSave();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "حدث خطأ غير متوقع");
+      const message = err instanceof Error ? err.message : "حدث خطأ غير متوقع";
+      setError(message);
+      showToast(message, "error");
     } finally {
       setLoading(false);
     }
   };
-
-  if (!isOpen) return null;
 
   const footer = (
     <ModalActions 
@@ -111,7 +161,7 @@ export function MissionForm({ mission, isOpen, onClose, onSave }: MissionFormPro
     <ModalShell
       title={
         <div className="flex items-center gap-2">
-          <div className={`p-1.5 rounded-lg ${isEditing ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'}`}>
+          <div className={`p-1.5 rounded-lg ${isEditing ? 'bg-(--app-warning)/20 text-(--app-warning)' : 'bg-(--app-info)/20 text-(--app-info)'}`}>
             <ClipboardList className="h-4 w-4" />
           </div>
           <span className="text-base font-black text-(--app-foreground)">
@@ -125,7 +175,7 @@ export function MissionForm({ mission, isOpen, onClose, onSave }: MissionFormPro
     >
       <form id="mission-form" onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-xs font-bold">
+          <div className="p-3 bg-(--app-error)/10 border border-(--app-error)/20 rounded-xl text-(--app-error) text-xs font-bold">
             {error}
           </div>
         )}
@@ -133,30 +183,53 @@ export function MissionForm({ mission, isOpen, onClose, onSave }: MissionFormPro
         <div className="space-y-4">
           {/* Officer ID */}
           <div className="space-y-1.5">
-            <label htmlFor="officerId" className="text-[10px] font-black uppercase text-slate-400 mr-1">معرف الضابط (ID)</label>
-            <input
-              id="officerId"
-              type="text"
-              required
-              placeholder="أدخل معرف الضابط..."
-              value={form.officerId}
-              onChange={(e) => setForm({ ...form, officerId: e.target.value })}
-              className="w-full h-11 px-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-(--app-foreground) focus:outline-none  focus:ring-blue-500/10 focus:border-blue-500 transition-all text-right"
-            />
+            <FormLabel htmlFor="officerId" required>الضابط المعني</FormLabel>
+            {officers && officers.length > 0 ? (
+              <FormSelect
+                id="officerId"
+                value={form.officerId}
+                onChange={(e) => updateField("officerId", e.target.value)}
+                required
+                className={fieldErrors.officerId ? "border-(--app-error) ring-1 ring-(--app-error)/30 bg-red-500/5" : ""}
+              >
+                <option value="">اختر ضابط من القائمة...</option>
+                {officers.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.fullName} ({o.militaryId})
+                  </option>
+                ))}
+              </FormSelect>
+            ) : (
+              <FormInput
+                id="officerId"
+                type="text"
+                required
+                placeholder="أدخل معرف الضابط..."
+                value={form.officerId}
+                onChange={(e) => updateField("officerId", e.target.value)}
+                className={fieldErrors.officerId ? "border-(--app-error) ring-1 ring-(--app-error)/30 bg-red-500/5" : ""}
+              />
+            )}
+            {fieldErrors.officerId && (
+              <p className="text-xs font-bold text-(--app-error) mt-1">{fieldErrors.officerId}</p>
+            )}
           </div>
 
           {/* Title */}
           <div className="space-y-1.5">
-            <label htmlFor="title" className="text-[10px] font-black uppercase text-slate-400 mr-1">عنوان المأمورية</label>
-            <input
+            <FormLabel htmlFor="title" required>عنوان المأمورية</FormLabel>
+            <FormInput
               id="title"
               type="text"
               required
               placeholder="مثال: مأمورية خارجية، تدريب..."
               value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              className="w-full h-11 px-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-(--app-foreground) focus:outline-none  focus:ring-blue-500/10 focus:border-blue-500 transition-all text-right"
+              onChange={(e) => updateField("title", e.target.value)}
+              className={fieldErrors.title ? "border-(--app-error) ring-1 ring-(--app-error)/30 bg-red-500/5" : ""}
             />
+            {fieldErrors.title && (
+              <p className="text-xs font-bold text-(--app-error) mt-1">{fieldErrors.title}</p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4 items-start">
@@ -165,7 +238,8 @@ export function MissionForm({ mission, isOpen, onClose, onSave }: MissionFormPro
               id="startDate"
               label="تاريخ البداية"
               value={form.startDate}
-              onChange={(v) => setForm({ ...form, startDate: v })}
+              onChange={(v) => updateField("startDate", v)}
+              error={fieldErrors.startDate}
               required
             />
 
@@ -174,51 +248,50 @@ export function MissionForm({ mission, isOpen, onClose, onSave }: MissionFormPro
               id="endDate"
               label="تاريخ الانتهاء"
               value={form.endDate}
-              onChange={(v) => setForm({ ...form, endDate: v })}
+              onChange={(v) => updateField("endDate", v)}
+              error={fieldErrors.endDate}
             />
           </div>
 
           {/* Destination */}
           <div className="space-y-1.5">
-            <label htmlFor="destination" className="text-[10px] font-black uppercase text-slate-400 mr-1">الجهة / الوجهة</label>
+            <FormLabel htmlFor="destination">الجهة / الوجهة</FormLabel>
             <div className="relative">
-              <input
+              <FormInput
                 id="destination"
                 type="text"
                 placeholder="أدخل مآل المأمورية..."
                 value={form.destination}
                 onChange={(e) => setForm({ ...form, destination: e.target.value })}
-                className="w-full h-11 pr-10 pl-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-(--app-foreground) focus:outline-none  focus:ring-blue-500/10 focus:border-blue-500 transition-all text-right"
+                className="pr-10"
               />
-              <MapPin className="absolute right-3 top-3.5 h-4 w-4 text-slate-400" />
+              <MapPin className="absolute right-3 top-3.5 h-4 w-4 text-(--app-muted-foreground)" />
             </div>
           </div>
 
           {/* Status */}
           <div className="space-y-1.5">
-            <label htmlFor="status" className="text-[10px] font-black uppercase text-slate-400 mr-1">حالة المأمورية</label>
-            <select
+            <FormLabel htmlFor="status">حالة المأمورية</FormLabel>
+            <FormSelect
               id="status"
               value={form.status}
               onChange={(e) => setForm({ ...form, status: e.target.value as BaseMission["status"] })}
-              className="w-full h-11 px-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-(--app-foreground) focus:outline-none  focus:ring-blue-500/10 focus:border-blue-500 transition-all appearance-none"
             >
               <option value="scheduled">مجدولة</option>
               <option value="active">نشطة</option>
               <option value="completed">منتهية</option>
               <option value="cancelled">ملغاة</option>
-            </select>
+            </FormSelect>
           </div>
 
           {/* Description */}
           <div className="space-y-1.5">
-            <label htmlFor="description" className="text-[10px] font-black uppercase text-slate-400 mr-1">ملاحظات</label>
-            <textarea
+            <FormLabel htmlFor="description">ملاحظات</FormLabel>
+            <FormTextarea
               id="description"
               placeholder="أي تفاصيل أخرى..."
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              className="w-full min-h-[80px] p-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-(--app-foreground) focus:outline-none  focus:ring-blue-500/10 focus:border-blue-500 transition-all text-right resize-none"
             />
           </div>
         </div>

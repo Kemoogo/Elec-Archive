@@ -51,7 +51,16 @@ export const createOfficerSchema = z.object({
      .string()
      .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح")
      .optional(),
+    graduationDate: z
+      .string()
+      .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح")
+      .optional(),
+  bloodType: z.string().trim().optional(),
+  religion: z.string().trim().optional(),
+  maritalStatus: z.string().trim().optional(),
+  faculty: z.string().trim().optional(),
   file121Url: z.string().trim().optional(),
+  file121IssueDate: z.string().trim().optional(),
   isArkanHarb: z.boolean().default(false),
 }).superRefine((data, ctx) => {
   if (data.birthDate) {
@@ -97,7 +106,16 @@ export const patchOfficerSchema = z.object({
     .string()
     .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح")
     .optional(),
+  graduationDate: z
+    .string()
+    .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح")
+    .optional(),
+  bloodType: z.string().trim().optional(),
+  religion: z.string().trim().optional(),
+  maritalStatus: z.string().trim().optional(),
+  faculty: z.string().trim().optional(),
   file121Url: z.string().trim().optional(),
+  file121IssueDate: z.string().trim().optional(),
   isInUnit: z.boolean().optional(),
   isArkanHarb: z.boolean().optional(),
 }).refine((data) => Object.keys(data).length > 0, {
@@ -143,7 +161,7 @@ export const deleteDocumentSchema = z.object({
   documentId: z.string().min(1, "معرف المستند مطلوب"),
 });
 
-export const ROLLCALL_STATUSES_Z = ["present", "absent", "leave", "mission"] as const;
+export const ROLLCALL_STATUSES_Z = ["present", "absent", "leave", "mission", "medical", "course"] as const;
 
 export const rollcallEntrySchema = z.object({
   officerId: z.string().min(1, "معرف الضابط مطلوب"),

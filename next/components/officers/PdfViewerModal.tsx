@@ -5,11 +5,9 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { FileText, Download, Printer, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 interface PdfViewerModalProps {
   isOpen: boolean;
@@ -89,7 +87,7 @@ export function PdfViewerModal({
 
             <button
               onClick={onClose}
-              className="p-2 hover:bg-slate-100 rounded-full transition-all active:scale-90 text-(--color-primary)"
+              className="p-2 hover:bg-(--app-surface-container) rounded-full transition-all active:scale-90 text-(--color-primary)"
               title="إغلاق"
             >
               <X className="h-5 w-5" />
@@ -99,7 +97,7 @@ export function PdfViewerModal({
 
         {/* Viewer Area */}
         <div className="flex-1 bg-(--app-surface-container)/30 p-4 md:p-6 overflow-hidden">
-          <div className="h-full w-full rounded-2xl border border-(--app-border)/50 bg-white shadow-lg overflow-hidden relative ring-1 ring-black/5">
+          <div className="h-full w-full rounded-2xl border border-(--app-border)/50 bg-(--app-surface) shadow-lg overflow-hidden relative ring-1 ring-black/5">
             <iframe
               ref={iframeRef}
               src={`${fileUrl}#toolbar=1&navpanes=0&scrollbar=1`}

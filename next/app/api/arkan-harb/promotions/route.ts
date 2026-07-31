@@ -6,6 +6,7 @@ import { logAuditEvent } from "@/lib/auth/audit";
 import { errors } from "@/lib/auth/errors";
 import { Promotion } from "@/lib/db/models/Promotion";
 import { Officer, RANK_LABELS, type OfficerRank } from "@/lib/db/models/Officer";
+import { handleApiError } from "@/lib/utils/api-error";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
 import { promotionsListQuerySchema, createPromotionSchema } from "@/lib/validations/arkan-harb";
 
@@ -94,8 +95,7 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    console.error("Promotions GET error:", error);
-    return NextResponse.json({ success: false, error: errors.internalError }, { status: 500 });
+    return handleApiError(error, "حدث خطأ أثناء تحميل الترقيات");
   }
 }
 
@@ -170,7 +170,6 @@ export async function POST(request: Request) {
     // 8. Response
     return NextResponse.json({ success: true, data: { id: promotion._id.toString() } }, { status: 201 });
   } catch (error) {
-    console.error("Promotions POST error:", error);
-    return NextResponse.json({ success: false, error: errors.internalError }, { status: 500 });
+    return handleApiError(error, "حدث خطأ أثناء إنشاء الترقية");
   }
 }

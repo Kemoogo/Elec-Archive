@@ -1,4 +1,4 @@
-import { Schema, model, models, type Document, type Types } from "mongoose";
+import { Schema, model, models, type Document } from "mongoose";
 
 export const OFFICER_RANKS = [
   "second_lieutenant",
@@ -40,12 +40,12 @@ export const EMPLOYMENT_LABELS: Record<EmploymentStatus, string> = {
 };
 
 export const OFFICER_TYPE_LABELS: Record<OfficerType, string> = {
-  worker: "عامل",
-  reserve: "احتياط",
-  university: "جامعي",
-  honorary: "شرف",
-  technical: "فني",
-  engineer: "مهندس",
+  worker: "ضابط عامل",
+  reserve: "ضابط احتياط",
+  university: "ضابط جامعي",
+  honorary: "ضابط شرف",
+  technical: "ضابط فني",
+  engineer: "ضابط مهندس",
 };
 
 export const OFFICER_WEAPON_LABELS: Record<OfficerWeapon, string> = {
@@ -72,8 +72,14 @@ export interface IOfficer extends Document {
   isInUnit: boolean;
   joinDate: Date;
   birthDate?: Date;
+  graduationDate?: Date;
+  bloodType?: string;
+  religion?: string;
+  maritalStatus?: string;
+  faculty?: string;
   file121Url?: string;
   file121UpdatedAt?: Date;
+  file121IssueDate?: string;
   photoUrl?: string;
   isArkanHarb: boolean;
   createdAt: Date;
@@ -122,8 +128,14 @@ const OfficerSchema = new Schema<IOfficer>(
     position: { type: String, trim: true },
     joinDate: { type: Date, required: true },
     birthDate: { type: Date },
+    graduationDate: { type: Date },
+    bloodType: { type: String, trim: true },
+    religion: { type: String, trim: true },
+    maritalStatus: { type: String, trim: true },
+    faculty: { type: String, trim: true },
     file121Url: { type: String, trim: true },
     file121UpdatedAt: { type: Date },
+    file121IssueDate: { type: String, trim: true },
     photoUrl: { type: String, trim: true },
     isArkanHarb: { type: Boolean, default: false },
   },

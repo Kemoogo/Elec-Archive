@@ -3,11 +3,70 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { authenticate } from "@/lib/auth/middleware";
 import { logAuditEvent } from "@/lib/auth/audit";
 import { errors } from "@/lib/auth/errors";
-import { Medicine } from "@/lib/db/models/Medicine";
-import { Patient } from "@/lib/db/models/Patient";
+import { handleApiError } from "@/lib/utils/api-error";
+import { Medicine, type IMedicineBatch } from "@/lib/db/models/Medicine";
+import { MedicalVisit } from "@/lib/db/models/MedicalVisit";
 import { updateMedicineSchema } from "@/lib/validations/medical";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
 import type { Types } from "mongoose";
+
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const auth = await authenticate();
+  if (!auth.success) {
+    return NextResponse.json(
+      { success: false, error: auth.error },
+      { status: auth.status },
+    );
+  }
+
+  const medicalPermission = auth.user!.permissions.medical;
+  if (medicalPermission === "none") {
+    return NextResponse.json(
+      { success: false, error: errors.insufficientPermissions },
+      { status: 403 },
+    );
+  }
+
+  const ip = request.headers.get("x-forwarded-for") ?? "";
+  const rl = checkApiRateLimit(auth.user!.id, ip, "read");
+  if (!rl.allowed) {
+    return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
+  }
+
+  await connectToDatabase();
+
+  const { id } = await params;
+
+  try {
+    const medicine = await Medicine.findById(id).lean();
+    if (!medicine) {
+      return NextResponse.json(
+        { success: false, error: "الدواء غير موجود" },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...medicine,
+        _id: medicine._id.toString(),
+        batches: (medicine.batches || []).map((b: IMedicineBatch & { _id?: Types.ObjectId }) => ({
+          ...b,
+          _id: b._id?.toString(),
+          expiryDate: b.expiryDate.toISOString(),
+          receivedAt: b.receivedAt.toISOString(),
+        })),
+      },
+    });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
 
 export async function PUT(
   request: Request,
@@ -52,11 +111,10 @@ export async function PUT(
     const updateData: Record<string, unknown> = {};
     if (parsed.data.name !== undefined) updateData.name = parsed.data.name.trim();
     if (parsed.data.unit !== undefined) updateData.unit = parsed.data.unit.trim();
-    if (parsed.data.quantity !== undefined) updateData.quantity = parsed.data.quantity;
-    if (parsed.data.expiryDate !== undefined) updateData.expiryDate = new Date(parsed.data.expiryDate);
+    if (parsed.data.concentration !== undefined) updateData.concentration = parsed.data.concentration.trim();
     if (parsed.data.minThreshold !== undefined) updateData.minThreshold = parsed.data.minThreshold;
 
-    const medicine = await Medicine.findByIdAndUpdate(id, updateData, { new: true });
+    const medicine = await Medicine.findByIdAndUpdate(id, updateData, { returnDocument: "after" });
     if (!medicine) {
       return NextResponse.json(
         { success: false, error: "الدواء غير موجود" },
@@ -80,17 +138,14 @@ export async function PUT(
         _id: (medicine._id as Types.ObjectId).toString(),
         name: medicine.name,
         unit: medicine.unit,
-        quantity: medicine.quantity,
-        expiryDate: medicine.expiryDate.toISOString(),
+        concentration: medicine.concentration || "",
+        quantity: medicine.totalQuantity,
         minThreshold: medicine.minThreshold,
         createdAt: medicine.createdAt.toISOString(),
       },
     });
-  } catch {
-    return NextResponse.json(
-      { success: false, error: errors.internalError },
-      { status: 500 },
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -131,7 +186,7 @@ export async function DELETE(
     );
   }
 
-  const visitRefs = await Patient.countDocuments({
+  const visitRefs = await MedicalVisit.countDocuments({
     "dispensedMedicines.medicineId": id,
   });
 

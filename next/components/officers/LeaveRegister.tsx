@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarRange, CheckCircle2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
+import { extractApiError } from "@/lib/utils";
 
 interface LeaveItem {
   id: string;
@@ -32,16 +34,6 @@ interface LeaveRegisterProps {
   canEdit: boolean;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const LEAVE_TYPE_OPTIONS = [
-  { value: "annual", label: "سنوية" },
-  { value: "sick", label: "مرضية" },
-  { value: "emergency", label: "طارئة" },
-  { value: "rest", label: "راحة" },
-  { value: "overnight", label: "مبيت" },
-  { value: "field", label: "ميدانية" },
-  { value: "casual", label: "عارضة" },
-];
 
 const STATUS_TRANSITIONS: Record<string, string[]> = {
   draft: ["approved", "cancelled"],
@@ -57,6 +49,7 @@ const STATUS_CONFIG: Record<string, string> = {
 
 export function LeaveRegister({ leaves, canEdit }: LeaveRegisterProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [statusErrors, setStatusErrors] = useState<Record<string, string>>({});
 
    const handleStatusChange = async (leaveId: string, newStatus: string) => {
@@ -69,14 +62,18 @@ export function LeaveRegister({ leaves, canEdit }: LeaveRegisterProps) {
        });
 
        const data = await res.json();
-       if (!res.ok || !data.success) {
-         setStatusErrors((prev) => ({ ...prev, [leaveId]: data.error || "فشل في تحديث الحالة" }));
-         return;
+      if (!res.ok || !data.success) {
+        const errorMsg = extractApiError(data, "فشل في تحديث الحالة");
+        setStatusErrors((prev) => ({ ...prev, [leaveId]: errorMsg }));
+        showToast(errorMsg, "error");
+        return;
        }
 
+       showToast("تم تحديث حالة السجل بنجاح", "success");
        router.refresh();
      } catch {
        setStatusErrors((prev) => ({ ...prev, [leaveId]: "حدث خطأ في الاتصال" }));
+       showToast("حدث خطأ في الاتصال بالخادم", "error");
      }
    };
 
@@ -101,7 +98,7 @@ export function LeaveRegister({ leaves, canEdit }: LeaveRegisterProps) {
             </thead>
             <tbody>
               {leaves.map((leave) => (
-                <tr key={leave.id} className="border-b border-(--app-border) transition hover:bg-white/10">
+                <tr key={leave.id} className="border-b border-(--app-border) transition hover:bg-(--app-surface-container)">
                   <td className="p-4">
                      <div className="flex flex-col">
                         <span className="text-(--color-primary) font-medium">{leave.officerName}</span>

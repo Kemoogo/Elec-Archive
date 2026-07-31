@@ -1,11 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import MainTable, { TableColumn } from "@/components/ui/Table";
+import { RestockButton } from "@/components/medical/RestockButton";
+import { EditMedicineButton } from "@/components/medical/EditMedicineButton";
+import { MedicineDetailModal } from "@/components/medical/MedicineDetailModal";
 
 interface MedicineSummary {
   _id: string;
   name: string;
   unit: string;
+  concentration: string;
   quantity: number;
   expiryDate: string;
   minThreshold: number;
@@ -14,37 +19,63 @@ interface MedicineSummary {
 interface MedicineTableProps {
   medicines: MedicineSummary[];
   now: string;
+  emptyTitle?: string;
+  emptyDescription?: string;
 }
 
-export function MedicineTable({ medicines, now }: MedicineTableProps) {
+import { Pill } from "lucide-react";
+
+export function MedicineTable({ medicines, now, emptyTitle, emptyDescription }: MedicineTableProps) {
   const currentDate = new Date(now);
+  const [selectedMedicineId, setSelectedMedicineId] = useState<string | null>(null);
 
   const columns: TableColumn<MedicineSummary>[] = [
     {
       header: "اسم الدواء",
       accessor: "name",
-      className: "font-medium text-(--color-primary)",
+      className: "text-(--color-primary)",
+      render: (val, med) => (
+        <button
+          onClick={() => setSelectedMedicineId(med._id)}
+          className="text-right font-bold text-(--color-primary) hover:underline hover:text-(--app-info) cursor-pointer transition-all"
+        >
+          {val as string}
+        </button>
+      ),
+    },
+    {
+      header: "التركيز",
+      minWidth: true,
+      accessor: "concentration",
+      render: (val) => (val as string) || "-",
     },
     {
       header: "الوحدة",
+      minWidth: true,
       accessor: "unit",
-      tdClassName: "text-(--app-muted-foreground)",
     },
     {
-      header: "الكمية",
+      header: "الكمية المتوفرة",
       accessor: "quantity",
-      tdClassName: "text-(--app-muted-foreground)",
+      isNumeric: true,
+      minWidth: true,
+      headerAlign: "center",
+      cellAlign: "center",
     },
     {
-      header: "تاريخ الصلاحية",
+      header: "تاريخ الانتهاء",
       accessor: "expiryDate",
-      tdClassName: "text-(--app-muted-foreground)",
-      render: (val) => new Date(val as string).toLocaleDateString("ar"),
+      isNumeric: true,
+      cellAlign: "center",
+      render: (val) => new Date(val as string).toLocaleDateString("ar-EG"),
     },
     {
       header: "الحد الأدنى",
       accessor: "minThreshold",
-      tdClassName: "text-(--app-muted-foreground)",
+      headerAlign: "center",
+      isNumeric: true,
+      minWidth: true,
+
     },
     {
       header: "الحالة",
@@ -72,13 +103,36 @@ export function MedicineTable({ medicines, now }: MedicineTableProps) {
         );
       },
     },
+    {
+      header: "الإجراءات",
+      className: "w-24 text-center",
+      tdClassName: "text-center",
+      render: (_, med) => (
+        <div className="flex items-center justify-center gap-2">
+          <RestockButton medicineId={med._id} medicineName={med.name} />
+          <EditMedicineButton medicine={med} />
+        </div>
+      ),
+    },
   ];
 
   return (
-    <MainTable 
-      columns={columns} 
-      data={medicines} 
-      showSerialNumber 
-    />
+    <>
+      <MainTable
+        columns={columns}
+        data={medicines}
+        showSerialNumber
+        emptyTitle={emptyTitle}
+        emptyDescription={emptyDescription}
+        emptyIcon={Pill}
+      />
+
+      {selectedMedicineId && (
+        <MedicineDetailModal
+          medicineId={selectedMedicineId}
+          onClose={() => setSelectedMedicineId(null)}
+        />
+      )}
+    </>
   );
 }

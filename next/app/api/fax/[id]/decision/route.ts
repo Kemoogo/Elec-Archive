@@ -7,6 +7,7 @@ import { errors } from "@/lib/auth/errors";
 import { Fax } from "@/lib/db/models/Fax";
 import { User } from "@/lib/db/models/User";
 import { decisionSchema } from "@/lib/validations/fax";
+import { handleApiError } from "@/lib/utils/api-error";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
 import type { Types } from "mongoose";
 
@@ -36,104 +37,108 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
   }
 
-  await connectToDatabase();
+  try {
+    await connectToDatabase();
 
-  const { id } = await params;
+    const { id } = await params;
 
-  const fax = await Fax.findById(id);
-  if (!fax) {
-    return NextResponse.json(
-      { success: false, error: "الفاكس غير موجود" },
-      { status: 404 },
-    );
-  }
-
-  if (fax.status !== "pending") {
-    return NextResponse.json(
-      { success: false, error: "الفاكس ليس في حالة معلق" },
-      { status: 409 },
-    );
-  }
-
-  const body = await request.json();
-  const parsed = decisionSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { success: false, error: errors.validationFailed, details: parsed.error.issues },
-      { status: 400 },
-    );
-  }
-
-  const { decision, action, forwardToType, forwardToId, forwardToDepartment } = parsed.data;
-
-  fax.commanderDecision = decision;
-  fax.commanderDecisionAt = new Date();
-
-  if (action === "close") {
-    fax.status = "closed";
-    fax.closedBy = auth.user!.id as unknown as Types.ObjectId;
-    fax.closedAt = new Date();
-  } else {
-    fax.status = "forwarded";
-    fax.forwardedToType = forwardToType;
-    if (forwardToType === "user") {
-      fax.forwardedToId = forwardToId as unknown as Types.ObjectId;
-    } else {
-      fax.forwardedToDepartment = forwardToDepartment;
+    const fax = await Fax.findById(id);
+    if (!fax) {
+      return NextResponse.json(
+        { success: false, error: "الفاكس غير موجود" },
+        { status: 404 },
+      );
     }
-  }
 
-  await fax.save();
+    if (fax.status !== "pending") {
+      return NextResponse.json(
+        { success: false, error: "الفاكس ليس في حالة معلق" },
+        { status: 409 },
+      );
+    }
 
-  if (action === "forward") {
-    if (forwardToType === "user" && forwardToId) {
-      await createNotificationForUser(forwardToId, {
-        type: "new_fax",
-        title: "تم توجيه فاكس إليك",
-        body: `قام ${auth.user!.fullName} بتوجيه فاكس رقم ${fax.faxNumber} إليك — ${fax.subject}`,
-        refId: fax._id.toString(),
-        refModel: "Fax",
-      });
-    } else if (forwardToType === "department" && forwardToDepartment) {
-      const deptUsers = await User.find({
-        department: forwardToDepartment,
-        isActive: true,
-        "permissions.fax": { $in: ["edit", "view"] },
-      }).select("_id");
+    const body = await request.json();
+    const parsed = decisionSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: errors.validationFailed, details: parsed.error.issues },
+        { status: 400 },
+      );
+    }
 
-      for (const user of deptUsers) {
-        await createNotificationForUser(user._id.toString(), {
+    const { decision, action, forwardToType, forwardToId, forwardToDepartment } = parsed.data;
+
+    fax.commanderDecision = decision;
+    fax.commanderDecisionAt = new Date();
+
+    if (action === "close") {
+      fax.status = "closed";
+      fax.closedBy = auth.user!.id as unknown as Types.ObjectId;
+      fax.closedAt = new Date();
+    } else {
+      fax.status = "forwarded";
+      fax.forwardedToType = forwardToType;
+      if (forwardToType === "user") {
+        fax.forwardedToId = forwardToId as unknown as Types.ObjectId;
+      } else {
+        fax.forwardedToDepartment = forwardToDepartment;
+      }
+    }
+
+    await fax.save();
+
+    if (action === "forward") {
+      if (forwardToType === "user" && forwardToId) {
+        await createNotificationForUser(forwardToId, {
           type: "new_fax",
-          title: "تم توجيه فاكس لقسمكم",
-          body: `قام ${auth.user!.fullName} بتوجيه فاكس رقم ${fax.faxNumber} إلى قسم ${forwardToDepartment} — ${fax.subject}`,
+          title: "تم توجيه فاكس إليك",
+          body: `قام ${auth.user!.fullName} بتوجيه فاكس رقم ${fax.faxNumber} إليك — ${fax.subject}`,
           refId: fax._id.toString(),
           refModel: "Fax",
         });
+      } else if (forwardToType === "department" && forwardToDepartment) {
+        const deptUsers = await User.find({
+          department: forwardToDepartment,
+          isActive: true,
+          "permissions.fax": { $in: ["edit", "view"] },
+        }).select("_id");
+
+        for (const user of deptUsers) {
+          await createNotificationForUser(user._id.toString(), {
+            type: "new_fax",
+            title: "تم توجيه فاكس لقسمكم",
+            body: `قام ${auth.user!.fullName} بتوجيه فاكس رقم ${fax.faxNumber} إلى قسم ${forwardToDepartment} — ${fax.subject}`,
+            refId: fax._id.toString(),
+            refModel: "Fax",
+          });
+        }
       }
     }
+
+    const actionLabel = action === "close" ? "إغلاق مباشر" : `توجيه إلى ${forwardToType === "user" ? "مستخدم" : "قسم"}`;
+    await logAuditEvent({
+      userId: auth.user!.id,
+      userName: auth.user!.fullName,
+      action: "UPDATE",
+      module: "fax",
+      targetId: fax._id.toString(),
+      description: `${actionLabel} للفاكس رقم ${fax.faxNumber}: ${decision}`,
+      ipAddress: ip,
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        _id: fax._id.toString(),
+        status: fax.status,
+        commanderDecision: fax.commanderDecision,
+        commanderDecisionAt: fax.commanderDecisionAt?.toISOString(),
+        forwardedToType: fax.forwardedToType ?? null,
+        forwardedToId: fax.forwardedToId?.toString() ?? null,
+        forwardedToDepartment: fax.forwardedToDepartment ?? null,
+      },
+    });
+  } catch (error) {
+    return handleApiError(error, "حدث خطأ أثناء معالجة قرار القائد");
   }
-
-  const actionLabel = action === "close" ? "إغلاق مباشر" : `توجيه إلى ${forwardToType === "user" ? "مستخدم" : "قسم"}`;
-  await logAuditEvent({
-    userId: auth.user!.id,
-    userName: auth.user!.fullName,
-    action: "UPDATE",
-    module: "fax",
-    targetId: fax._id.toString(),
-    description: `${actionLabel} للفاكس رقم ${fax.faxNumber}: ${decision}`,
-    ipAddress: ip,
-  });
-
-  return NextResponse.json({
-    success: true,
-    data: {
-      _id: fax._id.toString(),
-      status: fax.status,
-      commanderDecision: fax.commanderDecision,
-      commanderDecisionAt: fax.commanderDecisionAt?.toISOString(),
-      forwardedToType: fax.forwardedToType ?? null,
-      forwardedToId: fax.forwardedToId?.toString() ?? null,
-      forwardedToDepartment: fax.forwardedToDepartment ?? null,
-    },
-  });
 }

@@ -1,6 +1,18 @@
 services:
+  mongo:
+    container_name: elec-archive-mongo
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+
   app:
-    build: .
+    container_name: elec-archive-app
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "3000:3000"
     environment:
@@ -11,28 +23,21 @@ services:
     volumes:
       - uploads_data:/app/public/uploads
     depends_on:
-      mongo:
-        condition: service_started
+      - mongo
     restart: unless-stopped
 
   officers-reminder:
-    build: .
+    container_name: elec-archive-reminder
+    build:
+      context: .
+      dockerfile: Dockerfile
     command: npx tsx scripts/officers-rollcall-reminder.ts
     environment:
       - MONGODB_URI=mongodb://mongo:27017/elec-archive
       - JWT_SECRET=${JWT_SECRET:-local-dev-secret}
       - UPLOAD_PATH=/app/public/uploads
     depends_on:
-      mongo:
-        condition: service_started
-    restart: unless-stopped
-
-  mongo:
-    image: mongo:7
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
+      - mongo
     restart: unless-stopped
 
 volumes:

@@ -21,7 +21,7 @@ export default function UsersPage() {
         action={
           <button
             onClick={() => userManagementRef.current?.openCreateModal()}
-            className="flex items-center gap-2 rounded-xl bg-(--color-primary) px-4 py-2.5 text-sm text-white font-bold hover:bg-(--color-primary-hover) shadow-md shadow-blue-900/10 transition-all active:scale-95"
+            className="btn-primary"
           >
             <UserPlus className="w-4 h-4" />
             <span>إضافة مستخدم</span>

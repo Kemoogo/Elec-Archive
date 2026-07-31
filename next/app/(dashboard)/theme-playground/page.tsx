@@ -34,7 +34,7 @@ function SlidingNavbar({ items }: { items: { label: string; icon: LucideIcon }[]
   return (
     <div className="rounded-xl overflow-hidden shadow-depth-lg">
       <div className="bg-linear-to-br from-(--app-gradient-start) to-(--app-gradient-end) p-3">
-        <span className="text-label text-blue-200 block mb-3">شريط التنقل — Sliding Navbar</span>
+        <span className="text-label text-(--app-info)/80 block mb-3">شريط التنقل — Sliding Navbar</span>
         <nav className="relative flex items-center gap-1">
           <div
             className="absolute top-0 h-full bg-(--app-surface) rounded-lg shadow-md transition-all duration-300 ease-out"
@@ -70,8 +70,8 @@ export default function ThemePlaygroundPage() {
       <section className="archive-card border-l-4 border-l-(--color-primary)">
         <h2 className="text-xl font-bold text-(--color-primary) mb-3">كيف تطلب تعديل أي عنصر</h2>
         <p className="text-sm text-(--app-muted-foreground) leading-relaxed">
-          كل قسم أدناه له <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono">data-section</code> فريد.
-          كل عنصر داخل القسم له <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono">data-element</code>.
+          كل قسم أدناه له <code className="bg-(--app-surface-container) px-1.5 py-0.5 rounded text-xs font-mono">data-section</code> فريد.
+          كل عنصر داخل القسم له <code className="bg-(--app-surface-container) px-1.5 py-0.5 rounded text-xs font-mono">data-element</code>.
           مثلاً: <strong>&quot;عدّل الـ <code>data-section=&quot;buttons&quot;</code> الـ primary hover&quot;</strong>.
           أو: <strong>&quot;غيّر لون badge في <code>data-section=&quot;badges&quot; data-element=&quot;success&quot;</code>&quot;</strong>.
         </p>
@@ -132,16 +132,16 @@ export default function ThemePlaygroundPage() {
           </div>
 
           <div className="flex flex-wrap gap-3 pt-2">
-            <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold shadow-md transition-all active:scale-95 bg-(--color-primary) text-(--app-white) hover:bg-(--color-primary-hover)">
+            <button className="btn-primary">
               <Plus className="w-4 h-4" /> Primary Button
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold shadow-md transition-all active:scale-95 bg-(--app-accent) text-(--app-accent-foreground) hover:bg-(--app-accent)/90">
+            <button className="btn-accent">
               <Check className="w-4 h-4" /> Accent / Gold Button
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all bg-(--app-secondary)/20 text-(--color-primary) hover:bg-(--app-secondary)/30">
+            <button className="btn-secondary">
               <Search className="w-4 h-4" /> Secondary Button
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-(--app-error) text-(--app-white) hover:bg-(--app-error)/90 transition-all active:scale-95">
+            <button className="btn-destructive">
               <Trash2 className="w-4 h-4" /> Destructive Button
             </button>
           </div>
@@ -187,11 +187,11 @@ export default function ThemePlaygroundPage() {
           <div>
             <span className="text-label text-(--app-muted-foreground) block mb-3">المفتاح الرئيسي — Primary</span>
             <div className="flex flex-wrap gap-3">
-              <button data-element="primary" className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold shadow-md transition-all active:scale-95 bg-(--color-primary) text-(--app-white) hover:bg-(--color-primary-hover) shadow-blue-900/10 hover:shadow-lg hover:-translate-y-0.5">
+              <button data-element="primary" className="btn-primary">
                 <Plus className="w-4 h-4" />
                 <span>إضافة ضابط</span>
               </button>
-              <button data-element="primary" className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold shadow-md transition-all active:scale-95 bg-(--color-primary) text-(--app-white) hover:bg-(--color-primary-hover) shadow-blue-900/10 hover:shadow-lg hover:-translate-y-0.5">
+              <button data-element="primary" className="btn-primary">
                 <FileText className="w-4 h-4" />
                 <span>حفظ</span>
               </button>
@@ -200,11 +200,11 @@ export default function ThemePlaygroundPage() {
           <div>
             <span className="text-label text-(--app-muted-foreground) block mb-3">المفتاح الثانوي — Secondary</span>
             <div className="flex flex-wrap gap-3">
-              <button data-element="secondary" className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all bg-slate-100 text-(--color-primary) hover:bg-slate-200">
+              <button data-element="secondary" className="btn-secondary">
                 <Search className="w-4 h-4" />
                 <span>بحث</span>
               </button>
-              <button data-element="secondary" className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all bg-slate-100 text-(--color-primary) hover:bg-slate-200">
+              <button data-element="secondary" className="btn-secondary">
                 <Edit className="w-4 h-4" />
                 <span>تعديل</span>
               </button>
@@ -213,11 +213,11 @@ export default function ThemePlaygroundPage() {
           <div>
             <span className="text-label text-(--app-muted-foreground) block mb-3">حذف — Destructive</span>
             <div className="flex flex-wrap gap-3">
-              <button data-element="destructive" className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-red-500 text-(--app-white) hover:bg-red-600 transition-all active:scale-95">
+              <button data-element="destructive" className="btn-destructive">
                 <Trash2 className="w-4 h-4" />
                 <span>حذف</span>
               </button>
-              <button data-element="destructive-ghost" className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-red-500 hover:bg-red-50 transition-all">
+              <button data-element="destructive-ghost" className="btn-destructive-ghost">
                 <X className="w-4 h-4" />
                 <span>إلغاء</span>
               </button>
@@ -226,13 +226,13 @@ export default function ThemePlaygroundPage() {
           <div>
             <span className="text-label text-(--app-muted-foreground) block mb-3">أيقونة فقط — Icon Only</span>
             <div className="flex flex-wrap gap-3">
-              <button data-element="icon-only" className="rounded-lg p-2 transition-colors hover:bg-(--app-surface)/10 text-(--app-white) bg-(--color-primary)">
+              <button data-element="icon-only" className="btn-icon btn-icon-primary">
                 <Bell className="w-5 h-5" />
               </button>
-              <button data-element="icon-only" className="rounded-lg p-2 transition-colors hover:bg-slate-100 text-(--color-primary)">
+              <button data-element="icon-only" className="btn-icon">
                 <Search className="w-5 h-5" />
               </button>
-              <button data-element="icon-only" className="rounded-lg p-2 transition-colors hover:bg-red-50 text-red-500">
+              <button data-element="icon-only" className="btn-icon btn-icon-destructive">
                 <Trash2 className="w-5 h-5" />
               </button>
             </div>
@@ -249,7 +249,7 @@ export default function ThemePlaygroundPage() {
         <div className="mt-6 archive-card space-y-4">
           <div>
             <span className="text-label text-(--app-muted-foreground) block mb-2">عنصر نشط — Active</span>
-            <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono block whitespace-pre-wrap text-(--color-primary)">
+            <code className="text-xs bg-(--app-surface-container) px-2 py-1 rounded font-mono block whitespace-pre-wrap text-(--color-primary)">
               {`<a class="relative px-3 py-2 text-sm font-medium transition-all group">
   <span class="relative z-10 flex items-center gap-2 whitespace-nowrap text-(--color-primary)">
     <Icon /> label
@@ -259,7 +259,7 @@ export default function ThemePlaygroundPage() {
           </div>
           <div>
             <span className="text-label text-(--app-muted-foreground) block mb-2">عنصر غير نشط — Inactive</span>
-            <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono block whitespace-pre-wrap text-(--color-primary)">
+            <code className="text-xs bg-(--app-surface-container) px-2 py-1 rounded font-mono block whitespace-pre-wrap text-(--color-primary)">
               {`<a class="relative px-3 py-2 text-sm font-medium transition-all group">
   <span class="relative z-10 flex items-center gap-2 whitespace-nowrap text-(--app-white)">
     <Icon /> label
@@ -281,7 +281,7 @@ export default function ThemePlaygroundPage() {
                 <p className="mt-2 text-3xl font-bold text-(--color-primary)">12</p>
                 <p className="mt-1 text-sm text-(--app-muted-foreground)">فاكس معلق</p>
               </div>
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-blue-100">
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-(--app-info)/10">
                 <FileText className="w-6 h-6 text-(--color-primary)" />
               </div>
             </div>
@@ -290,23 +290,23 @@ export default function ThemePlaygroundPage() {
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-(--color-primary)">الضباط</h3>
-                <p className="mt-2 text-3xl font-bold text-emerald-700">45</p>
+                <p className="mt-2 text-3xl font-bold text-(--app-success)">45</p>
                 <p className="mt-1 text-sm text-(--app-muted-foreground)">حاضر اليوم</p>
               </div>
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-emerald-100">
-                <Users className="w-6 h-6 text-emerald-700" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-(--app-success)/20">
+                <Users className="w-6 h-6 text-(--app-success)" />
               </div>
             </div>
           </div>
-          <div data-element="archive-card-alert" className="archive-card border-l-4 border-l-red-500">
+          <div data-element="archive-card-alert" className="archive-card border-l-4 border-l-(--app-error)">
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-(--color-primary)">تنبيه طبي</h3>
-                <p className="mt-2 text-3xl font-bold text-red-700">3</p>
+                <p className="mt-2 text-3xl font-bold text-(--app-error)">3</p>
                 <p className="mt-1 text-sm text-(--app-muted-foreground)">أدوية منتهية</p>
               </div>
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-red-100">
-                <AlertTriangle className="w-6 h-6 text-red-700" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-(--app-error)/10">
+                <AlertTriangle className="w-6 h-6 text-(--app-error)" />
               </div>
             </div>
           </div>
@@ -321,19 +321,19 @@ export default function ThemePlaygroundPage() {
         <SectionTitle title="الشارات — Badges" />
         <div className="archive-card">
           <div className="flex flex-wrap gap-3">
-            <span data-element="success" className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-700">
+            <span data-element="success" className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-(--app-success)/20 text-(--app-success)">
               <Check className="w-3 h-3" /> نشط
             </span>
-            <span data-element="warning" className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-amber-500/20 text-amber-700">
+            <span data-element="warning" className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-(--app-warning)/20 text-(--app-warning)">
               <AlertTriangle className="w-3 h-3" /> معلق
             </span>
-            <span data-element="error" className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-700">
+            <span data-element="error" className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-(--app-error)/20 text-(--app-error)">
               <X className="w-3 h-3" /> مغلق
             </span>
-            <span data-element="info" className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-700">
+            <span data-element="info" className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-(--app-info)/20 text-(--app-info)">
               <Info className="w-3 h-3" /> جديد
             </span>
-            <span data-element="neutral" className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-700">
+            <span data-element="neutral" className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-(--app-surface-container) text-(--app-muted-foreground)">
               مسودة
             </span>
           </div>
@@ -386,9 +386,9 @@ export default function ThemePlaygroundPage() {
             <input
               type="text"
               defaultValue="قيمة خاطئة"
-              className="w-full rounded-lg border border-red-500 bg-(--app-surface) px-3 py-2 text-sm text-(--color-primary) focus:outline-none focus:ring-2 focus:ring-red-500 transition"
+              className="w-full rounded-lg border border-(--app-error) bg-(--app-surface) px-3 py-2 text-sm text-(--color-primary) focus:outline-none focus:ring-2 focus:ring-(--app-error) transition"
             />
-            <p className="mt-1 text-xs text-red-500">هذا الحقل مطلوب</p>
+            <p className="mt-1 text-xs text-(--app-error)">هذا الحقل مطلوب</p>
           </div>
           <p className="text-xs text-(--app-muted-foreground)">
             ← قل: &quot;عدّل <code>data-section=&quot;inputs&quot; data-element=&quot;text-input&quot;</code> focus ring&quot;
@@ -413,33 +413,33 @@ export default function ThemePlaygroundPage() {
               <tr className="border-b border-(--app-border) hover:bg-(--app-surface-container) transition-colors">
                 <td className="py-3 px-3 text-(--color-primary) font-medium">أحمد محمد</td>
                 <td className="py-3 px-3 text-(--app-muted-foreground)">مسؤول</td>
-                <td className="py-3 px-3"><span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-700">نشط</span></td>
+                <td className="py-3 px-3"><span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-(--app-success)/20 text-(--app-success)">نشط</span></td>
                 <td className="py-3 px-3">
                   <div className="flex gap-1">
-                    <button className="p-1.5 rounded-md hover:bg-(--app-surface-container) text-(--app-muted-foreground) hover:text-(--color-primary) transition"><Edit className="w-4 h-4" /></button>
-                    <button className="p-1.5 rounded-md hover:bg-red-50 text-(--app-muted-foreground) hover:text-red-600 transition"><Trash2 className="w-4 h-4" /></button>
+                    <button className="btn-table-action"><Edit className="w-4 h-4" /></button>
+                    <button className="btn-table-action-destructive"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 </td>
               </tr>
               <tr className="border-b border-(--app-border) hover:bg-(--app-surface-container) transition-colors">
                 <td className="py-3 px-3 text-(--color-primary) font-medium">محمد علي</td>
                 <td className="py-3 px-3 text-(--app-muted-foreground)">موظف</td>
-                <td className="py-3 px-3"><span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-700">معلق</span></td>
+                <td className="py-3 px-3"><span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-(--app-warning)/20 text-(--app-warning)">معلق</span></td>
                 <td className="py-3 px-3">
                   <div className="flex gap-1">
-                    <button className="p-1.5 rounded-md hover:bg-(--app-surface-container) text-(--app-muted-foreground) hover:text-(--color-primary) transition"><Edit className="w-4 h-4" /></button>
-                    <button className="p-1.5 rounded-md hover:bg-red-50 text-(--app-muted-foreground) hover:text-red-600 transition"><Trash2 className="w-4 h-4" /></button>
+                    <button className="btn-table-action"><Edit className="w-4 h-4" /></button>
+                    <button className="btn-table-action-destructive"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 </td>
               </tr>
               <tr className="hover:bg-(--app-surface-container) transition-colors">
                 <td className="py-3 px-3 text-(--color-primary) font-medium">سعيد عبدالله</td>
                 <td className="py-3 px-3 text-(--app-muted-foreground)">قائد</td>
-                <td className="py-3 px-3"><span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/20 text-red-700">مغلق</span></td>
+                <td className="py-3 px-3"><span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-(--app-error)/20 text-(--app-error)">مغلق</span></td>
                 <td className="py-3 px-3">
                   <div className="flex gap-1">
-                    <button className="p-1.5 rounded-md hover:bg-(--app-surface-container) text-(--app-muted-foreground) hover:text-(--color-primary) transition"><Edit className="w-4 h-4" /></button>
-                    <button className="p-1.5 rounded-md hover:bg-red-50 text-(--app-muted-foreground) hover:text-red-600 transition"><Trash2 className="w-4 h-4" /></button>
+                    <button className="btn-table-action"><Edit className="w-4 h-4" /></button>
+                    <button className="btn-table-action-destructive"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 </td>
               </tr>
@@ -468,7 +468,7 @@ export default function ThemePlaygroundPage() {
             <p className="text-sm text-(--color-primary)">منطقة معلومات ثانوية</p>
           </div>
           <div data-element="surface-primary" className="rounded-xl p-5 bg-linear-to-br from-(--app-gradient-start) to-(--app-gradient-end)">
-            <p className="text-xs text-label text-blue-200 mb-2">primary gradient</p>
+            <p className="text-xs text-label text-(--app-info)/80 mb-2">primary gradient</p>
             <p className="text-sm text-(--app-white)">التوقيع البصري</p>
           </div>
         </div>
@@ -496,21 +496,21 @@ export default function ThemePlaygroundPage() {
       <section data-section="alerts">
         <SectionTitle title="التنبيهات — Toasts & Alerts" />
         <div className="archive-card space-y-3">
-          <div data-element="alert-success" className="flex items-center gap-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-4 py-3">
-            <Check className="w-5 h-5 text-emerald-600 shrink-0" />
-            <p className="text-sm text-emerald-800">تم الحفظ بنجاح</p>
+          <div data-element="alert-success" className="flex items-center gap-3 rounded-lg bg-(--app-success)/10 border border-(--app-success)/20 px-4 py-3">
+            <Check className="w-5 h-5 text-(--app-success) shrink-0" />
+            <p className="text-sm text-(--app-success)">تم الحفظ بنجاح</p>
           </div>
-          <div data-element="alert-error" className="flex items-center gap-3 rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3">
-            <X className="w-5 h-5 text-red-600 shrink-0" />
-            <p className="text-sm text-red-800">حدث خطأ أثناء العملية</p>
+          <div data-element="alert-error" className="flex items-center gap-3 rounded-lg bg-(--app-error)/10 border border-(--app-error)/20 px-4 py-3">
+            <X className="w-5 h-5 text-(--app-error) shrink-0" />
+            <p className="text-sm text-(--app-error)">حدث خطأ أثناء العملية</p>
           </div>
-          <div data-element="alert-warning" className="flex items-center gap-3 rounded-lg bg-amber-500/10 border border-amber-500/20 px-4 py-3">
-            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
-            <p className="text-sm text-amber-800">تنبيه: صلاحية الدواء ستنتهي قريباً</p>
+          <div data-element="alert-warning" className="flex items-center gap-3 rounded-lg bg-(--app-warning)/10 border border-(--app-warning)/20 px-4 py-3">
+            <AlertTriangle className="w-5 h-5 text-(--app-warning) shrink-0" />
+            <p className="text-sm text-(--app-warning)">تنبيه: صلاحية الدواء ستنتهي قريباً</p>
           </div>
-          <div data-element="alert-info" className="flex items-center gap-3 rounded-lg bg-blue-500/10 border border-blue-500/20 px-4 py-3">
-            <Info className="w-5 h-5 text-blue-600 shrink-0" />
-            <p className="text-sm text-blue-800">معلومة: تم تحديث النظام</p>
+          <div data-element="alert-info" className="flex items-center gap-3 rounded-lg bg-(--app-info)/10 border border-(--app-info)/20 px-4 py-3">
+            <Info className="w-5 h-5 text-(--app-info) shrink-0" />
+            <p className="text-sm text-(--app-info)">معلومة: تم تحديث النظام</p>
           </div>
         </div>
         <p className="mt-3 text-xs text-(--app-muted-foreground)">
@@ -523,12 +523,12 @@ export default function ThemePlaygroundPage() {
         <SectionTitle title="النوافذ المنبثقة — Modals" />
         <div className="relative rounded-xl overflow-hidden min-h-[320px]">
           <div className="absolute inset-0 grid grid-cols-3 gap-2 p-3 opacity-50">
-            <div className="rounded-lg bg-gray-200" />
-            <div className="rounded-lg bg-gray-300" />
-            <div className="rounded-lg bg-gray-200" />
-            <div className="rounded-lg bg-gray-300" />
-            <div className="rounded-lg bg-gray-200" />
-            <div className="rounded-lg bg-gray-300" />
+            <div className="rounded-lg bg-(--app-surface-container)" />
+            <div className="rounded-lg bg-(--app-border)" />
+            <div className="rounded-lg bg-(--app-surface-container)" />
+            <div className="rounded-lg bg-(--app-border)" />
+            <div className="rounded-lg bg-(--app-surface-container)" />
+            <div className="rounded-lg bg-(--app-border)" />
           </div>
           <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" />
           <div className="relative z-10 flex items-center justify-center p-6">
@@ -544,7 +544,7 @@ export default function ThemePlaygroundPage() {
               </div>
               <div className="px-6 py-3 bg-(--app-surface-container) flex justify-start gap-3">
                 <button className="btn-pill-secondary text-sm">إلغاء</button>
-                <button className="flex items-center gap-1.5 px-4 py-1.5 rounded-2xl bg-red-500 text-(--app-white) text-sm font-medium hover:bg-red-600 transition active:scale-95">
+                <button className="flex items-center gap-1.5 px-4 py-1.5 rounded-2xl bg-(--app-error) text-(--app-white) text-sm font-medium hover:bg-(--app-error)/90 transition active:scale-95">
                   <Trash2 className="w-3.5 h-3.5" /> حذف
                 </button>
               </div>

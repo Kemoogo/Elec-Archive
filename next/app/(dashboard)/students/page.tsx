@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { authenticate } from "@/lib/auth/middleware";
 import { connectToDatabase } from "@/lib/db/connect";
-import { Student, type IStudent } from "@/lib/db/models/Student";
+import { Student } from "@/lib/db/models/Student";
 import { studentsListQuerySchema } from "@/lib/validations/student";
 import { StudentsPageClient } from "@/components/students/StudentsPageClient";
 import type { Types } from "mongoose";
@@ -79,7 +79,7 @@ export default async function StudentsPage({ searchParams }: StudentsPageProps) 
 
   return (
     <StudentsPageClient
-      students={serialized as unknown as IStudent[]}
+      students={serialized}
       total={total}
       totalPages={totalPages}
       page={page}

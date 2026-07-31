@@ -1,5 +1,6 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { getStatusBadgeClass, getMissionStatusLabel } from "@/lib/utils/status-badge";
 import { formatDistanceToNow } from "date-fns";
 import { ar } from "date-fns/locale";
 
@@ -7,39 +8,7 @@ import { ar } from "date-fns/locale";
 function formatDate(date: Date | string): string {
   if (!date) return "";
   const d = typeof date === "string" ? new Date(date) : date;
-  return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
-}
-
-// Helper function to get status badge class
-function getStatusBadgeClass(status: string): string {
-  switch (status) {
-    case "scheduled":
-      return "bg-blue-100 text-blue-800";
-    case "active":
-      return "bg-green-100 text-green-800";
-    case "completed":
-      return "bg-slate-100 text-(--app-foreground)";
-    case "cancelled":
-      return "bg-red-100 text-red-800";
-    default:
-      return "bg-slate-100 text-(--app-foreground)";
-  }
-}
-
-// Helper function to get status label in Arabic
-function getStatusLabel(status: string): string {
-  switch (status) {
-    case "scheduled":
-      return "مجدولة";
-    case "active":
-      return "نشطة";
-    case "completed":
-      return "مكتملة";
-    case "cancelled":
-      return "ملغاة";
-    default:
-      return status;
-  }
+  return d.toLocaleDateString("ar-EG");
 }
 
 interface MissionCardProps {
@@ -74,9 +43,7 @@ export default function MissionCard({
           <Badge 
             variant="secondary"
             className={`${getStatusBadgeClass(status)} text-xs font-bold px-2 py-1`}
-          >
-            {getStatusLabel(status)}
-          </Badge>
+          >{getMissionStatusLabel(status)}</Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -124,7 +91,7 @@ export default function MissionCard({
             الحالة:
           </p>
           <div className="text-(--app-foreground) text-sm font-medium">
-            {getStatusLabel(status)}
+            {getMissionStatusLabel(status)}
           </div>
         </div>
         

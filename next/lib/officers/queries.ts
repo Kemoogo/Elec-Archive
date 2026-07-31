@@ -30,6 +30,12 @@ export interface OfficerListItem {
   position: string;
   joinDate: string;
   birthDate: string;
+  graduationDate?: string;
+  bloodType?: string;
+  religion?: string;
+  maritalStatus?: string;
+  faculty?: string;
+  file121IssueDate?: string;
   employmentStatus: string;
   employmentStatusLabel: string;
   isInUnit: boolean;
@@ -60,8 +66,14 @@ export interface OfficerDetailData {
   isInUnit: boolean;
   joinDate: string;
   birthDate: string;
+  graduationDate: string;
+  bloodType: string;
+  religion: string;
+  maritalStatus: string;
+  faculty: string;
   file121Url: string;
   file121UpdatedAt: string;
+  file121IssueDate: string;
   photoUrl: string;
   isArkanHarb: boolean;
   officerLabel: string;
@@ -132,6 +144,12 @@ export function serializeOfficerListItem(officer: OfficerLean): OfficerListItem 
     position: officer.position ?? "",
     joinDate: officer.joinDate ? officer.joinDate.toISOString() : new Date().toISOString(),
     birthDate: officer.birthDate ? officer.birthDate.toISOString() : "",
+    graduationDate: officer.graduationDate ? officer.graduationDate.toISOString() : "",
+    bloodType: officer.bloodType ?? "",
+    religion: officer.religion ?? "",
+    maritalStatus: officer.maritalStatus ?? "",
+    faculty: officer.faculty ?? "",
+    file121IssueDate: officer.file121IssueDate ?? "",
     employmentStatus: officer.employmentStatus ?? "inactive",
     employmentStatusLabel: EMPLOYMENT_LABELS[officer.employmentStatus] ?? officer.employmentStatus ?? "غير محدد",
     isInUnit: officer.isInUnit ?? false,
@@ -164,8 +182,14 @@ export function serializeOfficerDetail(officer: OfficerLean): OfficerDetailData 
     isInUnit: officer.isInUnit ?? false,
     joinDate: officer.joinDate ? officer.joinDate.toISOString() : new Date().toISOString(),
     birthDate: officer.birthDate ? officer.birthDate.toISOString() : "",
+    graduationDate: officer.graduationDate ? officer.graduationDate.toISOString() : "",
+    bloodType: officer.bloodType ?? "",
+    religion: officer.religion ?? "",
+    maritalStatus: officer.maritalStatus ?? "",
+    faculty: officer.faculty ?? "",
     file121Url: officer.file121Url ?? "",
     file121UpdatedAt: officer.file121UpdatedAt ? officer.file121UpdatedAt.toISOString() : "",
+    file121IssueDate: officer.file121IssueDate ?? "",
     photoUrl: officer.photoUrl ?? "",
     isArkanHarb: officer.isArkanHarb ?? false,
     officerLabel: `${RANK_LABELS[officer.rank] ?? officer.rank}${officer.isArkanHarb ? " أ ح" : ""} / ${officer.fullName}`,
@@ -255,7 +279,7 @@ export function buildCareerTimeline(
       title: m.title,
       description: m.description,
       statusLabel: MISSION_STATUS_LABELS[m.status] || m.status,
-      statusColor: MISSION_STATUS_COLORS[m.status] || "bg-gray-50 text-gray-700 border-gray-100",
+      statusColor: MISSION_STATUS_COLORS[m.status] || "bg-(--app-surface-container) text-(--app-muted-foreground) border-(--app-border)",
     })),
     ...positions.map((pa) => ({
       id: pa._id.toString(),
@@ -265,7 +289,7 @@ export function buildCareerTimeline(
       title: pa.positionTitle,
       description: pa.notes,
       statusLabel: POSITION_STATUS_LABELS[pa.status] || pa.status,
-      statusColor: POSITION_STATUS_COLORS[pa.status] || "bg-gray-50 text-gray-700 border-gray-100",
+      statusColor: POSITION_STATUS_COLORS[pa.status] || "bg-(--app-surface-container) text-(--app-muted-foreground) border-(--app-border)",
       badge: pa.positionType === 'primary' ? 'أساسي' : 'بديل',
     })),
     ...nonJoinMovements.map((m) => ({

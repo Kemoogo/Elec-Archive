@@ -3,6 +3,7 @@ import { clearTokenCookie, getTokenFromCookie, verifyToken } from "@/lib/auth/jw
 import { connectToDatabase } from "@/lib/db/connect";
 import { User } from "@/lib/db/models/User";
 import { logAuditEvent } from "@/lib/auth/audit";
+import { handleApiError } from "@/lib/utils/api-error";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
 
 export async function POST(request: Request) {
@@ -39,10 +40,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, message: "Logged out" });
   } catch (error) {
-    console.error("Logout error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 },
-    );
+    return handleApiError(error, "حدث خطأ أثناء تسجيل الخروج");
   }
 }

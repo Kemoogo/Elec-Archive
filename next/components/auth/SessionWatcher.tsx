@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 export function SessionWatcher() {
-  const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
@@ -18,7 +17,7 @@ export function SessionWatcher() {
       if (response.status === 401 && pathname !== "/login" && pathname !== "/") {
         // Only redirect if the response isn't from the login API itself
         if (typeof args[0] === 'string' && !args[0].includes('/api/auth/login')) {
-          router.push("/login?expired=1");
+          window.location.href = "/login?expired=1";
         }
       }
       
@@ -31,10 +30,10 @@ export function SessionWatcher() {
         // Ping auth endpoint to check if token is still valid
         const res = await originalFetch("/api/auth/me");
         if (res.status === 401 && pathname !== "/login" && pathname !== "/") {
-          router.push("/login?expired=1");
+          window.location.href = "/login?expired=1";
         }
       } catch (err) {
-        // Ignore network errors, don't force logout for brief connection loss
+        console.error("[SessionWatcher] Session check failed:", err);
       }
     };
 
@@ -44,7 +43,7 @@ export function SessionWatcher() {
       window.fetch = originalFetch;
       clearInterval(intervalId);
     };
-  }, [router, pathname]);
+  }, [pathname]);
 
   return null;
 }

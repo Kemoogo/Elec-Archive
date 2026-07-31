@@ -7,6 +7,7 @@ import { Fax } from "@/lib/db/models/Fax";
 import { faxListQuerySchema } from "@/lib/validations/fax";
 import { buildFaxListSort } from "@/lib/fax/queries";
 import { escapeRegex } from "@/lib/utils";
+import { handleApiError } from "@/lib/utils/api-error";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
 import type { Types } from "mongoose";
 
@@ -133,11 +134,7 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    console.error("Fax GET error:", error);
-    return NextResponse.json(
-      { success: false, error: errors.internalError },
-      { status: 500 },
-    );
+    return handleApiError(error, "حدث خطأ أثناء تحميل الفاكسات");
   }
 }
 
@@ -301,9 +298,6 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json(
-      { success: false, error: errors.internalError },
-      { status: 500 },
-    );
+    return handleApiError(error, "حدث خطأ أثناء رفع الفاكس");
   }
 }

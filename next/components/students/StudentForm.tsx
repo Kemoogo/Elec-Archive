@@ -6,6 +6,9 @@ import { GraduationCap } from "lucide-react";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { DateField } from "@/components/ui/date-field";
+import { FormField, FormInput, FormTextarea } from "@/components/ui/form-fields";
+import { useToast } from "@/components/ui/toast";
+import { extractApiError } from "@/lib/utils";
 
 interface StudentFormProps {
   mode: "create" | "edit";
@@ -21,6 +24,7 @@ interface StudentFormProps {
 
 export function StudentForm({ mode, initialData, onSuccess }: StudentFormProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [isOpen, setIsOpen] = useState(mode === "edit");
   const [error, setError] = useState("");
@@ -68,19 +72,22 @@ export function StudentForm({ mode, initialData, onSuccess }: StudentFormProps) 
         const data = await res.json();
 
         if (!res.ok) {
-          setError(data.error ?? "حدث خطأ");
+          setError(extractApiError(data, "حدث خطأ"));
           return;
         }
 
         setIsOpen(false);
         if (mode === "create") {
+          showToast("تم إضافة الطالب بنجاح", "success");
           router.push(`/students/${data.data._id}`);
         } else {
+          showToast("تم تحديث بيانات الطالب بنجاح", "success");
           router.refresh();
         }
         onSuccess?.();
       } catch {
         setError("حدث خطأ في الاتصال");
+        showToast("حدث خطأ في الاتصال بالخادم", "error");
       }
     });
   }
@@ -192,31 +199,15 @@ function FormFields({
   return (
     <div className="space-y-3">
       {mode === "create" && (
-        <div>
-          <label htmlFor="student-studentId" className="mb-1 block text-xs text-(--app-muted-foreground)">رقم الطالب *</label>
-          <input
-            id="student-studentId"
-            type="text"
-            value={studentId}
-            onChange={(e) => setStudentId(e.target.value)}
-            required
-            className="w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-white) placeholder:text-(--app-muted-foreground)"
-            placeholder="STU-2024-001"
-          />
-        </div>
+        <FormField label="رقم الطالب" required>
+          <FormInput id="student-studentId" type="text" value={studentId} onChange={(e) => setStudentId(e.target.value)} required placeholder="STU-2024-001" />
+        </FormField>
       )}
-      <div>
-        <label htmlFor="student-fullName" className="mb-1 block text-xs text-(--app-muted-foreground)">الاسم الكامل *</label>
-        <input
-          id="student-fullName"
-          type="text"
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
-          required
-          className="w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-white) placeholder:text-(--app-muted-foreground)"
-          placeholder="أحمد محمد علي"
-        />
-      </div>
+
+      <FormField label="الاسم الكامل" required>
+        <FormInput id="student-fullName" type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} required placeholder="أحمد محمد علي" />
+      </FormField>
+
       <DateField
         id="student-enrollDate"
         label="تاريخ التسجيل"
@@ -224,17 +215,10 @@ function FormFields({
         onChange={(v) => setEnrollDate(v)}
         required
       />
-      <div>
-        <label htmlFor="student-notes" className="mb-1 block text-xs text-(--app-muted-foreground)">ملاحظات</label>
-        <textarea
-          id="student-notes"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          rows={3}
-          className="w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-white) placeholder:text-(--app-muted-foreground)"
-          placeholder="ملاحظات إضافية..."
-        />
-      </div>
+
+      <FormField label="ملاحظات">
+        <FormTextarea id="student-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="ملاحظات إضافية..." />
+      </FormField>
     </div>
   );
 }

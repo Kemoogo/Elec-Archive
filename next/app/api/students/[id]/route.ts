@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { authenticate } from "@/lib/auth/middleware";
 import { logAuditEvent } from "@/lib/auth/audit";
 import { errors } from "@/lib/auth/errors";
+import { handleApiError } from "@/lib/utils/api-error";
 import { Student } from "@/lib/db/models/Student";
 import { updateStudentSchema } from "@/lib/validations/student";
 import { unlink } from "fs/promises";
@@ -53,10 +54,11 @@ export async function GET(
     return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
   }
 
-  await connectToDatabase();
+  try {
+    await connectToDatabase();
 
-  const { id } = await params;
-  const student = await Student.findById(id).lean();
+    const { id } = await params;
+    const student = await Student.findById(id).lean();
   if (!student) {
     return NextResponse.json(
       { success: false, error: "الطالب غير موجود" },
@@ -78,6 +80,9 @@ export async function GET(
     success: true,
     data: serializeStudent(student as Record<string, unknown>),
   });
+  } catch (error) {
+    return handleApiError(error);
+  }
 }
 
 export async function PATCH(
@@ -105,9 +110,9 @@ export async function PATCH(
     return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
   }
 
-  await connectToDatabase();
-
   try {
+    await connectToDatabase();
+
     const { id } = await params;
     const student = await Student.findById(id);
     if (!student) {
@@ -132,7 +137,7 @@ export async function PATCH(
     if (parsed.data.enrollDate) updateData.enrollDate = new Date(parsed.data.enrollDate);
     if (parsed.data.notes !== undefined) updateData.notes = parsed.data.notes.trim();
 
-    const updated = await Student.findByIdAndUpdate(id, updateData, { new: true }).lean();
+    const updated = await Student.findByIdAndUpdate(id, updateData, { returnDocument: "after" }).lean();
     if (!updated) {
       return NextResponse.json(
         { success: false, error: "الطالب غير موجود" },
@@ -155,11 +160,7 @@ export async function PATCH(
       data: serializeStudent(updated as Record<string, unknown>),
     });
   } catch (error) {
-    console.error("Student PATCH error:", error);
-    return NextResponse.json(
-      { success: false, error: errors.internalError },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }
 
@@ -188,50 +189,54 @@ export async function DELETE(
     return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
   }
 
-  await connectToDatabase();
+  try {
+    await connectToDatabase();
 
-  const { id } = await params;
-  const student = await Student.findById(id);
-  if (!student) {
-    return NextResponse.json(
-      { success: false, error: "الطالب غير موجود" },
-      { status: 404 },
-    );
-  }
+    const { id } = await params;
+    const student = await Student.findById(id);
+    if (!student) {
+      return NextResponse.json(
+        { success: false, error: "الطالب غير موجود" },
+        { status: 404 },
+      );
+    }
 
-  // Delete associated files from filesystem
-  const documents = student.documents as { name: string; fileUrl: string; uploadedAt: Date }[];
-  const expectedDir = join(process.cwd(), "public", "uploads", "students");
-  for (const doc of documents) {
-    try {
-      const filePath = join(process.cwd(), "public", doc.fileUrl);
-      if (!filePath.startsWith(expectedDir)) continue;
-      await unlink(filePath);
-    } catch (err: unknown) {
-      if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
-        // ignore ENOENT, log other errors
-        console.error("File deletion error:", err);
+    // Delete associated files from filesystem
+    const documents = student.documents as { name: string; fileUrl: string; uploadedAt: Date }[];
+    const expectedDir = join(process.cwd(), "public", "uploads", "students");
+    for (const doc of documents) {
+      try {
+        const filePath = join(process.cwd(), "public", doc.fileUrl);
+        if (!filePath.startsWith(expectedDir)) continue;
+        await unlink(filePath);
+      } catch (err: unknown) {
+        if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
+          // ignore ENOENT, log other errors
+          console.error("File deletion error:", err);
+        }
       }
     }
+
+    // Soft-delete: set status to inactive and clear documents
+    student.status = "inactive";
+    student.documents = [];
+    await student.save();
+
+    await logAuditEvent({
+      userId: auth.user!.id,
+      userName: auth.user!.fullName,
+      action: "DELETE",
+      module: "students",
+      targetId: id,
+      description: `تم إيقاف الطالب: ${student.fullName}`,
+      ipAddress: ip,
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: serializeStudent(student.toObject() as Record<string, unknown>),
+    });
+  } catch (error) {
+    return handleApiError(error);
   }
-
-  // Soft-delete: set status to inactive and clear documents
-  student.status = "inactive";
-  student.documents = [];
-  await student.save();
-
-  await logAuditEvent({
-    userId: auth.user!.id,
-    userName: auth.user!.fullName,
-    action: "UPDATE",
-    module: "students",
-    targetId: id,
-    description: `تم إيقاف الطالب: ${student.fullName}`,
-    ipAddress: ip,
-  });
-
-  return NextResponse.json({
-    success: true,
-    data: serializeStudent(student.toObject() as Record<string, unknown>),
-  });
 }

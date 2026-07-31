@@ -1,51 +1,72 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { cn } from "@/lib/utils"
+import * as React from "react";
+import { cn } from "@/lib/utils";
+
+type TabsVariant = "folder" | "pills" | "underlined" | "cards";
 
 const TabsContext = React.createContext<{
-  value: string,
-  onValueChange: (val: string) => void,
-} | null>(null)
+  value: string;
+  onValueChange: (val: string) => void;
+  variant: TabsVariant;
+} | null>(null);
 
 const Tabs = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & {
-    value?: string,
-    onValueChange?: (val: string) => void,
-    defaultValue?: string
+    value?: string;
+    onValueChange?: (val: string) => void;
+    defaultValue?: string;
+    variant?: TabsVariant;
   }
->(({ className, value, onValueChange, defaultValue, ...props }, ref) => {
-  const [internalValue, setInternalValue] = React.useState(defaultValue || "")
+>(({ className, value, onValueChange, defaultValue, variant = "folder", ...props }, ref) => {
+  const [internalValue, setInternalValue] = React.useState(defaultValue || "");
 
-  const selectedValue = value !== undefined ? value : internalValue
-  const handleValueChange = onValueChange !== undefined ? onValueChange : setInternalValue
+  const selectedValue = value !== undefined ? value : internalValue;
+  const handleValueChange = onValueChange !== undefined ? onValueChange : setInternalValue;
 
   return (
-    <TabsContext.Provider value={{ value: selectedValue, onValueChange: handleValueChange }}>
+    <TabsContext.Provider
+      value={{
+        value: selectedValue,
+        onValueChange: handleValueChange,
+        variant,
+      }}
+    >
       <div
         ref={ref}
-        className={cn("w-full flex flex-col", className)}
+        className={cn("w-full flex flex-col space-y-0", className)}
         {...props}
       />
     </TabsContext.Provider>
-  )
-})
-Tabs.displayName = "Tabs"
+  );
+});
+Tabs.displayName = "Tabs";
 
 const TabsList = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, children, ...props }, ref) => {
-  const context = React.useContext(TabsContext)
-  if (!context) throw new Error("TabsList must be used within Tabs")
+  const context = React.useContext(TabsContext);
+  if (!context) throw new Error("TabsList must be used within Tabs");
+
+  const { variant } = context;
 
   return (
-    <div className="relative flex justify-start w-full px-0">
+    <div
+      className={cn(
+        "relative w-full",
+        variant === "folder" && "bg-(--app-surface-container) rounded-t-2xl border border-b-0 border-(--app-border) pt-2 px-2.5 shadow-xs",
+        variant === "underlined" && "border-b border-(--app-border) px-1",
+        variant === "pills" && "bg-(--app-surface-container) border border-(--app-border) p-1.5 rounded-2xl w-fit max-w-full mb-4 shadow-xs",
+        variant === "cards" && "gap-2 mb-4"
+      )}
+    >
       <div
         ref={ref}
         className={cn(
-          "relative flex items-end w-full overflow-visible bg-(--app-surface-container)/40 rounded-t-[1.5rem] p-1 pb-0 gap-1",
+          "flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-[1px]",
+          variant === "folder" && "-mb-[1px] border-b border-(--app-border)",
           className
         )}
         {...props}
@@ -53,18 +74,24 @@ const TabsList = React.forwardRef<
         {children}
       </div>
     </div>
-  )
-})
-TabsList.displayName = "TabsList"
+  );
+});
+TabsList.displayName = "TabsList";
 
 const TabsTrigger = React.forwardRef<
   HTMLButtonElement,
-  React.ButtonHTMLAttributes<HTMLButtonElement> & { value: string, isFirst?: boolean, isLast?: boolean }
->(({ className, value, children, isFirst, isLast, ...props }, ref) => {
-  const context = React.useContext(TabsContext)
-  if (!context) throw new Error("TabsTrigger must be used within Tabs")
+  React.ButtonHTMLAttributes<HTMLButtonElement> & {
+    value: string;
+    isFirst?: boolean;
+    isLast?: boolean;
+    badge?: number | string;
+  }
+>(({ className, value, children, isFirst: _isFirst, isLast: _isLast, badge, ...props }, ref) => {
+  const context = React.useContext(TabsContext);
+  if (!context) throw new Error("TabsTrigger must be used within Tabs");
 
-  const isActive = context.value === value
+  const { value: activeValue, onValueChange, variant } = context;
+  const isActive = activeValue === value;
 
   return (
     <button
@@ -74,57 +101,73 @@ const TabsTrigger = React.forwardRef<
       aria-selected={isActive}
       data-state={isActive ? "active" : "inactive"}
       className={cn(
-        "relative flex-1 inline-flex items-center justify-center whitespace-nowrap px-6 text-sm transition-all duration-300 cursor-pointer disabled:pointer-events-none disabled:opacity-50 group",
-        isActive
-          ? "text-(--color-primary) bg-(--app-surface) py-4 z-10 rounded-t-2xl font-black shadow-[0_-4px_12px_-6px_rgba(0,0,0,0.1)]"
-          : "text-(--app-foreground)/70 font-bold hover:text-(--color-primary) bg-(--app-surface-container) hover:bg-(--app-surface-container)/80 py-3.5 rounded-t-2xl z-0 border-t border-x border-(--app-border)",
+        "group relative inline-flex items-center justify-center gap-2 whitespace-nowrap text-xs sm:text-sm font-bold transition-all duration-150 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40",
+        
+        /* Folder Variant: Distinct header container contrast, active tab pops seamlessly into content container below */
+        variant === "folder" && [
+          isActive
+            ? "px-5 py-2.5 sm:px-6 sm:py-3 rounded-t-xl bg-(--app-surface) text-(--color-primary) border-t border-x border-(--app-border) border-b-0 font-black -mb-[1px] z-20 shadow-xs"
+            : "px-4 py-2 my-0.5 rounded-lg border border-transparent text-(--app-muted-foreground) hover:text-(--app-foreground) hover:bg-(--app-surface)/60 transition-all duration-150"
+        ],
+
+        /* Pills Variant */
+        variant === "pills" && [
+          "px-4 py-2 rounded-xl transition-all",
+          isActive
+            ? "bg-(--app-surface) text-(--color-primary) shadow-sm font-black border border-(--app-border)/40"
+            : "text-(--app-muted-foreground) hover:text-(--app-foreground) hover:bg-(--app-surface)/60"
+        ],
+
+        /* Underlined Variant */
+        variant === "underlined" && [
+          "px-4 py-3 rounded-none border-b-2 transition-all",
+          isActive
+            ? "border-(--color-primary) text-(--color-primary) font-black"
+            : "border-transparent text-(--app-muted-foreground) hover:text-(--app-foreground) hover:border-(--app-border)"
+        ],
+
+        /* Cards Variant */
+        variant === "cards" && [
+          "px-5 py-3 rounded-2xl border transition-all",
+          isActive
+            ? "bg-(--app-surface) text-(--color-primary) border-blue-500/40 shadow-md font-black"
+            : "bg-(--app-surface-container) text-(--app-muted-foreground) border-(--app-border) hover:bg-(--app-surface)"
+        ],
+
         className
       )}
-      onClick={() => context.onValueChange(value)}
+      onClick={() => onValueChange(value)}
       {...props}
     >
-      {/* Right curve (for RTL, right side) */}
-      {!isFirst && (
-        <div className={cn(
-          "absolute -right-[20px] bottom-0 w-[20px] h-[20px] overflow-hidden pointer-events-none transition-opacity duration-300",
-          isActive ? "opacity-100" : "opacity-0"
-        )}>
-          <div 
-            className="absolute left-0 -top-[20px] w-[40px] h-[40px] rounded-full bg-transparent"
-            style={{ boxShadow: '0 0 0 20px var(--app-surface)' }}
-          />
-        </div>
-      )}
-
-      {/* Left curve (for RTL, left side) */}
-      {!isLast && (
-        <div className={cn(
-          "absolute -left-[20px] bottom-0 w-[20px] h-[20px] overflow-hidden pointer-events-none transition-opacity duration-300",
-          isActive ? "opacity-100" : "opacity-0"
-        )}>
-          <div 
-            className="absolute -left-[20px] -top-[20px] w-[40px] h-[40px] rounded-full bg-transparent"
-            style={{ boxShadow: '0 0 0 20px var(--app-surface)' }}
-          />
-        </div>
-      )}
-
-      <span className="relative z-30 flex items-center gap-2">
+      <span className="relative z-10 inline-flex items-center gap-2">
         {children}
+        {badge !== undefined && badge !== null && (
+          <span
+            className={cn(
+              "inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[11px] font-extrabold tabular-nums rounded-full transition-all duration-200",
+              isActive
+                ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/25 shadow-xs"
+                : "bg-(--app-surface-container-low) text-(--app-muted-foreground) border border-(--app-border)"
+            )}
+          >
+            {badge}
+          </span>
+        )}
       </span>
     </button>
-  )
-})
-TabsTrigger.displayName = "TabsTrigger"
+  );
+});
+TabsTrigger.displayName = "TabsTrigger";
 
 const TabsContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & { value: string }
 >(({ className, value, children, ...props }, ref) => {
-  const context = React.useContext(TabsContext)
-  if (!context) throw new Error("TabsContent must be used within Tabs")
+  const context = React.useContext(TabsContext);
+  if (!context) throw new Error("TabsContent must be used within Tabs");
 
-  const isActive = context.value === value
+  const { value: activeValue, variant } = context;
+  const isActive = activeValue === value;
 
   return (
     <div
@@ -132,26 +175,26 @@ const TabsContent = React.forwardRef<
       role="tabpanel"
       data-state={isActive ? "active" : "inactive"}
       className={cn(
-        "bg-(--app-surface) rounded-b-[2rem] rounded-t-none",
+        "bg-(--app-surface)",
+        variant === "folder" && "rounded-b-2xl border border-t-0 border-(--app-border) shadow-xs",
+        variant === "pills" && "rounded-2xl border border-(--app-border) shadow-xs mt-2",
+        variant === "underlined" && "rounded-b-2xl border border-t-0 border-(--app-border) shadow-xs",
+        variant === "cards" && "rounded-2xl border border-(--app-border) shadow-xs mt-2",
         isActive
-          ? "opacity-100 relative z-10 visible block mt-0"
-          : "opacity-0 absolute inset-0 -z-0 invisible hidden",
+          ? "opacity-100 relative visible block"
+          : "opacity-0 absolute inset-0 -z-10 invisible hidden",
         className
       )}
       {...props}
     >
       {isActive && (
-        <div className="p-8 md:p-10 animate-in fade-in slide-in-from-top-2 duration-700 ease-out">
+        <div className="p-5 sm:p-6 md:p-8 animate-tab-premium">
           {children}
         </div>
       )}
     </div>
-  )
-})
-TabsContent.displayName = "TabsContent"
+  );
+});
+TabsContent.displayName = "TabsContent";
 
-export { Tabs, TabsList, TabsTrigger, TabsContent }
-
-
-
-
+export { Tabs, TabsList, TabsTrigger, TabsContent };

@@ -38,6 +38,10 @@ export default async function DashboardLayout({
 }>) {
   const result = await authenticate();
 
+  if (!result.success && result.status === 503) {
+    redirect("/db-error");
+  }
+
   const headersList = await headers();
   const pathname = headersList.get("x-pathname") ?? "/";
 
@@ -74,8 +78,7 @@ export default async function DashboardLayout({
       <SessionWatcher />
       <AuthenticatedNavbar user={user} accessibleModules={accessibleModules} />
 
-      <div className="flex flex-col min-h-[calc(100vh-64px-56px)]">
-        <main className="flex-1 p-6 transition-all duration-300">
+      <div className="flex flex-col min-h-[calc(100vh-64px-56px)]">          <main className="flex-1 p-3 sm:p-4 md:p-6 transition-all duration-300">
           {children}
         </main>
       </div>

@@ -1,10 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { DateField } from "@/components/ui/date-field";
+import { FormLabel, FormSelect, FormInput, FormTextarea } from "@/components/ui/form-fields";
 import { Building, ListPlus } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
+import { extractApiError } from "@/lib/utils";
 
 interface OfficerOption {
   id: string;
@@ -23,12 +26,22 @@ interface PositionAssignmentFormProps {
   onSave: () => void;
 }
 
-export function PositionAssignmentForm({ position, officers, isOpen, onClose, onSave }: PositionAssignmentFormProps) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const isEditing = !!position;
+function getInitialPositionForm(position: Position | null) {
+  if (position) {
+    return {
+      officerId: position.officerId || "",
+      positionTitle: position.positionTitle || "",
+      positionType: position.positionType || "primary",
+      substituteForOfficerId: position.substituteForOfficerId || "",
+      startDate: position.startDate ? new Date(position.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      endDate: position.endDate ? new Date(position.endDate).toISOString().split('T')[0] : "",
+      orderNumber: position.orderNumber || "",
+      notes: position.notes || "",
+      status: position.status || "active",
+    };
+  }
 
-  const [form, setForm] = useState({
+  return {
     officerId: "",
     positionTitle: "",
     positionType: "primary" as "primary" | "substitute",
@@ -38,41 +51,64 @@ export function PositionAssignmentForm({ position, officers, isOpen, onClose, on
     orderNumber: "",
     notes: "",
     status: "active" as "active" | "ended",
-  });
+  };
+}
 
-  useEffect(() => {
-    if (position && isOpen) {
-      setForm({
-        officerId: (position.officerId as string) || "",
-        positionTitle: (position.positionTitle as string) || "",
-        positionType: (position.positionType as "primary" | "substitute") || "primary",
-        substituteForOfficerId: (position.substituteForOfficerId as string) || "",
-        startDate: position.startDate ? new Date(position.startDate as string).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        endDate: position.endDate ? new Date(position.endDate as string).toISOString().split('T')[0] : "",
-        orderNumber: (position.orderNumber as string) || "",
-        notes: (position.notes as string) || "",
-        status: (position.status as "active" | "ended") || "active",
-      });
-    } else if (!position && isOpen) {
-      setForm({
-        officerId: "",
-        positionTitle: "",
-        positionType: "primary",
-        substituteForOfficerId: "",
-        startDate: new Date().toISOString().split('T')[0],
-        endDate: "",
-        orderNumber: "",
-        notes: "",
-        status: "active",
+export function PositionAssignmentForm({ position, officers, isOpen, onClose, onSave }: PositionAssignmentFormProps) {
+  if (!isOpen) return null;
+
+  return (
+    <PositionAssignmentFormContent
+      key={position?.id ?? "new"}
+      position={position}
+      officers={officers}
+      onClose={onClose}
+      onSave={onSave}
+    />
+  );
+}
+
+function PositionAssignmentFormContent({
+  position,
+  officers,
+  onClose,
+  onSave,
+}: Omit<PositionAssignmentFormProps, "isOpen">) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const { showToast } = useToast();
+  const isEditing = !!position;
+
+  const [form, setForm] = useState(() => getInitialPositionForm(position));
+
+  const updateField = (key: string, value: unknown) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+    if (fieldErrors[key]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
       });
     }
-    setError("");
-  }, [position, isOpen]);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setFieldErrors({});
+
+    if (!form.officerId) {
+      setFieldErrors({ officerId: "يرجى اختيار الضابط" });
+      setLoading(false);
+      return;
+    }
+    if (!form.positionTitle.trim()) {
+      setFieldErrors({ positionTitle: "المسمى الوظيفي مطلوب" });
+      setLoading(false);
+      return;
+    }
 
     try {
       const url = isEditing 
@@ -95,18 +131,27 @@ export function PositionAssignmentForm({ position, officers, isOpen, onClose, on
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.error || "فشل حفظ التعيين الوظيفي");
+        if (data.details && Array.isArray(data.details)) {
+          const errs: Record<string, string> = {};
+          data.details.forEach((d: { field?: string; message?: string }) => {
+            if (d.field) errs[d.field] = d.message || "بيان غير صالح";
+          });
+          setFieldErrors(errs);
+        }
+        const errorMsg = extractApiError(data, "فشل حفظ التعيين الوظيفي");
+        throw new Error(errorMsg);
       }
 
+      showToast(isEditing ? "تم تحديث التعيين الوظيفي بنجاح" : "تم حفظ التعيين الوظيفي بنجاح", "success");
       onSave();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "حدث خطأ غير متوقع");
+      const message = err instanceof Error ? err.message : "حدث خطأ غير متوقع";
+      setError(message);
+      showToast(message, "error");
     } finally {
       setLoading(false);
     }
   };
-
-  if (!isOpen) return null;
 
   const footer = (
     <ModalActions 
@@ -120,7 +165,7 @@ export function PositionAssignmentForm({ position, officers, isOpen, onClose, on
     <ModalShell
       title={
         <div className="flex items-center gap-2">
-          <div className={`p-1.5 rounded-lg ${isEditing ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'}`}>
+          <div className={`p-1.5 rounded-lg ${isEditing ? 'bg-(--app-warning)/20 text-(--app-warning)' : 'bg-(--app-info)/20 text-(--app-info)'}`}>
             <ListPlus className="h-4 w-4" />
           </div>
           <span className="text-base font-black text-(--app-foreground)">
@@ -134,7 +179,7 @@ export function PositionAssignmentForm({ position, officers, isOpen, onClose, on
     >
       <form id="position-form" onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-xs font-bold">
+          <div className="p-3 bg-(--app-error)/10 border border-(--app-error)/20 rounded-xl text-(--app-error) text-xs font-bold">
             {error}
           </div>
         )}
@@ -142,71 +187,80 @@ export function PositionAssignmentForm({ position, officers, isOpen, onClose, on
         <div className="space-y-4">
           {/* Officer ID */}
           <div className="space-y-1.5">
-            <label htmlFor="officerId" className="text-[10px] font-black uppercase text-slate-400 mr-1">الضابط المعين</label>
-            <select
+            <FormLabel htmlFor="officerId" required>الضابط المعين</FormLabel>
+            <FormSelect
               id="officerId"
               required
               value={form.officerId}
-              onChange={(e) => setForm({ ...form, officerId: e.target.value })}
-              className="w-full h-11 px-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-(--app-foreground) focus:outline-none  focus:ring-blue-500/10 focus:border-blue-500 transition-all appearance-none"
+              onChange={(e) => updateField("officerId", e.target.value)}
+              className={fieldErrors.officerId ? "border-(--app-error) ring-1 ring-(--app-error)/30 bg-red-500/5" : ""}
             >
               <option value="" disabled>اختر الضابط...</option>
               {officers.map(off => (
                 <option key={off.id} value={off.id}>{off.rank} / {off.name}</option>
               ))}
-            </select>
+            </FormSelect>
+            {fieldErrors.officerId && (
+              <p className="text-xs font-bold text-(--app-error) mt-1">{fieldErrors.officerId}</p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             {/* Position Title */}
             <div className="space-y-1.5">
-              <label htmlFor="positionTitle" className="text-[10px] font-black uppercase text-slate-400 mr-1">المسمى الوظيفي</label>
+              <FormLabel htmlFor="positionTitle" required>المسمى الوظيفي</FormLabel>
               <div className="relative">
-                <input
+                <FormInput
                   id="positionTitle"
                   type="text"
                   required
                   placeholder="رئيس فرع، قائد..."
                   value={form.positionTitle}
-                  onChange={(e) => setForm({ ...form, positionTitle: e.target.value })}
-                  className="w-full h-11 pr-10 pl-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-(--app-foreground) focus:outline-none  focus:ring-blue-500/10 focus:border-blue-500 transition-all text-right"
+                  onChange={(e) => updateField("positionTitle", e.target.value)}
+                  className={`pr-10 ${fieldErrors.positionTitle ? "border-(--app-error) ring-1 ring-(--app-error)/30 bg-red-500/5" : ""}`}
                 />
-                <Building className="absolute right-3 top-3.5 h-4 w-4 text-slate-400" />
+                <Building className="absolute right-3 top-3.5 h-4 w-4 text-(--app-muted-foreground)" />
               </div>
+              {fieldErrors.positionTitle && (
+                <p className="text-xs font-bold text-(--app-error) mt-1">{fieldErrors.positionTitle}</p>
+              )}
             </div>
 
             {/* Position Type */}
             <div className="space-y-1.5">
-              <label htmlFor="positionType" className="text-[10px] font-black uppercase text-slate-400 mr-1">نوع التعيين</label>
-              <select
+              <FormLabel htmlFor="positionType" required>نوع التعيين</FormLabel>
+              <FormSelect
                 id="positionType"
                 required
                 value={form.positionType}
-                onChange={(e) => setForm({ ...form, positionType: e.target.value as "primary" | "substitute" })}
-                className="w-full h-11 px-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-(--app-foreground) focus:outline-none  focus:ring-blue-500/10 focus:border-blue-500 transition-all appearance-none"
+                onChange={(e) => updateField("positionType", e.target.value as "primary" | "substitute")}
               >
                 <option value="primary">أساسي</option>
                 <option value="substitute">بديل</option>
-              </select>
+              </FormSelect>
             </div>
           </div>
 
           {/* Substitute For Officer */}
           {form.positionType === "substitute" && (
             <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1">
-              <label htmlFor="substituteForOfficerId" className="text-[10px] font-black uppercase text-amber-500 mr-1">الضابط البديل عنه (الأصلي)</label>
-              <select
+              <FormLabel htmlFor="substituteForOfficerId" required className="text-(--app-warning)">الضابط البديل عنه (الأصلي)</FormLabel>
+              <FormSelect
                 id="substituteForOfficerId"
                 required
                 value={form.substituteForOfficerId}
-                onChange={(e) => setForm({ ...form, substituteForOfficerId: e.target.value })}
-                className="w-full h-11 px-4 bg-amber-50/50 border border-amber-200 rounded-xl text-sm font-bold text-amber-900 focus:outline-none  focus:ring-amber-500/20 focus:border-amber-500 transition-all appearance-none"
+                onChange={(e) => updateField("substituteForOfficerId", e.target.value)}
+                focusVariant="amber"
+                className={fieldErrors.substituteForOfficerId ? "border-(--app-error) ring-1 ring-(--app-error)/30 bg-red-500/5" : ""}
               >
                 <option value="" disabled>اختر الضابط الأصلي...</option>
                 {officers.filter(o => o.id !== form.officerId).map(off => (
                   <option key={off.id} value={off.id}>{off.rank} / {off.name}</option>
                 ))}
-              </select>
+              </FormSelect>
+              {fieldErrors.substituteForOfficerId && (
+                <p className="text-xs font-bold text-(--app-error) mt-1">{fieldErrors.substituteForOfficerId}</p>
+              )}
             </div>
           )}
 
@@ -216,7 +270,8 @@ export function PositionAssignmentForm({ position, officers, isOpen, onClose, on
               id="startDate"
               label="تاريخ البداية"
               value={form.startDate}
-              onChange={(v) => setForm({ ...form, startDate: v })}
+              onChange={(v) => updateField("startDate", v)}
+              error={fieldErrors.startDate}
               required
             />
 
@@ -225,48 +280,46 @@ export function PositionAssignmentForm({ position, officers, isOpen, onClose, on
               id="endDate"
               label="تاريخ الانتهاء (اختياري)"
               value={form.endDate}
-              onChange={(v) => setForm({ ...form, endDate: v })}
+              onChange={(v) => updateField("endDate", v)}
+              error={fieldErrors.endDate}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             {/* Order Number */}
             <div className="space-y-1.5">
-              <label htmlFor="orderNumber" className="text-[10px] font-black uppercase text-slate-400 mr-1">رقم الأمر (اختياري)</label>
-              <input
+              <FormLabel htmlFor="orderNumber">رقم الأمر (اختياري)</FormLabel>
+              <FormInput
                 id="orderNumber"
                 type="text"
                 placeholder="أدخل رقم البند/الأمر"
                 value={form.orderNumber}
                 onChange={(e) => setForm({ ...form, orderNumber: e.target.value })}
-                className="w-full h-11 px-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-(--app-foreground) focus:outline-none  focus:ring-blue-500/10 focus:border-blue-500 transition-all text-right"
               />
             </div>
 
             {/* Status */}
             <div className="space-y-1.5">
-              <label htmlFor="status" className="text-[10px] font-black uppercase text-slate-400 mr-1">حالة التعيين</label>
-              <select
+              <FormLabel htmlFor="status">حالة التعيين</FormLabel>
+              <FormSelect
                 id="status"
                 value={form.status}
                 onChange={(e) => setForm({ ...form, status: e.target.value as "active" | "ended" })}
-                className="w-full h-11 px-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-(--app-foreground) focus:outline-none  focus:ring-blue-500/10 focus:border-blue-500 transition-all appearance-none"
               >
                 <option value="active">ساري</option>
                 <option value="ended">منتهي</option>
-              </select>
+              </FormSelect>
             </div>
           </div>
 
           {/* Remarks */}
           <div className="space-y-1.5">
-            <label htmlFor="notes" className="text-[10px] font-black uppercase text-slate-400 mr-1">ملاحظات (اختياري)</label>
-            <textarea
+            <FormLabel htmlFor="notes">ملاحظات (اختياري)</FormLabel>
+            <FormTextarea
               id="notes"
               placeholder="أي تفاصيل أخرى..."
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              className="w-full min-h-[60px] p-4 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-(--app-foreground) focus:outline-none  focus:ring-blue-500/10 focus:border-blue-500 transition-all text-right resize-none"
             />
           </div>
         </div>

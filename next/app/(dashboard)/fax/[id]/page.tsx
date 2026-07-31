@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { connectToDatabase } from "@/lib/db/connect";
 import { authenticate } from "@/lib/auth/middleware";
 import { redirect } from "next/navigation";
@@ -75,12 +76,22 @@ export default async function FaxDetailPage({ params }: FaxDetailPageProps) {
   return (
     <PageContainer>
       <PageHeader
-        title={`فاكس رقم ${fax.faxNumber}`}
-        backHref="/fax"
-        backLabel="العودة للقائمة"
+        title={
+          <span className="flex items-center gap-2 flex-wrap">
+            <Link
+              href="/fax"
+              className="text-(--color-primary) hover:underline hover:text-blue-600 transition-colors"
+            >
+              الفاكسات والمكاتبات
+            </Link>
+            <span className="text-(--app-muted-foreground)/50 font-semibold">-</span>
+            <span>فاكس رقم {fax.faxNumber} ({fax.subject})</span>
+          </span>
+        }
+        description="عرض المستند الرقمي وتتبع التوجيهات وقرارات القيادة بشأن المكاتبة"
         action={
           <span
-            className={`inline-block rounded-full px-4 py-1 text-sm font-medium ${statusColors[fax.status]}`}
+            className={`inline-block rounded-full px-4 py-1.5 text-xs font-bold ${statusColors[fax.status]}`}
           >
             {statusLabels[fax.status]}
           </span>
@@ -91,29 +102,29 @@ export default async function FaxDetailPage({ params }: FaxDetailPageProps) {
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <span className="text-(--app-muted-foreground)">التاريخ:</span>
-            <span className="mr-2 text-(--app-white)">
-              {new Date(fax.date).toLocaleDateString("ar")}
+            <span className="mr-2 text-(--app-foreground)">
+              {new Date(fax.date).toLocaleDateString("ar-EG")}
             </span>
           </div>
           <div>
             <span className="text-(--app-muted-foreground)">الجهة المرسِلة:</span>
-            <span className="mr-2 text-(--app-white)">{fax.fromEntity}</span>
+            <span className="mr-2 text-(--app-foreground)">{fax.fromEntity}</span>
           </div>
           <div>
             <span className="text-(--app-muted-foreground)">الجهة المستقبِلة:</span>
-            <span className="mr-2 text-(--app-white)">{fax.toEntity}</span>
+            <span className="mr-2 text-(--app-foreground)">{fax.toEntity}</span>
           </div>
           <div>
             <span className="text-(--app-muted-foreground)">الموضوع:</span>
-            <span className="mr-2 text-(--app-white)">{fax.subject}</span>
+            <span className="mr-2 text-(--app-foreground)">{fax.subject}</span>
           </div>
           <div>
             <span className="text-(--app-muted-foreground)">رفعه:</span>
-            <span className="mr-2 text-(--app-white)">{populatedUploadedBy.fullName}</span>
+            <span className="mr-2 text-(--app-foreground)">{populatedUploadedBy.fullName}</span>
           </div>
           <div>
             <span className="text-(--app-muted-foreground)">تاريخ الرفع:</span>
-            <span className="mr-2 text-(--app-white)">
+            <span className="mr-2 text-(--app-foreground)">
               {new Date(fax.createdAt).toLocaleString("ar")}
             </span>
           </div>
@@ -121,7 +132,7 @@ export default async function FaxDetailPage({ params }: FaxDetailPageProps) {
 
         {fax.commanderDecision && (
           <div className="mt-4 rounded-md bg-(--app-surface) p-4">
-            <h3 className="font-medium text-(--app-white)">قرار القائد</h3>
+            <h3 className="font-medium text-(--app-foreground)">قرار القائد</h3>
             <p className="mt-1 text-foreground">{fax.commanderDecision}</p>
             {fax.commanderDecisionAt && (
               <p className="mt-1 text-xs text-(--app-muted-foreground)">
@@ -133,7 +144,7 @@ export default async function FaxDetailPage({ params }: FaxDetailPageProps) {
 
         {fax.forwardedToType && (
           <div className="mt-4 rounded-md bg-(--app-surface) p-4">
-            <h3 className="font-medium text-(--app-white)">توجيه</h3>
+            <h3 className="font-medium text-(--app-foreground)">توجيه</h3>
             <p className="mt-1 text-foreground">
               {fax.forwardedToType === "user" && populatedForwardedTo
                 ? `موجّه إلى: ${populatedForwardedTo.fullName}`
@@ -146,7 +157,7 @@ export default async function FaxDetailPage({ params }: FaxDetailPageProps) {
 
         {populatedClosedBy && (
           <div className="mt-4 rounded-md bg-(--app-surface) p-4">
-            <h3 className="font-medium text-(--app-white)">الإغلاق</h3>
+            <h3 className="font-medium text-(--app-foreground)">الإغلاق</h3>
             <p className="mt-1 text-foreground">
               أغلقه: {populatedClosedBy.fullName}
               {fax.closedAt && (

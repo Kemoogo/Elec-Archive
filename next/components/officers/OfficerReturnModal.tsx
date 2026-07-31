@@ -7,9 +7,17 @@ import { useToast } from "@/components/ui/toast";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { DateField } from "@/components/ui/date-field";
+import { FormLabel, FormTextarea } from "@/components/ui/form-fields";
+import { extractApiError } from "@/lib/utils";
 
-export function OfficerReturnModal({ officer, trigger }: { // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  officer: any; trigger?: React.ReactNode }) {
+interface OfficerSummary {
+  id: string;
+  rank: string;
+  rankLabel: string;
+  fullName: string;
+}
+
+export function OfficerReturnModal({ officer, trigger }: { officer: OfficerSummary; trigger?: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -38,7 +46,8 @@ export function OfficerReturnModal({ officer, trigger }: { // eslint-disable-nex
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "فشل تسجيل العودة");
+        const errorMsg = extractApiError(data, "فشل تسجيل العودة");
+        throw new Error(errorMsg);
       }
 
       showToast("تم تسجيل عودة الضابط للخدمة بنجاح", "success");
@@ -58,9 +67,9 @@ export function OfficerReturnModal({ officer, trigger }: { // eslint-disable-nex
       </div>
       {open && (
         <ModalShell title="تسجيل عودة للخدمة" onClose={() => setOpen(false)}>
-          <div className="mb-6 bg-cyan-50 border border-cyan-100 p-4 rounded-2xl text-right">
-            <p className="text-xs font-bold text-cyan-800">سيتم إعادة الضابط للحالة النشطة وتوثيق تاريخ العودة.</p>
-            <p className="text-xs text-cyan-600 mt-1">{officer.rankLabel || officer.rank} / {officer.fullName}</p>
+          <div className="mb-6 bg-(--app-info)/10 border border-(--app-info)/20 p-4 rounded-2xl text-right">
+            <p className="text-xs font-bold text-(--app-info)">سيتم إعادة الضابط للحالة النشطة وتوثيق تاريخ العودة.</p>
+            <p className="text-xs text-(--app-info) mt-1">{officer.rankLabel || officer.rank} / {officer.fullName}</p>
           </div>
           
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -75,13 +84,14 @@ export function OfficerReturnModal({ officer, trigger }: { // eslint-disable-nex
 
             {/* ملاحظات */}
             <div className="space-y-1.5 text-right">
-              <label htmlFor="return-notes" className="text-xs font-bold text-(--app-muted-foreground) block mr-1">ملاحظات (اختياري)</label>
-              <textarea
+              <FormLabel htmlFor="return-notes">ملاحظات (اختياري)</FormLabel>
+              <FormTextarea
                 id="return-notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="أية ملاحظات إضافية..."
-                className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-medium text-(--app-muted-foreground) focus:outline-none focus:ring-cyan-500/20 focus:border-cyan-500 transition-all text-right resize-none h-24"
+                focusVariant="cyan"
+                className="h-24"
               />
             </div>
             

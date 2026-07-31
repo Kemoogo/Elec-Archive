@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { authenticate } from "@/lib/auth/middleware";
 import { logAuditEvent } from "@/lib/auth/audit";
 import { errors } from "@/lib/auth/errors";
+import { handleApiError } from "@/lib/utils/api-error";
 import { Officer, RANK_LABELS, type OfficerRank } from "@/lib/db/models/Officer";
 import { Leave } from "@/lib/db/models/Leave";
 import { canViewOfficers, canEditOfficers } from "@/lib/officers/access";
@@ -164,7 +165,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ success: true, data: { id: leave._id.toString() } }, { status: 201 });
-  } catch {
-    return NextResponse.json({ success: false, error: errors.internalError }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

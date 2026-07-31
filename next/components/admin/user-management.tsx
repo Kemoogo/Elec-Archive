@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, forwardRef, useImperativeHandle } from "react";
 import { useToast } from "@/components/ui/toast";
+import { extractApiError } from "@/lib/utils";
 import { CreateUserModal } from "./create-user-modal";
 import { EditUserModal } from "./edit-user-modal";
 import MainTable, { TableColumn } from "@/components/ui/Table";
@@ -86,7 +87,8 @@ export const UserManagement = forwardRef<{ openCreateModal: () => void }, UserMa
       const data = await res.json();
 
       if (!res.ok) {
-        showToast(data.error ?? "فشل في تعطيل المستخدم", "error");
+        const errorMsg = extractApiError(data, "فشل في تعطيل المستخدم");
+        showToast(errorMsg, "error");
         return;
       }
 
@@ -107,7 +109,8 @@ export const UserManagement = forwardRef<{ openCreateModal: () => void }, UserMa
       const data = await res.json();
 
       if (!res.ok) {
-        showToast(data.error ?? "فشل في تفعيل المستخدم", "error");
+        const errorMsg = extractApiError(data, "فشل في تفعيل المستخدم");
+        showToast(errorMsg, "error");
         return;
       }
 
@@ -128,7 +131,8 @@ export const UserManagement = forwardRef<{ openCreateModal: () => void }, UserMa
       const data = await res.json();
 
       if (!res.ok) {
-        showToast(data.error ?? "فشل في فتح الحساب", "error");
+        const errorMsg = extractApiError(data, "فشل في فتح الحساب");
+        showToast(errorMsg, "error");
         return;
       }
 
@@ -149,7 +153,8 @@ export const UserManagement = forwardRef<{ openCreateModal: () => void }, UserMa
       const data = await res.json();
 
       if (!res.ok) {
-        showToast(data.error ?? "فشل في قفل الحساب", "error");
+        const errorMsg = extractApiError(data, "فشل في قفل الحساب");
+        showToast(errorMsg, "error");
         return;
       }
 

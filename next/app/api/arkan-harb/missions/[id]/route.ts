@@ -5,6 +5,7 @@ import { canEditModule } from "@/lib/auth/authorization";
 import { logAuditEvent } from "@/lib/auth/audit";
 import { errors } from "@/lib/auth/errors";
 import { Mission, type MissionStatus } from "@/lib/db/models/Mission";
+import { handleApiError } from "@/lib/utils/api-error";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
 import { updateMissionSchema } from "@/lib/validations/arkan-harb";
 
@@ -99,7 +100,6 @@ export async function PATCH(
     // 9. Response
     return NextResponse.json({ success: true, data: { id } });
   } catch (error) {
-    console.error("Missions PATCH error:", error);
-    return NextResponse.json({ success: false, error: errors.internalError }, { status: 500 });
+    return handleApiError(error, "حدث خطأ أثناء تحديث المأمورية");
   }
 }

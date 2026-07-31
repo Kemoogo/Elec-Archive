@@ -2,10 +2,10 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { OfficersTable } from "@/components/officers/OfficersTable";
+import { OfficersTable, getMissingFields } from "@/components/officers/OfficersTable";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { ModernPageHeader as PageHeader } from "@/components/layout/ModernPageHeader";
-import { Shield } from "lucide-react";
+import { ModernPageHeader as PageHeader, SecondaryHeaderBtn } from "@/components/layout/ModernPageHeader";
+import { Shield, AlertTriangle, Filter } from "lucide-react";
 import { OfficerForm } from "@/components/officers/OfficerForm";
 import type { OfficerListItem } from "@/lib/officers/queries";
 
@@ -32,8 +32,10 @@ export function OfficersPageClient({
 }: OfficersPageClientProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState(initialSearch);
-  const [statusFilter, setStatusFilter] = useState(initialStatus);
+  const [statusFilter] = useState(initialStatus);
   const [showAll, setShowAll] = useState(initialShowAll);
+
+  const incompleteCount = officers.filter((o) => getMissingFields(o).length > 0).length;
 
   const applyFilters = useCallback(
     (search: string, status: string, all: boolean) => {
@@ -54,14 +56,6 @@ export function OfficersPageClient({
     [applyFilters, statusFilter, showAll],
   );
 
-  const handleStatusChange = useCallback(
-    (status: string) => {
-      setStatusFilter(status);
-      applyFilters(searchQuery, status, showAll);
-    },
-    [applyFilters, searchQuery, showAll],
-  );
-
   const toggleShowAll = useCallback(() => {
     const nextShowAll = !showAll;
     setShowAll(nextShowAll);
@@ -79,12 +73,17 @@ export function OfficersPageClient({
         onSearchChange={handleSearchChange}
         action={
           <div className="flex items-center gap-2">
-            <button
+            {incompleteCount > 0 && (
+              <span className="px-3 py-1.5 rounded-xl text-xs font-black bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center gap-1.5 shrink-0" title="عدد السجلات ذات البيانات غير المكتملة بهذه الصفحة">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+                <span>{incompleteCount} غير مكتمل</span>
+              </span>
+            )}
+            <SecondaryHeaderBtn
+              label={showAll ? "كل الضباط" : "الضباط بالوحدة"}
+              icon={<Filter className="w-4 h-4" />}
               onClick={toggleShowAll}
-              className="px-4 py-2 rounded-xl text-sm font-bold transition-all bg-slate-100 text-(--color-primary) hover:bg-slate-200 focus:outline-none cursor-pointer text-center"
-            >
-              {showAll ? "كل الضباط" : "الضباط بالوحدة"}
-            </button>
+            />
             {canEdit && <OfficerForm mode="create" />}
           </div>
         }

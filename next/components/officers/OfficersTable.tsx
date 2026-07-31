@@ -1,37 +1,45 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { AlertTriangle, Award, ArrowRightCircle } from "lucide-react";
 import { compareSeniority } from "@/lib/officers/seniority";
 import MainTable, { TableColumn } from "@/components/ui/Table";
+import { Paginator } from "@/components/ui/paginator";
 import { OfficerForm } from "./OfficerForm";
 import { OfficerPromoteModal } from "./OfficerPromoteModal";
 import { OfficerTransferModal } from "./OfficerTransferModal";
 import { OfficerReturnModal } from "./OfficerReturnModal";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const ActionButton = ({ icon, color, title, onClick }: any) => {
-    return (
-        <div className="relative flex flex-col items-center group">
-            <button
-                type="button"
-                onClick={onClick}
-                className={`p-1.5 rounded-lg transition-all ${color} relative`}
-            >
-                {icon}
-            </button>
-            {title && (
-                <div className="absolute bottom-full left-0 mb-2 z-50 w-max max-w-[150px] whitespace-normal bg-slate-800 text-white text-[10px] font-bold px-2 py-1.5 rounded shadow-xl hidden group-hover:block pointer-events-none">
-                    {title}
-                    <div className="absolute top-full left-3 -translate-x-1/2 border-x-4 border-x-transparent border-t-4 border-t-slate-800"></div>
-                </div>
-            )}
+interface ActionButtonProps {
+  icon: React.ReactNode;
+  color: string;
+  title: string;
+  onClick?: () => void;
+}
+
+export const ActionButton = ({ icon, color, title, onClick }: ActionButtonProps) => {
+  return (
+    <div className="relative flex flex-col items-center group">
+      <button
+        type="button"
+        onClick={onClick}
+        className={`p-1.5 rounded-lg transition-all ${color} relative`}
+      >
+        {icon}
+      </button>
+      {title && (
+        <div className="absolute bottom-full left-0 mb-2 z-50 w-max max-w-[200px] whitespace-normal bg-(--app-foreground) text-(--app-surface) text-[10px] font-bold px-2.5 py-1.5 rounded-xl shadow-2xl hidden group-hover:block pointer-events-none border border-(--app-border)/20">
+          {title}
+          <div className="absolute top-full left-3 -translate-x-1/2 border-x-4 border-x-transparent border-t-4 border-t-(--app-foreground)"></div>
         </div>
-    );
+      )}
+    </div>
+  );
 };
 
 interface OfficerListItem {
+  _isComplete?: boolean;
+  _missingFields?: string[];
   id: string;
   militaryId: string;
   seniorityNumber: string;
@@ -49,10 +57,35 @@ interface OfficerListItem {
   nationalId: string;
   joinDate: string;
   birthDate: string;
+  graduationDate?: string;
+  bloodType?: string;
+  religion?: string;
+  maritalStatus?: string;
+  faculty?: string;
+  file121IssueDate?: string;
   employmentStatus: string;
   employmentStatusLabel: string;
   isInUnit: boolean;
+  isArkanHarb: boolean;
   file121Url: string;
+}
+
+export function getMissingFields(officer: OfficerListItem): string[] {
+  const missing: string[] = [];
+  if (!officer.militaryId) missing.push("الرقم العسكري");
+  if (!officer.nationalId) missing.push("الرقم القومي");
+  if (!officer.phone) missing.push("الهاتف");
+  if (!officer.batch) missing.push("الدفعة");
+  if (!officer.type) missing.push("النوع");
+  if (!officer.weapon) missing.push("السلاح");
+  if (!officer.birthDate) missing.push("تاريخ الميلاد");
+  if (!officer.graduationDate) missing.push("تاريخ التخرج");
+  if (!officer.bloodType) missing.push("فصيلة الدم");
+  if (!officer.religion) missing.push("الديانة");
+  if (!officer.maritalStatus) missing.push("الحالة الاجتماعية");
+  if (!officer.faculty) missing.push("الكلية / المعهد");
+  if (!officer.file121Url) missing.push("وثيقة 121 (PDF)");
+  return missing;
 }
 
 interface OfficersTableProps {
@@ -64,25 +97,18 @@ interface OfficersTableProps {
 }
 
 export function OfficersTable({ officers, page, totalPages, total, canEdit }: OfficersTableProps) {
-  const router = useRouter();
   // ترتيب الضباط وفق المنطق العسكري المتقدم وتقييم اكتمال البيانات
   const sortedOfficers = [...officers].sort((a, b) => compareSeniority(a.seniorityNumber, b.seniorityNumber))
-  .map(officer => {
-    // A record is complete if all descriptive fields are filled
-    const isComplete = Boolean(officer.batch && officer.type && officer.weapon && officer.phone && officer.nationalId && officer.militaryId && officer.file121Url);
-    return {
-      ...officer,
-      _isComplete: isComplete,
-    };
-  });
+    .map(officer => {
+      const missing = getMissingFields(officer);
+      return {
+        ...officer,
+        _missingFields: missing,
+        _isComplete: missing.length === 0,
+      };
+    });
 
-  if (sortedOfficers.length === 0) {
-    return (
-      <div className="rounded-lg bg-(--app-surface) p-8 text-center text-(--app-muted-foreground)">
-        لا توجد ضباط
-      </div>
-    );
-  }
+
 
   const columns: TableColumn<OfficerListItem>[] = [
     {
@@ -98,7 +124,7 @@ export function OfficersTable({ officers, page, totalPages, total, canEdit }: Of
       header: "الأسم",
       accessor: "fullName",
       render: (val, row) => (
-        <Link href={`/officers/${row.id}`} className="hover:underline hover:text-blue-600 cursor-pointer">
+        <Link href={`/officers/${row.id}`} className="hover:underline hover:text-(--app-info) cursor-pointer">
           {val as string}
         </Link>
       ),
@@ -133,13 +159,12 @@ export function OfficersTable({ officers, page, totalPages, total, canEdit }: Of
     {
       header: "الإجراءات",
       accessor: "id",
-      cellAlign: "center",
+      cellAlign: "left",
       headerAlign: "center",
       minWidth: true,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      render: (_, row: any) => {
+      render: (_, row: OfficerListItem) => {
         return (
-          <div className="flex items-center justify-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
             {!row._isComplete && (
               <OfficerForm
                 mode="edit"
@@ -147,33 +172,33 @@ export function OfficersTable({ officers, page, totalPages, total, canEdit }: Of
                 highlightIncomplete={true}
                 trigger={
                   <ActionButton
-                    icon={<AlertTriangle className="w-4 h-4 text-amber-600" />}
-                    color="bg-amber-50 hover:bg-amber-100 border border-amber-200"
-                    title="بيانات غير مكتملة"
+                    icon={<AlertTriangle className="w-4 h-4 text-amber-500 animate-pulse" />}
+                    color="btn-action-warning"
+                    title={`بيانات غير مكتملة (${row._missingFields?.join("، ") || "بيانات تنظيمية"})`}
                   />
                 }
               />
             )}
-            
+
             {canEdit && row.isInUnit && (
               <>
                 <OfficerPromoteModal
                   officer={row}
                   trigger={
                     <ActionButton
-                      icon={<Award className="w-4 h-4 text-amber-600" />}
-                      color="bg-amber-50 hover:bg-amber-100 border border-amber-200"
+                      icon={<Award className="w-4 h-4" />}
+                      color="btn-action-warning"
                       title="تسجيل ترقية"
                     />
                   }
                 />
-                
+
                 <OfficerTransferModal
                   officer={row}
                   trigger={
                     <ActionButton
-                      icon={<ArrowRightCircle className="w-4 h-4 text-orange-600" />}
-                      color="bg-orange-50 hover:bg-orange-100 border border-orange-200"
+                      icon={<ArrowRightCircle className="w-4 h-4" />}
+                      color="btn-action-warning"
                       title="نقل / إنهاء خدمة"
                     />
                   }
@@ -186,8 +211,8 @@ export function OfficersTable({ officers, page, totalPages, total, canEdit }: Of
                 officer={row}
                 trigger={
                   <ActionButton
-                    icon={<ArrowRightCircle className="w-4 h-4 text-blue-600 -rotate-180" />}
-                    color="bg-blue-50 hover:bg-blue-100 border border-blue-200"
+                    icon={<ArrowRightCircle className="w-4 h-4 -rotate-180" />}
+                    color="btn-action-info"
                     title="عودة للخدمة / إعادة انضمام"
                   />
                 }
@@ -204,30 +229,12 @@ export function OfficersTable({ officers, page, totalPages, total, canEdit }: Of
       <MainTable
         columns={columns}
         data={sortedOfficers}
-      // showSerialNumber 
+        emptyTitle="لا يوجد ضباط مسجلين"
+        emptyDescription="لم يتم العثور على أي ضباط يطابقون معايير البحث الحالية"
       />
 
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-(--app-muted-foreground)">إجمالي: {total}</span>
-          <div className="flex items-center gap-2" dir="ltr">
-            <Link
-              href={page > 1 ? `/officers?page=${page - 1}` : "#"}
-              className={`rounded-md bg-(--app-surface) px-3 py-2 text-sm text-(--app-white) hover:bg-white/10 ${page <= 1 ? "opacity-30 pointer-events-none" : ""}`}
-            >
-              السابق
-            </Link>
-            <span className="text-sm text-(--app-muted-foreground)">صفحة {page} من {totalPages}</span>
-            <Link
-              href={page < totalPages ? `/officers?page=${page + 1}` : "#"}
-              className={`rounded-md bg-(--app-surface) px-3 py-2 text-sm text-(--app-white) hover:bg-white/10 ${page >= totalPages ? "opacity-30 pointer-events-none" : ""}`}
-            >
-              التالي
-            </Link>
-          </div>
-        </div>
-      )}
+      <Paginator page={page} totalPages={totalPages} total={total} />
     </div>
   );
 }

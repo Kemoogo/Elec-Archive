@@ -32,6 +32,8 @@ function applyThemeClass(resolved: "light" | "dark") {
   const root = document.documentElement;
   root.classList.remove("light", "dark");
   root.classList.add(resolved);
+  root.setAttribute("data-theme", resolved);
+  root.style.colorScheme = resolved;
 }
 
 export function ThemeProvider({

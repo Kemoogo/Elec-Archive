@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { authenticate } from "@/lib/auth/middleware";
 import { logAuditEvent } from "@/lib/auth/audit";
 import { errors } from "@/lib/auth/errors";
+import { handleApiError } from "@/lib/utils/api-error";
 import { Student } from "@/lib/db/models/Student";
 import { deleteDocumentSchema } from "@/lib/validations/student";
 import { writeFile, unlink, mkdir } from "fs/promises";
@@ -38,25 +39,25 @@ export async function POST(
     return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
   }
 
-  await connectToDatabase();
-
-  const { id } = await params;
-  const student = await Student.findById(id);
-  if (!student) {
-    return NextResponse.json(
-      { success: false, error: "الطالب غير موجود" },
-      { status: 404 },
-    );
-  }
-
-  if (student.status !== "active") {
-    return NextResponse.json(
-      { success: false, error: "لا يمكن رفع مستندات لطالب موقف" },
-      { status: 400 },
-    );
-  }
-
   try {
+    await connectToDatabase();
+
+    const { id } = await params;
+    const student = await Student.findById(id);
+    if (!student) {
+      return NextResponse.json(
+        { success: false, error: "الطالب غير موجود" },
+        { status: 404 },
+      );
+    }
+
+    if (student.status !== "active") {
+      return NextResponse.json(
+        { success: false, error: "لا يمكن رفع مستندات لطالب موقف" },
+        { status: 400 },
+      );
+    }
+
     const formData = await request.formData();
     const file = formData.get("file");
     const name = formData.get("name") as string | null;
@@ -141,11 +142,8 @@ export async function POST(
       },
       { status: 201 },
     );
-  } catch {
-    return NextResponse.json(
-      { success: false, error: errors.internalError },
-      { status: 500 },
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -174,9 +172,9 @@ export async function DELETE(
     return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
   }
 
-  await connectToDatabase();
-
   try {
+    await connectToDatabase();
+
     const { id } = await params;
     const student = await Student.findById(id);
     if (!student) {
@@ -245,10 +243,6 @@ export async function DELETE(
       message: "تم حذف المستند بنجاح",
     });
   } catch (error) {
-    console.error("Student document DELETE error:", error);
-    return NextResponse.json(
-      { success: false, error: errors.internalError },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

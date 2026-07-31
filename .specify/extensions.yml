@@ -1,22 +1,10 @@
-installed: []
+installed:
+- git
+- verify
 settings:
   auto_execute_hooks: true
 hooks:
   after_implement:
-  - extension: git
-    command: speckit.git.commit
-    enabled: true
-    optional: true
-    prompt: Commit implementation changes?
-    description: Auto-commit after implementation
-    condition: null
-  - extension: verify
-    command: speckit.verify.run
-    enabled: true
-    optional: true
-    prompt: Run verify to validate implementation against specification?
-    description: Post-implementation verification gate
-    condition: null
   - extension: cleanup
     command: speckit.cleanup.run
     enabled: true
@@ -31,14 +19,21 @@ hooks:
     prompt: Run PR review on implemented changes?
     description: Comprehensive review after implementation
     condition: null
-  after_specify:
   - extension: git
     command: speckit.git.commit
     enabled: true
     optional: true
-    prompt: Commit specification changes?
-    description: Auto-commit after specification
+    prompt: Commit implementation changes?
+    description: Auto-commit after implementation
     condition: null
+  - extension: verify
+    command: speckit.verify.run
+    enabled: true
+    optional: true
+    prompt: Run verify to validate implementation against specification?
+    description: Post-implementation verification gate
+    condition: null
+  after_specify:
   - extension: speckit-utils
     command: speckit.speckit-utils.doctor
     enabled: true
@@ -46,20 +41,27 @@ hooks:
     prompt: Run project health check?
     description: Validate project health after specification generation
     condition: null
-  after_plan:
   - extension: git
     command: speckit.git.commit
     enabled: true
     optional: true
-    prompt: Commit plan changes?
-    description: Auto-commit after implementation planning
+    prompt: Commit specification changes?
+    description: Auto-commit after specification
     condition: null
+  after_plan:
   - extension: speckit-utils
     command: speckit.speckit-utils.validate
     enabled: true
     optional: true
     prompt: Validate spec-to-task traceability?
     description: Verify requirements map to planned tasks after planning
+    condition: null
+  - extension: git
+    command: speckit.git.commit
+    enabled: true
+    optional: true
+    prompt: Commit plan changes?
+    description: Auto-commit after implementation planning
     condition: null
   before_constitution:
   - extension: git

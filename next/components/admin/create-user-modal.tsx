@@ -4,6 +4,8 @@ import { useState } from "react";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { useToast } from "@/components/ui/toast";
+import { extractApiError } from "@/lib/utils";
+import { FormField, FormInput, FormSelect, FormLabel } from "@/components/ui/form-fields";
 
 interface CreateUserModalProps {
   onClose: () => void;
@@ -44,7 +46,8 @@ export function CreateUserModal({ onClose, onCreated }: CreateUserModalProps) {
       const data = await res.json();
 
       if (!res.ok) {
-        showToast(data.error ?? "فشل في إنشاء المستخدم", "error");
+        const errorMsg = extractApiError(data, "فشل في إنشاء المستخدم");
+        showToast(errorMsg, "error");
         return;
       }
 
@@ -84,82 +87,48 @@ export function CreateUserModal({ onClose, onCreated }: CreateUserModalProps) {
     >
         <form id={formId} onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-foreground">اسم المستخدم</label>
-              <input
-                type="text"
-                required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="mt-1 w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-white)"
-                dir="rtl"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-foreground">كلمة المرور</label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-white)"
-                dir="rtl"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-foreground">الاسم الكامل</label>
-              <input
-                type="text"
-                required
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="mt-1 w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-white)"
-                dir="rtl"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-foreground">الدور</label>
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                className="mt-1 w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-white)"
-              >
+            <FormField label="اسم المستخدم" required>
+              <FormInput type="text" required value={username} onChange={(e) => setUsername(e.target.value)} dir="rtl" />
+            </FormField>
+            <FormField label="كلمة المرور" required>
+              <FormInput type="password" required value={password} onChange={(e) => setPassword(e.target.value)} dir="rtl" />
+            </FormField>
+            <FormField label="الاسم الكامل" required>
+              <FormInput type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} dir="rtl" />
+            </FormField>
+            <FormField label="الدور" required>
+              <FormSelect value={role} onChange={(e) => setRole(e.target.value)}>
                 {ROLES.map((r) => (
                   <option key={r} value={r}>{r}</option>
                 ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm text-foreground">القسم</label>
-              <select
-                value={department}
-                onChange={(e) => setDepartment(e.target.value)}
-                className="mt-1 w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-white)"
-              >
+              </FormSelect>
+            </FormField>
+            <FormField label="القسم" required>
+              <FormSelect value={department} onChange={(e) => setDepartment(e.target.value)}>
                 {DEPARTMENTS.map((d) => (
                   <option key={d} value={d}>{d}</option>
                 ))}
-              </select>
-            </div>
+              </FormSelect>
+            </FormField>
           </div>
 
           <div>
-            <label className="mb-2 block text-sm text-foreground">الصلاحيات</label>
+            <FormLabel className="mb-2 block">الصلاحيات</FormLabel>
             <div className="grid grid-cols-5 gap-2">
               {MODULES.map((mod) => (
                 <div key={mod}>
                   <label className="block text-xs text-(--app-muted-foreground)">{mod}</label>
-                  <select
+                  <FormSelect
                     value={permissions[mod]}
                     onChange={(e) =>
                       setPermissions({ ...permissions, [mod]: e.target.value })
                     }
-                    className="mt-1 w-full rounded-md border border-(--app-border) bg-(--app-surface) px-2 py-1 text-sm text-(--app-white)"
+                    selectSize="sm"
                   >
                     {PERMISSION_LEVELS.map((p) => (
                       <option key={p} value={p}>{p}</option>
                     ))}
-                  </select>
+                  </FormSelect>
                 </div>
               ))}
             </div>

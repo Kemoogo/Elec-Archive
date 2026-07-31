@@ -7,10 +7,21 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { ModernPageHeader as PageHeader, PrimaryHeaderBtn } from "@/components/layout/ModernPageHeader";
 import { FileText, Plus, Calendar, X } from "lucide-react";
 import { DateField } from "@/components/ui/date-field";
-import type { IFax } from "@/lib/db/models/Fax";
+import { Paginator } from "@/components/ui/paginator";
+
+interface SerializedFax {
+  _id: string;
+  faxNumber: string;
+  date: string;
+  fromEntity: string;
+  subject: string;
+  status: "pending" | "forwarded" | "closed";
+  uploadedBy: { _id: string; fullName: string };
+  createdAt: string;
+}
 
 interface FaxPageClientProps {
-  initialFaxes: any[];
+  initialFaxes: SerializedFax[];
   total: number;
   totalPages: number;
   page: number;
@@ -103,7 +114,7 @@ export function FaxPageClient({
             <select
               value={statusFilter}
               onChange={(e) => handleStatusChange(e.target.value)}
-              className="px-4 py-2 rounded-xl text-sm font-bold transition-all bg-slate-100 text-(--color-primary) hover:bg-slate-200 focus:outline-none   appearance-none cursor-pointer"
+              className="btn-secondary-sm"
             >
               <option value="">جميع الحالات</option>
               <option value="pending">معلق</option>
@@ -150,7 +161,7 @@ export function FaxPageClient({
           </div>
           <button
             onClick={clearFilters}
-            className="mr-auto flex items-center gap-1 text-xs font-bold text-red-500 hover:text-red-600 transition-colors"
+            className="mr-auto flex items-center gap-1 text-xs font-bold text-(--app-error) hover:text-(--app-error) transition-colors"
           >
             <X className="w-3 h-3" />
             مسح الفلاتر
@@ -160,42 +171,7 @@ export function FaxPageClient({
 
       <FaxTable faxes={initialFaxes} />
 
-      {totalPages > 1 && (
-        <div className="mt-8 flex items-center justify-center gap-4" dir="ltr">
-          <button
-            disabled={page <= 1}
-            onClick={() => {
-              const params = new URLSearchParams(window.location.search);
-              params.set("page", String(page - 1));
-              router.push(`/fax?${params.toString()}`);
-            }}
-            className="btn-secondary px-4 py-2 text-sm disabled:opacity-50"
-          >
-            السابق
-          </button>
-          
-          <div className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-(--color-primary) text-xs font-bold text-white shadow-sm">
-              {page}
-            </span>
-            <span className="text-xs font-bold text-(--color-muted)">
-              من {totalPages}
-            </span>
-          </div>
-
-          <button
-            disabled={page >= totalPages}
-            onClick={() => {
-              const params = new URLSearchParams(window.location.search);
-              params.set("page", String(page + 1));
-              router.push(`/fax?${params.toString()}`);
-            }}
-            className="btn-secondary px-4 py-2 text-sm disabled:opacity-50"
-          >
-            التالي
-          </button>
-        </div>
-      )}
+      <Paginator page={page} totalPages={totalPages} total={total} />
     </PageContainer>
   );
 }

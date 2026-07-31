@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { authenticate } from "@/lib/auth/middleware";
 import { logAuditEvent } from "@/lib/auth/audit";
 import { errors } from "@/lib/auth/errors";
+import { handleApiError } from "@/lib/utils/api-error";
 import { Course } from "@/lib/db/models/Course";
 import { addParticipantSchema, removeParticipantSchema } from "@/lib/validations/education";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
@@ -21,9 +22,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!rl.allowed) {
     return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
   }
-  await connectToDatabase();
-
   try {
+    await connectToDatabase();
+
     const { id } = await params;
     const course = await Course.findById(id);
     if (!course) {
@@ -68,8 +69,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     });
 
     return NextResponse.json({ success: true, message: "تم إضافة المشارك بنجاح" });
-  } catch {
-    return NextResponse.json({ success: false, error: errors.internalError }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -86,9 +87,9 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   if (!rl.allowed) {
     return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
   }
-  await connectToDatabase();
-
   try {
+    await connectToDatabase();
+
     const { id } = await params;
     const course = await Course.findById(id);
     if (!course) {
@@ -114,7 +115,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     });
 
     return NextResponse.json({ success: true, message: "تم إزالة المشارك بنجاح" });
-  } catch {
-    return NextResponse.json({ success: false, error: errors.internalError }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

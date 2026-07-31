@@ -4,9 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { PositionAssignmentTable, type Position } from "./PositionAssignmentTable";
 import { PositionAssignmentForm } from "./PositionAssignmentForm";
-import { Button } from "@/components/ui/button";
-import { Plus, Shield } from "lucide-react";
-import { PageHeader } from "@/components/layout/ModernPageHeader";
+import { Plus, Shield, ChevronDown } from "lucide-react";
+import { PageHeader, PrimaryHeaderBtn } from "@/components/layout/ModernPageHeader";
 
 interface OfficerOption {
   id: string;
@@ -24,6 +23,7 @@ interface PositionsClientProps {
   officerFilter: string;
   statusFilter: string;
   canEdit: boolean;
+  hideHeader?: boolean;
 }
 
 export function PositionsClient({
@@ -35,19 +35,13 @@ export function PositionsClient({
   officerFilter,
   statusFilter,
   canEdit,
+  hideHeader = false,
 }: PositionsClientProps) {
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Reset loading state when new data arrives
-  if (isLoading && initialPositions) {
-    setIsLoading(false);
-  }
 
   const updateFilters = (newFilters: Record<string, string | number>) => {
-    setIsLoading(true);
     const params = new URLSearchParams(window.location.search);
     
     Object.entries(newFilters).forEach(([key, value]) => {
@@ -77,39 +71,41 @@ export function PositionsClient({
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="التنظيم الإداري والوظائف"
-        description={`إدارة التعيينات الوظيفية الأساسية والبديلة للضباط (${total})`}
-        icon={<Shield className="w-6 h-6" />}
-        backHref="/arkan-harb"
-        backLabel="العودة لأركان الحرب"
-        showSearch
-        searchQuery={officerFilter}
-        onSearchChange={(query) => updateFilters({ officerId: query, page: 1 })}
-        searchPlaceholder="بحث بمعرف الضابط..."
-        action={
-          <div className="flex items-center gap-2">
-            <select
-              value={statusFilter}
-              onChange={(e) => updateFilters({ status: e.target.value, page: 1 })}
-              className="px-4 py-2 rounded-xl text-sm font-bold transition-all bg-slate-100 text-(--color-primary) hover:bg-slate-200 focus:outline-none   appearance-none cursor-pointer"
-            >
-              <option value="">كل الحالات</option>
-              <option value="active">نشطة</option>
-              <option value="historical">سابقة</option>
-            </select>
-            {canEdit && (
-              <Button 
-                onClick={handleCreate}
-                className="h-9 px-4 rounded-xl bg-(--color-primary) text-white font-black shadow-lg shadow-blue-900/10 hover:shadow-blue-900/20 active:scale-95 transition-all flex items-center gap-2 text-xs"
-              >
-                <Plus className="h-4 w-4" />
-                إضافة تعيين
-              </Button>
-            )}
-          </div>
-        }
-      />
+      {!hideHeader && (
+        <PageHeader
+          title="التنظيم الإداري والوظائف"
+          icon={<Shield className="w-6 h-6" />}
+          backHref="/arkan-harb"
+          backLabel="أركان الحرب"
+          showSearch
+          searchQuery={officerFilter}
+          onSearchChange={(query) => updateFilters({ officerId: query, page: 1 })}
+          searchPlaceholder="بحث بمعرف الضابط..."
+          action={
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => updateFilters({ status: e.target.value, page: 1 })}
+                  className="px-3.5 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-xs font-bold text-(--app-foreground) focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none cursor-pointer pr-3 pl-8 shadow-xs"
+                >
+                  <option value="">كل الحالات</option>
+                  <option value="active">نشطة</option>
+                  <option value="historical">سابقة</option>
+                </select>
+                <ChevronDown className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-(--app-muted-foreground) pointer-events-none" />
+              </div>
+              {canEdit && (
+                <PrimaryHeaderBtn
+                  label="إضافة تعيين"
+                  icon={<Plus className="w-4 h-4" />}
+                  onClick={handleCreate}
+                />
+              )}
+            </div>
+          }
+        />
+      )}
 
       <PositionAssignmentTable
         positions={initialPositions}
@@ -124,7 +120,6 @@ export function PositionsClient({
         onOfficerFilterChange={(o) => updateFilters({ officerId: o, page: 1 })}
         onStatusFilterChange={(s) => updateFilters({ status: s, page: 1 })}
         onEditPosition={handleEdit}
-        isLoading={isLoading}
       />
 
       <PositionAssignmentForm

@@ -1,6 +1,19 @@
 "use client";
 
-import { CheckCircle2, XCircle, Calendar, Plane, History, UserCheck, ShieldCheck, Info, LucideIcon } from "lucide-react";
+import { 
+  CheckCircle2, 
+  XCircle, 
+  Calendar, 
+  Plane, 
+  History, 
+  UserCheck, 
+  ShieldCheck, 
+  Info, 
+  LucideIcon, 
+  Stethoscope, 
+  BookOpen 
+} from "lucide-react";
+import { SectionWrapper } from "@/components/ui/section-wrapper";
 
 interface RollcallEntry {
   officerId: string;
@@ -31,6 +44,8 @@ const STATUS_CONFIG: Record<string, { label: string, color: string, icon: Lucide
   absent: { label: "غائب", color: "bg-(--app-error)/10 text-(--app-error) border-(--app-error)/20", icon: XCircle },
   leave: { label: "إجازة", color: "bg-(--app-warning)/10 text-(--app-warning) border-(--app-warning)/20", icon: Calendar },
   mission: { label: "مأمورية", color: "bg-(--color-primary)/10 text-(--color-primary) border-(--color-primary)/20", icon: Plane },
+  medical: { label: "عيادة/راحة", color: "bg-(--app-error)/10 text-(--app-error) border-(--app-error)/20", icon: Stethoscope },
+  course: { label: "فرقة", color: "bg-(--app-info)/10 text-(--app-info) border-(--app-info)/20", icon: BookOpen },
 };
 
 export function RollcallSummary({ rollcall, isCommander }: RollcallSummaryProps) {
@@ -39,11 +54,13 @@ export function RollcallSummary({ rollcall, isCommander }: RollcallSummaryProps)
     absent: rollcall.entries.filter((e) => e.status === "absent").length,
     leave: rollcall.entries.filter((e) => e.status === "leave").length,
     mission: rollcall.entries.filter((e) => e.status === "mission").length,
+    medical: rollcall.entries.filter((e) => e.status === "medical").length,
+    course: rollcall.entries.filter((e) => e.status === "course").length,
   };
 
   return (
     <div className="space-y-6">
-      <div className="bg-(--app-surface) border border-(--app-border) rounded-xl p-6">
+      <SectionWrapper>
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-(--app-surface-container) border border-(--app-border) rounded-lg">
@@ -57,19 +74,20 @@ export function RollcallSummary({ rollcall, isCommander }: RollcallSummaryProps)
           </div>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           {Object.entries(totals).map(([status, count]) => {
             const config = STATUS_CONFIG[status];
+            if (!config) return null;
             const Icon = config.icon;
             return (
               <div 
                 key={status}
-                className={`bg-(--app-surface-container) border p-4 rounded-lg transition-all`}
+                className={`bg-(--app-surface-container-low) border border-(--app-border)/40 p-4 rounded-lg transition-all hover:border-(--color-primary)/30`}
               >
                 <div className="flex flex-col items-center gap-2">
-                  <Icon className="h-6 w-6 opacity-60" />
-                  <div className="text-3xl font-bold">{count}</div>
-                  <div className="text-xs font-medium opacity-60">{config.label}</div>
+                  <Icon className="h-6 w-6 text-(--app-muted-foreground)/60" />
+                  <div className="text-2xl font-bold text-(--app-foreground)">{count}</div>
+                  <div className="text-[10px] font-black uppercase text-(--app-muted-foreground)/80">{config.label}</div>
                 </div>
               </div>
             );
@@ -80,19 +98,19 @@ export function RollcallSummary({ rollcall, isCommander }: RollcallSummaryProps)
           <History className="h-4 w-4" />
           <span>تم التوثيق في: {new Date(rollcall.submittedAt).toLocaleString("ar-EG")}</span>
         </div>
-      </div>
+      </SectionWrapper>
 
       {isCommander && (
-        <div className="bg-(--app-surface) border border-(--app-border) rounded-xl overflow-hidden">
-          <div className="px-4 py-4 border-b border-(--app-border) flex items-center gap-3 bg-(--app-surface-container)">
+        <SectionWrapper className="overflow-hidden">
+          <div className="px-4 py-4 border-b border-(--app-border) flex items-center gap-3 bg-(--app-surface-container-low)">
              <Info className="h-5 w-5 text-(--color-primary)" />
-             <h3 className="text-lg font-semibold text-(--color-primary)">كشف التفاصيل (للمراجعة)</h3>
+             <h3 className="text-sm font-black text-(--color-primary)">كشف التفاصيل (للمراجعة)</h3>
           </div>
           
           <div className="overflow-x-auto rounded-b-xl bg-(--app-surface)">
             <table className="w-full text-right">
               <thead>
-                <tr className="border-b border-(--app-border) text-sm text-(--app-muted-foreground)">
+                <tr className="border-b border-(--app-border) text-xs font-black text-(--app-muted-foreground)">
                   <th className="p-4">البيانات الشخصية</th>
                   <th className="p-4">الرتبة</th>
                   <th className="p-4">الحالة</th>
@@ -104,23 +122,23 @@ export function RollcallSummary({ rollcall, isCommander }: RollcallSummaryProps)
                   const config = STATUS_CONFIG[entry.status] || STATUS_CONFIG.present;
                   const StatusIcon = config.icon;
                   return (
-                    <tr key={entry.officerId} className="border-b border-(--app-border) transition hover:bg-white/10">
+                    <tr key={entry.officerId} className="border-b border-(--app-border) transition hover:bg-(--app-surface-container-low)/40">
                       <td className="p-4">
                          <div className="flex flex-col">
                             <span className="text-(--color-primary) font-bold">{entry.fullName}</span>
-                            <span className="text-sm font-mono text-(--app-muted-foreground)">{entry.militaryId}</span>
+                            <span className="text-[10px] font-mono text-(--app-muted-foreground)">{entry.militaryId}</span>
                          </div>
                       </td>
-                      <td className="p-4 text-(--app-muted-foreground)">
+                      <td className="p-4 text-xs font-bold text-(--app-muted-foreground)">
                         {entry.rankLabel}
                       </td>
                       <td className="p-4">
-                        <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border ${config.color}`}>
+                        <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-black border ${config.color}`}>
                           <StatusIcon className="h-3 w-3" />
                           {config.label}
                         </div>
                       </td>
-                      <td className="p-4 text-(--app-muted-foreground)">
+                      <td className="p-4 text-xs text-(--app-muted-foreground)/80">
                          {entry.note || "―"}
                       </td>
                     </tr>
@@ -129,7 +147,7 @@ export function RollcallSummary({ rollcall, isCommander }: RollcallSummaryProps)
               </tbody>
             </table>
           </div>
-        </div>
+        </SectionWrapper>
       )}
     </div>
   );

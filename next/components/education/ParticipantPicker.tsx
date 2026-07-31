@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/toast";
+import { extractApiError } from "@/lib/utils";
 
 interface ParticipantPickerProps {
   courseId: string;
@@ -10,6 +12,7 @@ interface ParticipantPickerProps {
 
 export function ParticipantPicker({ courseId, participantModel }: ParticipantPickerProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -53,15 +56,19 @@ export function ParticipantPicker({ courseId, participantModel }: ParticipantPic
         });
         const data = await res.json();
         if (res.ok) {
+          showToast("تم إضافة المشارك بنجاح", "success");
           setResults([]);
           setSearch("");
           setIsOpen(false);
           router.refresh();
         } else {
-          setError(data.error ?? "فشل الإضافة");
+          const errMsg = extractApiError(data, "فشل الإضافة");
+          setError(errMsg);
+          showToast(errMsg, "error");
         }
       } catch {
         setError("حدث خطأ في الاتصال");
+        showToast("حدث خطأ في الاتصال بالخادم", "error");
       }
     });
   }
@@ -79,7 +86,7 @@ export function ParticipantPicker({ courseId, participantModel }: ParticipantPic
 
   return (
     <div className="rounded-lg border border-(--app-border) bg-(--app-surface) p-4" dir="rtl">
-      <h3 className="mb-3 text-sm font-medium text-(--app-white)">
+      <h3 className="mb-3 text-sm font-medium text-(--app-foreground)">
         إضافة {participantModel === "Officer" ? "ضابط" : "طالب"}
       </h3>
       <div className="flex gap-2">
@@ -88,7 +95,7 @@ export function ParticipantPicker({ courseId, participantModel }: ParticipantPic
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="بحث بالاسم..."
-          className="flex-1 rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-white) placeholder:text-(--app-muted-foreground)"
+          className="flex-1 rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-foreground) placeholder:text-(--app-muted-foreground) focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
         />
         <button
           onClick={handleSearch}
@@ -107,7 +114,7 @@ className="rounded-md bg-(--app-accent) px-4 py-2 text-sm text-(--app-accent-for
 className="flex items-center justify-between rounded-md border border-(--app-border) p-3"
               >
                 <div>
-                  <p className="text-sm text-(--app-white)">{r.name}</p>
+                  <p className="text-sm text-(--app-foreground)">{r.name}</p>
                   <p className="text-xs text-(--app-muted-foreground)">{r.identifier}</p>
               </div>
               <button

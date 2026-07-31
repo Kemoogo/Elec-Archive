@@ -1,5 +1,22 @@
 ## Merged Features Log
 
+### 005-officers-affairs (121 PDF Extraction & UI Upgrade) — 2026-07-30
+**Branch:** main
+**Spec:** specs/005-officers-affairs
+
+**What was added:**
+- محرك تحليل واستخراج البيانات من وثائق "121 ش ض" الرسمية (AcroForm Engine) بقراءة حقول (اسم الضابط، رقم الأقدمية، الرقم العسكري، الرقم القومي، الدفعة، الهاتف، تاريخ الميلاد، الرتبة، السلاح، نوع الخدمة، أركان حرب، وتاريخ تحرير الملف).
+- إعادة تنظيم خطوات إضافة ضابط بتوفير خيارين مباشرين في الخطوة الأولى (رفع وثيقة 121 ش ض للاستخراج الآلي الفوري أو إدخال رقم الأقدمية يدوياً).
+- التحقق التلقائي والفوري من رقم الأقدمية المستخرج من الـ PDF مع توجيه الضابط الجديد لنموذج الحفظ والتوجيه التلقائي للضابط العائد لسجل العودة.
+- الرفض الفوري والمنع للملفات غير المطابقة للنموذج المعتمد لـ 121 ش ض.
+- استخراج وحفظ تاريخ تحرير الملف (`file121IssueDate`) تلقائياً وإظهاره بشكل أنيق أسفل كلمة "عرض الملف" في صفحة تفاصيل الضابط.
+- استبدال تنبيهات الحذف والاستبدال الافتراضية بمودالات تأكيد موحدة وأنيقة (`ModalShell`) مع إظهار مودال تنبيه قبل فتح خيار اختيار الملف عند تحديث المستند.
+
+**New Components & Refactoring:**
+- `parseOfficer121PdfAction` & AcroForm PDF parser integration (`pdf-parse/lib/pdf-parse.js`).
+- `OfficerForm.tsx` (Step 1 mode selection, seniority auto-check, extraction banner).
+- `OfficerDocuments.tsx` (`ModalShell` delete confirmation modal & pre-selection update warning modal).
+
 ### 005-officers-affairs — 2026-04-10
 **Branch:** 005-officers-affairs
 **Spec:** specs/005-officers-affairs

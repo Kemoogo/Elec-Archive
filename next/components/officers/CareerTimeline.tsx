@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/empty-state";
+import { SectionWrapper } from "@/components/ui/section-wrapper";
 
 export type TimelineEventType = "join" | "promotion" | "mission" | "transfer" | "termination" | "return" | "death" | "retirement";
 
@@ -37,42 +38,42 @@ interface CareerTimelineProps {
 const EVENT_CONFIG: Record<TimelineEventType, { icon: React.ElementType, color: string, label: string }> = {
   join: { 
     icon: UserPlus, 
-    color: "bg-blue-500", 
+    color: "bg-(--app-info)", 
     label: "انضمام" 
   },
   promotion: { 
     icon: TrendingUp, 
-    color: "bg-amber-500", 
+    color: "bg-(--app-warning)", 
     label: "ترقية" 
   },
   mission: { 
     icon: Plane, 
-    color: "bg-purple-500", 
+    color: "bg-(--app-info)", 
     label: "مأمورية" 
   },
   transfer: { 
     icon: MapPin, 
-    color: "bg-emerald-500", 
+    color: "bg-(--app-success)", 
     label: "نقل" 
   },
   termination: { 
     icon: XCircle, 
-    color: "bg-rose-500", 
+    color: "bg-(--app-error)", 
     label: "إنهاء خدمة" 
   },
   return: { 
     icon: History, 
-    color: "bg-cyan-500", 
+    color: "bg-(--app-info)", 
     label: "عودة للخدمة" 
   },
   death: { 
     icon: XCircle, 
-    color: "bg-slate-800", 
+    color: "bg-(--app-muted-foreground)", 
     label: "وفاة" 
   },
   retirement: { 
     icon: XCircle, 
-    color: "bg-orange-500", 
+    color: "bg-(--app-warning)", 
     label: "تقاعد" 
   },
 };
@@ -111,7 +112,7 @@ export function CareerTimeline({ events, officerName }: CareerTimelineProps) {
             </div>
 
             {/* Event Card */}
-            <div className="bg-(--app-surface) border border-(--app-border) rounded-xl p-5 shadow-sm transition-all duration-200 hover:shadow-md hover:border-(--app-muted-foreground)/20">
+            <SectionWrapper className="!p-5 transition-all duration-200 hover:shadow-md hover:border-(--app-muted-foreground)/20">
               <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                 <div className="space-y-3 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -119,7 +120,7 @@ export function CareerTimeline({ events, officerName }: CareerTimelineProps) {
                       {config.label}
                     </span>
                     {event.badge && (
-                      <span className="px-2.5 py-1 rounded-md bg-amber-50 text-amber-700 text-xs font-bold border border-amber-100">
+                      <span className="px-2.5 py-1 rounded-md bg-(--app-warning)/10 text-(--app-warning) text-xs font-bold border border-(--app-warning)/20">
                         {event.badge}
                       </span>
                     )}
@@ -162,7 +163,7 @@ export function CareerTimeline({ events, officerName }: CareerTimelineProps) {
                   </div>
                 </div>
               </div>
-            </div>
+            </SectionWrapper>
           </div>
         );
       })}

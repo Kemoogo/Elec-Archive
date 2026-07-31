@@ -6,8 +6,9 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/toast";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { ModalShell } from "@/components/ui/modal-shell";
-
 import { DateField } from "@/components/ui/date-field";
+import { FormLabel, FormSelect, FormTextarea } from "@/components/ui/form-fields";
+import { extractApiError } from "@/lib/utils";
 
 import { 
   MOVEMENT_LABELS, 
@@ -19,8 +20,14 @@ const MOVEMENT_OPTIONS = MOVEMENT_TYPES
   .filter(t => t !== 'join' && t !== 'return')
   .map(t => ({ value: t, label: MOVEMENT_LABELS[t] }));
 
-export function OfficerTransferModal({ officer, trigger }: { // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  officer: any; trigger?: React.ReactNode }) {
+interface OfficerSummary {
+  id: string;
+  rank: string;
+  rankLabel: string;
+  fullName: string;
+}
+
+export function OfficerTransferModal({ officer, trigger }: { officer: OfficerSummary; trigger?: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [action, setAction] = useState<MovementType>("transfer");
@@ -50,7 +57,8 @@ export function OfficerTransferModal({ officer, trigger }: { // eslint-disable-n
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "فشل تسجيل الحركة");
+        const errorMsg = extractApiError(data, "فشل تسجيل الحركة");
+        throw new Error(errorMsg);
       }
 
       showToast("تم تسجيل حركة مغادرة الضابط بنجاح", "success");
@@ -70,9 +78,9 @@ export function OfficerTransferModal({ officer, trigger }: { // eslint-disable-n
       </div>
       {open && (
         <ModalShell title="تسجيل مغادرة / إنهاء خدمة" onClose={() => setOpen(false)}>
-          <div className="mb-6 bg-orange-50 border border-orange-100 p-4 rounded-2xl text-right">
-            <p className="text-xs font-bold text-orange-800">سيتم تسجيل الضابط كخارج الوحدة وتوثيق السبب في السجل المهني.</p>
-            <p className="text-xs text-orange-600 mt-1">{officer.rankLabel || officer.rank} / {officer.fullName}</p>
+          <div className="mb-6 bg-(--app-warning)/10 border border-(--app-warning)/20 p-4 rounded-2xl text-right">
+            <p className="text-xs font-bold text-(--app-warning)">سيتم تسجيل الضابط كخارج الوحدة وتوثيق السبب في السجل المهني.</p>
+            <p className="text-xs text-(--app-warning) mt-1">{officer.rankLabel || officer.rank} / {officer.fullName}</p>
           </div>
           
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -88,29 +96,30 @@ export function OfficerTransferModal({ officer, trigger }: { // eslint-disable-n
 
               {/* نوع الإجراء */}
               <div className="space-y-1.5 text-right">
-                <label htmlFor="transfer-status" className="text-xs font-bold text-(--app-muted-foreground) block mr-1">نوع الإجراء <span className="text-red-500">*</span></label>
-                <select
+                <FormLabel htmlFor="transfer-status" required>نوع الإجراء</FormLabel>
+                <FormSelect
                   id="transfer-status"
                   value={action}
                   onChange={(e) => setAction(e.target.value as MovementType)}
-                  className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none focus:ring-orange-500/20 focus:border-orange-500 transition-all appearance-none"
+                  focusVariant="orange"
                 >
                   {MOVEMENT_OPTIONS.map((r) => (
                     <option key={r.value} value={r.value}>{r.label}</option>
                   ))}
-                </select>
+                </FormSelect>
               </div>
             </div>
 
             {/* ملاحظات / السبب */}
             <div className="space-y-1.5 text-right">
-              <label htmlFor="movement-notes" className="text-xs font-bold text-(--app-muted-foreground) block mr-1">ملاحظات إضافية (اختياري)</label>
-              <textarea
+              <FormLabel htmlFor="movement-notes">ملاحظات إضافية (اختياري)</FormLabel>
+              <FormTextarea
                 id="movement-notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="تفاصيل إضافية حول سبب الحركة..."
-                className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-medium text-(--app-muted-foreground) focus:outline-none focus:ring-orange-500/20 focus:border-orange-500 transition-all text-right resize-none h-24"
+                focusVariant="orange"
+                className="h-24"
               />
             </div>
             

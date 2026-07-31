@@ -2,7 +2,7 @@ description = "Post-implementation quality gate that reviews changes, fixes smal
 
 # Source: cleanup
 
-prompt = """
+prompt = '''
 ## User Input
 
 ```text
@@ -471,4 +471,4 @@ Safe to run multiple times:
 - Task IDs increment from existing max
 - tech-debt-report.md regenerated with current state
 - Validation re-runs each time
-"""
+'''

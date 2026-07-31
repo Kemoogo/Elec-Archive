@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { POSITION_TYPE_LABELS, POSITION_STATUS_LABELS } from "@/lib/db/models/PositionAssignment.shared"
 import { Loader2, Briefcase } from "lucide-react"
 import { EmptyState } from "@/components/ui/empty-state"
+import { extractApiError } from "@/lib/utils"
 
 interface PositionAssignment {
   id: string
@@ -33,7 +34,6 @@ export function PositionHistory({ officerId, initialData }: PositionHistoryProps
   React.useEffect(() => {
     // تخطي الجلب التلقائي إذا تم توفير البيانات أولياً (SSR)
     if (initialData && data.length > 0) {
-      setLoading(false)
       return
     }
 
@@ -49,7 +49,8 @@ export function PositionHistory({ officerId, initialData }: PositionHistoryProps
         if (result.success) {
           setData(result.data.items || [])
         } else {
-          throw new Error(result.error || "فشل في تحميل سجل الوظائف")
+          const errMsg = extractApiError(result, "فشل في تحميل سجل الوظائف");
+          throw new Error(errMsg)
         }
       } catch (err) {
         console.error("Fetch error:", err)
@@ -118,8 +119,8 @@ export function PositionHistory({ officerId, initialData }: PositionHistoryProps
 
   if (error) {
     return (
-      <div className="rounded-xl border border-red-100 bg-red-50 p-6 text-center">
-        <p className="text-sm font-medium text-red-600">{error}</p>
+      <div className="rounded-xl border border-(--app-error)/20 bg-(--app-error)/10 p-6 text-center">
+        <p className="text-sm font-medium text-(--app-error)">{error}</p>
       </div>
     )
   }
@@ -148,8 +149,7 @@ export function PositionHistory({ officerId, initialData }: PositionHistoryProps
         columns={columns}
         data={data}
         showSerialNumber
-        theadClassName="bg-(--app-surface-container) text-(--app-muted-foreground) text-xs"
-        tdClassName="px-5 py-4 text-sm font-medium border-b border-(--app-border) text-(--app-muted-foreground) font-bold"
+
       />
     </div>
   )

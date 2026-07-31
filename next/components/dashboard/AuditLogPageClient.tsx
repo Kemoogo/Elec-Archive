@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { ModernPageHeader as PageHeader } from "@/components/layout/ModernPageHeader";
@@ -101,7 +101,7 @@ export function AuditLogPageClient() {
                 setFilterAction(e.target.value);
                 applyFilters({ action: e.target.value });
               }}
-              className="w-full rounded-xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-xs font-bold text-(--color-primary) focus:outline-none   transition-all appearance-none cursor-pointer"
+              className="btn-filter-sm"
             >
               <option value="">جميع العمليات</option>
               {Object.entries(actionLabels).map(([key, label]) => (
@@ -118,7 +118,7 @@ export function AuditLogPageClient() {
                 setFilterModule(e.target.value);
                 applyFilters({ module: e.target.value });
               }}
-              className="w-full rounded-xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-xs font-bold text-(--color-primary) focus:outline-none   transition-all appearance-none cursor-pointer"
+              className="btn-filter-sm"
             >
               <option value="">جميع الوحدات</option>
               {Object.entries(moduleLabels).map(([key, label]) => (
@@ -150,7 +150,7 @@ export function AuditLogPageClient() {
           <div className="flex items-end">
             <button
               onClick={clearFilters}
-              className="w-full h-[38px] flex items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/5 text-red-500 text-xs font-black hover:bg-red-500/10 transition-all shadow-sm"
+              className="w-full h-[38px] flex items-center justify-center gap-2 rounded-xl border border-(--app-error)/20 bg-(--app-error)/5 text-(--app-error) text-xs font-black hover:bg-(--app-error)/10 transition-all shadow-sm"
             >
               <X className="w-4 h-4" />
               مسح الفلاتر

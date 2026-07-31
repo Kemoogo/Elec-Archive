@@ -4,6 +4,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { Notification } from "@/lib/db/models/Notification";
 import { logAuditEvent } from "@/lib/auth/audit";
 import { notificationQuerySchema, markReadSchema } from "@/lib/validations/dashboard-notifications";
+import { handleApiError } from "@/lib/utils/api-error";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
 
 export async function GET(request: Request) {
@@ -75,11 +76,7 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    console.error("Notifications GET error:", error);
-    return NextResponse.json(
-      { success: false, error: "حدث خطأ أثناء تحميل الإشعارات" },
-      { status: 500 },
-    );
+    return handleApiError(error, "حدث خطأ أثناء تحميل الإشعارات");
   }
 }
 
@@ -107,40 +104,44 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ success: false, error: "معاملات غير صالحة" }, { status: 400 });
   }
 
-  await connectToDatabase();
+  try {
+    await connectToDatabase();
 
-  const userId = auth.user!.id;
+    const userId = auth.user!.id;
 
-  let modifiedCount: number;
+    let modifiedCount: number;
 
-  if (parsed.data.action === "mark_all_read") {
-    const result = await Notification.updateMany(
-      { userId, isRead: false },
-      { $set: { isRead: true } },
-    );
-    modifiedCount = result.modifiedCount;
-  } else {
-    const { Types } = await import("mongoose");
-    const validIds = parsed.data.notificationIds.filter((id) => Types.ObjectId.isValid(id));
+    if (parsed.data.action === "mark_all_read") {
+      const result = await Notification.updateMany(
+        { userId, isRead: false },
+        { $set: { isRead: true } },
+      );
+      modifiedCount = result.modifiedCount;
+    } else {
+      const { Types } = await import("mongoose");
+      const validIds = parsed.data.notificationIds.filter((id) => Types.ObjectId.isValid(id));
 
-    const result = await Notification.updateMany(
-      { userId, _id: { $in: validIds }, isRead: false },
-      { $set: { isRead: true } },
-    );
-    modifiedCount = result.modifiedCount;
+      const result = await Notification.updateMany(
+        { userId, _id: { $in: validIds }, isRead: false },
+        { $set: { isRead: true } },
+      );
+      modifiedCount = result.modifiedCount;
+    }
+
+    await logAuditEvent({
+      userId: auth.user!.id,
+      userName: auth.user!.fullName,
+      action: "UPDATE",
+      module: "notifications",
+      description: `تم تعيين ${modifiedCount} إشعار كمقروء (${parsed.data.action === "mark_all_read" ? "الكل" : "محدد"})`,
+      ipAddress: ip,
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: { modifiedCount },
+    });
+  } catch (error) {
+    return handleApiError(error);
   }
-
-  await logAuditEvent({
-    userId: auth.user!.id,
-    userName: auth.user!.fullName,
-    action: "UPDATE",
-    module: "notifications",
-    description: `تم تعيين ${modifiedCount} إشعار كمقروء (${parsed.data.action === "mark_all_read" ? "الكل" : "محدد"})`,
-    ipAddress: ip,
-  });
-
-  return NextResponse.json({
-    success: true,
-    data: { modifiedCount },
-  });
 }

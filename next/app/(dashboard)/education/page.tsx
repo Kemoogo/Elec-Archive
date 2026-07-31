@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { authenticate } from "@/lib/auth/middleware";
 import { connectToDatabase } from "@/lib/db/connect";
-import { Course, type ICourse } from "@/lib/db/models/Course";
+import { Course } from "@/lib/db/models/Course";
 import { courseListQuerySchema } from "@/lib/validations/education";
 import { EducationPageClient } from "@/components/education/EducationPageClient";
 import { escapeRegex } from "@/lib/utils";
@@ -54,7 +54,7 @@ export default async function EducationPage({ searchParams }: EducationPageProps
 
   return (
     <EducationPageClient
-      courses={serialized as unknown as ICourse[]}
+      courses={serialized}
       total={total}
       totalPages={totalPages}
       page={page}

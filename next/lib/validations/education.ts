@@ -9,6 +9,14 @@ export const createCourseSchema = z.object({
   startDate: z.string().min(1, "تاريخ البداية مطلوب").refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح"),
   endDate: z.string().min(1, "تاريخ الانتهاء مطلوب").refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح"),
   participantModel: z.enum(PARTICIPANT_MODELS_Z, { message: "نوع المشاركين غير صالح" }),
+}).superRefine((data, ctx) => {
+  if (new Date(data.endDate) < new Date(data.startDate)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "تاريخ الانتهاء يجب أن يكون بعد أو يساوي تاريخ البداية",
+      path: ["endDate"],
+    });
+  }
 });
 
 export const updateCourseSchema = z.object({
@@ -19,6 +27,14 @@ export const updateCourseSchema = z.object({
   status: z.enum(COURSE_STATUSES_Z).optional(),
 }).refine((data) => Object.keys(data).length > 0, {
   message: "يجب تحديد حقل واحد على الأقل للتحديث",
+}).superRefine((data, ctx) => {
+  if (data.startDate && data.endDate && new Date(data.endDate) < new Date(data.startDate)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "تاريخ الانتهاء يجب أن يكون بعد أو يساوي تاريخ البداية",
+      path: ["endDate"],
+    });
+  }
 });
 
 export const courseListQuerySchema = z.object({

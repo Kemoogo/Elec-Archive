@@ -8,6 +8,7 @@ import { Leave } from "@/lib/db/models/Leave";
 import { Types } from "mongoose";
 import { createLeaveSchema } from "@/lib/validations/officers";
 import { errors } from "@/lib/auth/errors";
+import { handleApiError } from "@/lib/utils/api-error";
 
 export async function POST(request: Request) {
   const auth = await authenticate();
@@ -46,8 +47,8 @@ export async function POST(request: Request) {
 
     const leave = await Leave.create({ ...data, status: "draft", createdBy: new Types.ObjectId(auth.user!.id), updatedBy: new Types.ObjectId(auth.user!.id) });
     return NextResponse.json({ success: true, data: { id: leave._id.toString() } }, { status: 201 });
-  } catch {
-    return NextResponse.json({ success: false, error: "حدث خطأ داخلي" }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error, "حدث خطأ أثناء تسجيل الإجازة");
   }
 }
 

@@ -1,6 +1,6 @@
 import { Schema, model, models, type Document, type Types } from "mongoose";
 
-export const ROLLCALL_STATUSES = ["present", "absent", "leave", "mission"] as const;
+export const ROLLCALL_STATUSES = ["present", "absent", "leave", "mission", "medical", "course"] as const;
 export type RollcallStatus = (typeof ROLLCALL_STATUSES)[number];
 
 export const ROLLCALL_STATUS_LABELS: Record<RollcallStatus, string> = {
@@ -8,6 +8,8 @@ export const ROLLCALL_STATUS_LABELS: Record<RollcallStatus, string> = {
   absent: "غائب",
   leave: "إجازة",
   mission: "مأمورية",
+  medical: "عيادة/راحة",
+  course: "فرقة",
 };
 
 export const ROLLCALL_DRAFT_STATUSES = ["draft", "submitted"] as const;

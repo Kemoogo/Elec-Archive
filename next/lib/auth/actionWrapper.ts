@@ -30,6 +30,9 @@ export function withActionWrapper<TArgs extends unknown[], TRet>(
     try {
       const auth = await authenticate();
       if (!auth.success || !auth.user) {
+        if (auth.status === 503) {
+          return { success: false, error: auth.error! };
+        }
         return { success: false, error: "غير مصرح لك بإجراء هذه العملية" };
       }
 
@@ -40,7 +43,14 @@ export function withActionWrapper<TArgs extends unknown[], TRet>(
         }
       }
 
-      await connectToDatabase();
+      try {
+        await connectToDatabase();
+      } catch (error) {
+        if (error instanceof Error && error.name === "DatabaseConnectionError") {
+          return { success: false, error: "انقطع الاتصال بقاعدة البيانات، يرجى المحاولة لاحقاً" };
+        }
+        throw error;
+      }
 
       const context: ActionContext = {
         userId: auth.user.id,
@@ -62,7 +72,7 @@ export function withActionWrapper<TArgs extends unknown[], TRet>(
       }
 
       // Remove internal audit properties from the final response
-      const { auditDesc, targetId, ...rest } = result;
+      const { auditDesc: _auditDesc, targetId: _targetId, ...rest } = result;
       return rest as ActionResponse<TRet>;
       
     } catch (error) {

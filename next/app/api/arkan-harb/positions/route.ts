@@ -6,6 +6,7 @@ import { logAuditEvent } from "@/lib/auth/audit";
 import { errors } from "@/lib/auth/errors";
 import { PositionAssignment } from "@/lib/db/models/PositionAssignment";
 import { Officer, RANK_LABELS, type OfficerRank } from "@/lib/db/models/Officer";
+import { handleApiError } from "@/lib/utils/api-error";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
 import { positionsListQuerySchema, createPositionAssignmentSchema } from "@/lib/validations/arkan-harb";
 
@@ -79,8 +80,7 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    console.error("Positions GET error:", error);
-    return NextResponse.json({ success: false, error: errors.internalError }, { status: 500 });
+    return handleApiError(error, "حدث خطأ أثناء تحميل التعيينات الوظيفية");
   }
 }
 
@@ -160,7 +160,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, data: { id: position._id.toString() } }, { status: 201 });
   } catch (error) {
-    console.error("Positions POST error:", error);
-    return NextResponse.json({ success: false, error: errors.internalError }, { status: 500 });
+    return handleApiError(error, "حدث خطأ أثناء إنشاء التعيين الوظيفي");
   }
 }

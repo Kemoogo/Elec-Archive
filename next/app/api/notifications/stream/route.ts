@@ -27,52 +27,59 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: false, error: "غير مصرح" }, { status: 401 });
   }
 
-  await connectToDatabase();
+  try {
+    await connectToDatabase();
 
-  const user = await User.findById(payload.userId);
-  if (!user || !user.isActive || user.isLocked) {
-    return NextResponse.json({ success: false, error: "غير مصرح" }, { status: 401 });
+    const user = await User.findById(payload.userId);
+    if (!user || !user.isActive || user.isLocked) {
+      return NextResponse.json({ success: false, error: "غير مصرح" }, { status: 401 });
+    }
+
+    if (user.role !== "commander") {
+      return NextResponse.json({ success: false, error: "غير مصرح" }, { status: 403 });
+    }
+
+    const userId = user._id.toString();
+    const ip = request.headers.get("x-forwarded-for") ?? "";
+    const rl = checkApiRateLimit(userId, ip, "read");
+    if (!rl.allowed) {
+      return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
+    }
+
+    const unreadCount = await Notification.countDocuments({ userId, isRead: false });
+
+    const stream = new ReadableStream({
+      start(controller) {
+        const encoder = new TextEncoder();
+
+        controller.enqueue(
+          encoder.encode(`event: connected\ndata: ${JSON.stringify({ message: "connected", unreadCount })}\n\n`),
+        );
+
+        addClient(userId, controller);
+
+        const heartbeatInterval = setInterval(() => {
+          sendHeartbeat(controller);
+        }, 30000);
+
+        request.signal.addEventListener("abort", () => {
+          clearInterval(heartbeatInterval);
+          removeClient(userId, controller);
+        });
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
+    });
+  } catch {
+    return NextResponse.json(
+      { success: false, error: "حدث خطأ أثناء الاتصال بالإشعارات الفورية" },
+      { status: 500 },
+    );
   }
-
-  if (user.role !== "commander") {
-    return NextResponse.json({ success: false, error: "غير مصرح" }, { status: 403 });
-  }
-
-  const userId = user._id.toString();
-  const ip = request.headers.get("x-forwarded-for") ?? "";
-  const rl = checkApiRateLimit(userId, ip, "read");
-  if (!rl.allowed) {
-    return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
-  }
-
-  const unreadCount = await Notification.countDocuments({ userId, isRead: false });
-
-  const stream = new ReadableStream({
-    start(controller) {
-      const encoder = new TextEncoder();
-
-      controller.enqueue(
-        encoder.encode(`event: connected\ndata: ${JSON.stringify({ message: "connected", unreadCount })}\n\n`),
-      );
-
-      addClient(userId, controller);
-
-      const heartbeatInterval = setInterval(() => {
-        sendHeartbeat(controller);
-      }, 30000);
-
-      request.signal.addEventListener("abort", () => {
-        clearInterval(heartbeatInterval);
-        removeClient(userId, controller);
-      });
-    },
-  });
-
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    },
-  });
 }

@@ -6,6 +6,7 @@ import { DailyRollcall } from "@/lib/db/models/DailyRollcall";
 import { Medicine } from "@/lib/db/models/Medicine";
 import { Course } from "@/lib/db/models/Course";
 import { Student } from "@/lib/db/models/Student";
+import { handleApiError } from "@/lib/utils/api-error";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
 
 export async function GET(request: Request) {
@@ -66,8 +67,8 @@ export async function GET(request: Request) {
     }
 
     if (isAdminOrCommander || user.department === "medical") {
-      const expiredCount = await Medicine.countDocuments({ expiryDate: { $lt: new Date() } });
-      const lowStockCount = await Medicine.countDocuments({ $expr: { $lt: ["$quantity", "$minThreshold"] } });
+      const expiredCount = await Medicine.countDocuments({ "batches.expiryDate": { $lt: new Date() } });
+      const lowStockCount = await Medicine.countDocuments({ $expr: { $lt: ["$totalQuantity", "$minThreshold"] } });
       data.medical = { expiredCount, lowStockCount };
     }
 
@@ -83,10 +84,6 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error("Dashboard API error:", error);
-    return NextResponse.json(
-      { success: false, error: "حدث خطأ أثناء تحميل بيانات لوحة التحكم" },
-      { status: 500 },
-    );
+    return handleApiError(error, "حدث خطأ أثناء تحميل بيانات لوحة التحكم");
   }
 }

@@ -1,45 +1,81 @@
 @import "tailwindcss";
 
+/* --- Spotlight Reveal Properties --- */
+@property --spotlight-inner {
+    syntax: "<length-percentage>";
+    inherits: true;
+    initial-value: 0px;
+}
+@property --spotlight-outer {
+    syntax: "<length-percentage>";
+    inherits: true;
+    initial-value: 0px;
+}
+
 /* ========================================
    Sapphire Archive Design System
    Creative North Star: "The Digital Monolith"
    ======================================== */
 
-/* --- Light Mode (Default) --- */
+/* --- Light & Dark Mode Tokens --- */
 :root {
-    --app-primary: #1E3C72;
-    --app-primary-hover: #2a5298;
+    color-scheme: light dark;
+
+    /* Base Palette - Light */
+    --app-primary-l: #1E3C72;
+    --app-primary-hover-l: #2a5298;
+    --app-background-l: #f1f5f9;
+    --app-surface-l: #ffffff;
+    --app-surface-container-l: #e2e8f0;
+    --app-surface-container-low-l: #f8fafc;
+    --app-surface-container-lowest-l: #ffffff;
+    --app-foreground-l: #172b53;
+    --app-muted-foreground-l: #4a638c;
+    --app-border-l: #cbd5e1;
+    --app-accent-l: #1E3C72;
+    --app-accent-foreground-l: #ffffff;
+    --app-gradient-start-l: #1e3c72;
+    --app-gradient-end-l: #2a5298;
+    --app-text-gradient-start-l: #1E3C72;
+    --app-text-gradient-end-l: #2563EB;
+
+    /* Base Palette - Dark */
+    --app-primary-d: #3b82f6;
+    --app-primary-hover-d: #60a5fa;
+    --app-background-d: #020617; /* Deep Navy Black */
+    --app-surface-d: #0f172a;    /* Elevated Surface */
+    --app-surface-container-d: #1e293b;
+    --app-surface-container-low-d: #111827;
+    --app-surface-container-lowest-d: #020617;
+    --app-foreground-d: #f8fafc;
+    --app-muted-foreground-d: #94a3b8;
+    --app-border-d: #334155;
+    --app-accent-d: #d4a843;
+    --app-accent-foreground-d: #020617;
+    --app-gradient-start-d: #020617;
+    --app-gradient-end-d: #0f172a;
+    --app-text-gradient-start-d: #60A5FA;
+    --app-text-gradient-end-d: #38BDF8;
+
+    /* Semantic Mappings */
+    --app-primary: light-dark(var(--app-primary-l), var(--app-primary-d));
+    --app-primary-hover: light-dark(var(--app-primary-hover-l), var(--app-primary-hover-d));
+    --app-background: light-dark(var(--app-background-l), var(--app-background-d));
+    --app-surface: light-dark(var(--app-surface-l), var(--app-surface-d));
+    --app-surface-container: light-dark(var(--app-surface-container-l), var(--app-surface-container-d));
+    --app-surface-container-low: light-dark(var(--app-surface-container-low-l), var(--app-surface-container-low-d));
+    --app-surface-container-lowest: light-dark(var(--app-surface-container-lowest-l), var(--app-surface-container-lowest-d));
+    --app-foreground: light-dark(var(--app-foreground-l), var(--app-foreground-d));
+    --app-muted-foreground: light-dark(var(--app-muted-foreground-l), var(--app-muted-foreground-d));
+    --app-border: light-dark(var(--app-border-l), var(--app-border-d));
+    --app-accent: light-dark(var(--app-accent-l), var(--app-accent-d));
+    --app-accent-foreground: light-dark(var(--app-accent-foreground-l), var(--app-accent-foreground-d));
+    --app-gradient-start: light-dark(var(--app-gradient-start-l), var(--app-gradient-start-d));
+    --app-gradient-end: light-dark(var(--app-gradient-end-l), var(--app-gradient-end-d));
+    --app-text-gradient-start: light-dark(var(--app-text-gradient-start-l), var(--app-text-gradient-start-d));
+    --app-text-gradient-end: light-dark(var(--app-text-gradient-end-l), var(--app-text-gradient-end-d));
+
     --app-secondary: #64748B;
-
-    --app-background: #f8fafc;
-    --app-surface: #ffffff;
-    --app-surface-container: #f1f5f9;
-    --app-surface-container-low: #f8fafc;
-    --app-surface-container-lowest: #ffffff;
-
-    --app-foreground: #172b53;
-    --app-muted-foreground: #4a638c;
-
-    --app-border: #e2e8f0;
-
-    --app-accent: #1E3C72;
-    --app-accent-foreground: #ffffff;
-
-    --app-gradient-start: #1e3c72;
-    --app-gradient-end: #2a5298;
-
-    --app-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --app-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --app-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --app-shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-
-    --app-radius-sm: 0.25rem;
-    --app-radius-md: 0.5rem;
-    --app-radius-lg: 1rem;
-    --app-radius-xl: 1.5rem;
-    --app-radius-pill: 1rem;
-
-    /* Semantic Colors */
     --app-white: #ffffff;
     --app-success: #10b981;
     --app-warning: #f59e0b;
@@ -52,18 +88,175 @@
     --color-border: var(--app-border);
     --color-muted: var(--app-secondary);
     --radius-card: var(--app-radius-lg);
+
+    /* Shadows (Adjusted for dark mode) */
+    --app-shadow-sm: light-dark(0 1px 2px 0 rgb(0 0 0 / 0.05), 0 1px 2px 0 rgb(0 0 0 / 0.5));
+    --app-shadow-md: light-dark(0 4px 6px -1px rgb(0 0 0 / 0.1), 0 4px 6px -1px rgb(0 0 0 / 0.5));
+    --app-shadow-lg: light-dark(0 10px 15px -3px rgb(0 0 0 / 0.1), 0 10px 15px -3px rgb(0 0 0 / 0.5));
+    --app-shadow-xl: light-dark(0 20px 25px -5px rgb(0 0 0 / 0.1), 0 20px 25px -5px rgb(0 0 0 / 0.5));
+
+    /* Radii */
+    --app-radius-sm: 0.25rem;
+    --app-radius-md: 0.5rem;
+    --app-radius-lg: 1rem;
+    --app-radius-xl: 1.5rem;
+    --app-radius-pill: 1rem;
+
+    /* Native UI Customization */
+    accent-color: var(--app-accent);
+
+    /* Scrollbar Customization */
+    --scrollbar-track: light-dark(#f1f5f9, #020617);
+    --scrollbar-thumb: light-dark(#cbd5e1, #1e293b);
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
+/* --- Explicit .light & .dark overrides --- */
+.light,
+:root.light {
+    --app-primary: var(--app-primary-l);
+    --app-primary-hover: var(--app-primary-hover-l);
+    --app-background: var(--app-background-l);
+    --app-surface: var(--app-surface-l);
+    --app-surface-container: var(--app-surface-container-l);
+    --app-surface-container-low: var(--app-surface-container-low-l);
+    --app-surface-container-lowest: var(--app-surface-container-lowest-l);
+    --app-foreground: var(--app-foreground-l);
+    --app-muted-foreground: var(--app-muted-foreground-l);
+    --app-border: var(--app-border-l);
+    --app-accent: var(--app-accent-l);
+    --app-accent-foreground: var(--app-accent-foreground-l);
+    --app-gradient-start: var(--app-gradient-start-l);
+    --app-gradient-end: var(--app-gradient-end-l);
+    --app-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --app-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    --app-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    --app-shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+    --scrollbar-track: #f1f5f9;
+    --scrollbar-thumb: #cbd5e1;
+}
+
+.dark,
+:root.dark {
+    --app-primary: var(--app-primary-d);
+    --app-primary-hover: var(--app-primary-hover-d);
+    --app-background: var(--app-background-d);
+    --app-surface: var(--app-surface-d);
+    --app-surface-container: var(--app-surface-container-d);
+    --app-surface-container-low: var(--app-surface-container-low-d);
+    --app-surface-container-lowest: var(--app-surface-container-lowest-d);
+    --app-foreground: var(--app-foreground-d);
+    --app-muted-foreground: var(--app-muted-foreground-d);
+    --app-border: var(--app-border-d);
+    --app-accent: var(--app-accent-d);
+    --app-accent-foreground: var(--app-accent-foreground-d);
+    --app-gradient-start: var(--app-gradient-start-d);
+    --app-gradient-end: var(--app-gradient-end-d);
+    --app-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.5);
+    --app-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.5);
+    --app-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5);
+    --app-shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.5);
+    --scrollbar-track: #020617;
+    --scrollbar-thumb: #1e293b;
+}
+
+/* Legacy fallback for WebKit/Blink browsers */
+@supports not (scrollbar-color: auto) {
+    ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+    ::-webkit-scrollbar-track {
+        background: var(--scrollbar-track);
+    }
+    ::-webkit-scrollbar-thumb {
+        background: var(--scrollbar-thumb);
+        border-radius: 5px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: color-mix(in srgb, var(--scrollbar-thumb) 80%, black);
+    }
+}
+
+@media (forced-colors: active) {
+    :root {
+        --app-primary: canvastext;
+        --app-background: canvas;
+        --app-surface: canvas;
+        --app-foreground: canvastext;
+    }
+}
 
 /* --- Tailwind Theme Extension --- */
 @theme inline {
     --color-background: var(--app-background);
     --color-foreground: var(--app-foreground);
+    --color-muted: var(--app-muted-foreground);
+    --color-muted-foreground: var(--app-muted-foreground);
+    --color-border: var(--app-border);
+    --color-accent: var(--app-accent);
+    --color-accent-foreground: var(--app-accent-foreground);
+    --color-surface: var(--app-surface);
+    --color-surface-container: var(--app-surface-container);
     --color-secondary: var(--app-secondary);
-    --font-sans: "Segoe UI", Tahoma, Arial, "Noto Sans Arabic", sans-serif;
+    --font-sans: var(--font-cairo), "Segoe UI", Tahoma, Arial, "Noto Sans Arabic", sans-serif;
+    --shadow-depth-sm: var(--app-shadow-sm);
+    --shadow-depth-md: var(--app-shadow-md);
+    --shadow-depth-lg: var(--app-shadow-lg);
+    --shadow-depth-xl: var(--app-shadow-xl);
 }
 
-/* --- Base --- */
+/* --- Premium Custom Animations --- */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in-up {
+    animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes premiumTabEnter {
+    from {
+        opacity: 0;
+        transform: translate3d(8px, 12px, 0) scale(0.985);
+        filter: blur(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+        filter: blur(0);
+    }
+}
+
+@keyframes simpleFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.animate-tab-premium {
+    animation: premiumTabEnter 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    will-change: transform, opacity, filter;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .animate-tab-premium {
+        animation: simpleFadeIn 0.25s ease-out forwards;
+        will-change: opacity;
+    }
+}
+
+/* --- Base & Tabular Numbers --- */
 html,
 body {
     overscroll-behavior: none;
@@ -72,9 +265,18 @@ body {
 body {
     background: var(--app-background);
     color: var(--app-foreground);
-    font-family: "Segoe UI", Tahoma, Arial, "Noto Sans Arabic", sans-serif;
+    font-family: var(--font-cairo), "Segoe UI", Tahoma, Arial, "Noto Sans Arabic", sans-serif;
     line-height: 1.625;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
+
+/* Tabular figures for data tables, military IDs, numbers, and dates */
+table,
+.tabular-nums,
+[data-tabular-nums] {
+    font-variant-numeric: tabular-nums;
+}
+
 
 /* --- Typography Scale --- */
 .text-display {
@@ -108,41 +310,59 @@ body {
     background: linear-gradient(135deg, var(--app-gradient-start) 0%, var(--app-gradient-end) 100%);
 }
 
+/* Dark mode: elevated glass surface with polishing and subtle borders */
+.dark .bg-primary-gradient,
+:root.dark .bg-primary-gradient {
+    background: linear-gradient(135deg, 
+        color-mix(in srgb, var(--app-gradient-start) 90%, transparent) 0%, 
+        color-mix(in srgb, var(--app-gradient-end) 90%, transparent) 100%
+    );
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid color-mix(in srgb, var(--app-white) 5%, transparent);
+}
+
 .text-gradient-accent {
-    background: linear-gradient(135deg, var(--app-gradient-start) 0%, var(--app-gradient-end) 100%);
+    background: linear-gradient(135deg, var(--app-text-gradient-start) 0%, var(--app-text-gradient-end) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
 
-/* --- Surface Utilities --- */
-.bg-surface-lowest {
-    background: var(--app-surface-container-lowest);
+/* --- Empty State --- */
+.empty-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 0.5rem;
 }
 
-.bg-surface-low {
-    background: var(--app-surface-container-low);
+/* --- Paginator button --- */
+.btn-paginator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--app-border);
+    background: var(--app-surface);
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    box-shadow: var(--app-shadow-sm);
+    transition: all 0.15s ease;
+    cursor: pointer;
+    line-height: 1;
+    white-space: nowrap;
 }
-
-.bg-surface-container {
+.btn-paginator:hover {
     background: var(--app-surface-container);
 }
-
-/* --- Elevation Utilities --- */
-.shadow-depth-sm {
-    box-shadow: var(--app-shadow-sm);
-}
-
-.shadow-depth-md {
-    box-shadow: var(--app-shadow-md);
-}
-
-.shadow-depth-lg {
-    box-shadow: var(--app-shadow-lg);
-}
-
-.shadow-depth-xl {
-    box-shadow: var(--app-shadow-xl);
+.btn-paginator:disabled {
+    opacity: 0.3;
+    pointer-events: none;
 }
 
 /* --- Archive Card --- */
@@ -172,21 +392,15 @@ body {
     color: var(--app-white);
     background: var(--color-primary);
     box-shadow: var(--app-shadow-md);
-    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    transition: all 0.15s ease;
     cursor: pointer;
     outline: none;
+    border: none;
 }
-
-.btn-primary:focus {
-    outline: none;
-    box-shadow: var(--app-shadow-md);
-}
-
 .btn-primary:hover {
     background: var(--color-primary-hover);
     box-shadow: var(--app-shadow-lg);
 }
-
 .btn-primary:active {
     transform: scale(0.95);
 }
@@ -200,23 +414,14 @@ body {
     font-size: 0.875rem;
     font-weight: 700;
     color: var(--color-primary);
-    background: #f1f5f9; /* bg-slate-100 */
+    background: var(--app-surface-container);
     transition: all 0.2s ease;
     cursor: pointer;
     border: none;
     outline: none;
 }
-
-.btn-secondary:focus {
-    outline: none;
-}
-
 .btn-secondary:hover {
-    background: #e2e8f0; /* bg-slate-200 */
-}
-
-.btn-secondary:active {
-    transform: scale(0.98);
+    background: var(--app-border);
 }
 
 .btn-destructive {
@@ -229,85 +434,102 @@ body {
     font-weight: 700;
     color: var(--app-white);
     background: var(--app-error);
-    transition: transform 0.15s ease, background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    transition: all 0.15s ease;
     cursor: pointer;
+    border: none;
 }
-
 .btn-destructive:hover {
     background: color-mix(in srgb, var(--app-error) 90%, white);
 }
 
-.btn-destructive:active {
-    transform: scale(0.95);
-}
-
-.btn-accent {
+/* --- Modal Specific Action Buttons --- */
+.btn-modal-primary {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
-    padding: 0.5rem 1rem;
+    padding: 0.625rem 1.25rem;
     border-radius: 0.75rem;
     font-size: 0.875rem;
     font-weight: 700;
-    color: var(--app-accent-foreground);
-    background: var(--app-accent);
-    box-shadow: var(--app-shadow-md);
-    transition: transform 0.15s ease, background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-    cursor: pointer;
-}
-
-.btn-accent:hover {
-    background: color-mix(in srgb, var(--app-accent) 90%, white);
-    box-shadow: var(--app-shadow-lg);
-    transform: translateY(-1px);
-}
-
-.btn-accent:active {
-    transform: scale(0.95);
-}
-
-/* --- Legacy Pill Button (backward compat) --- */
-.btn-pill-primary {
-    background: linear-gradient(135deg, var(--app-gradient-start) 0%, var(--app-gradient-end) 100%);
     color: #ffffff;
-    font-weight: 600;
-    padding: 0.5rem 1.5rem;
-    border-radius: 1rem;
-    transition: transform 0.15s ease, background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    background: var(--color-primary);
+    box-shadow: 0 4px 12px -2px rgba(30, 60, 114, 0.25);
+    transition: all 0.15s ease-out;
+    cursor: pointer;
+    border: none;
+    outline: none;
 }
-
-.btn-pill-primary:hover {
-    opacity: 0.9;
+.btn-modal-primary:hover:not(:disabled) {
+    background: var(--color-primary-hover);
+    box-shadow: 0 6px 16px -2px rgba(30, 60, 114, 0.35);
     transform: translateY(-1px);
-    box-shadow: var(--app-shadow-md);
+}
+.btn-modal-primary:active:not(:disabled) {
+    transform: scale(0.97);
+}
+.btn-modal-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
 }
 
-.btn-pill-primary:active {
-    transform: scale(0.95);
-}
-
-.btn-pill-secondary {
-    background: var(--app-surface);
+.btn-modal-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 700;
     color: var(--app-foreground);
-    font-weight: 500;
-    padding: 0.5rem 1.5rem;
-    border: 1px solid var(--app-secondary);
-    border-radius: 1rem;
-    transition: transform 0.15s ease, background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.btn-pill-secondary:hover {
     background: var(--app-surface-container);
-    box-shadow: var(--app-shadow-sm);
+    border: 1px solid var(--app-border);
+    transition: all 0.15s ease-out;
+    cursor: pointer;
+    outline: none;
+}
+.btn-modal-secondary:hover:not(:disabled) {
+    background: var(--app-surface-container-low);
+    border-color: color-mix(in srgb, var(--app-border) 80%, var(--color-primary));
+}
+.btn-modal-secondary:active:not(:disabled) {
+    transform: scale(0.97);
+}
+.btn-modal-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
-.btn-pill-secondary:active {
-    transform: scale(0.95);
+.btn-modal-destructive {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #ffffff;
+    background: var(--app-error);
+    box-shadow: 0 4px 12px -2px rgba(239, 68, 68, 0.25);
+    transition: all 0.15s ease-out;
+    cursor: pointer;
+    border: none;
+    outline: none;
 }
-
-/* --- Utility --- */
-.text-secondary {
-    color: var(--app-secondary);
+.btn-modal-destructive:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--app-error) 90%, black);
+    box-shadow: 0 6px 16px -2px rgba(239, 68, 68, 0.35);
+    transform: translateY(-1px);
+}
+.btn-modal-destructive:active:not(:disabled) {
+    transform: scale(0.97);
+}
+.btn-modal-destructive:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -319,26 +541,93 @@ body {
     scrollbar-width: none;
 }
 
-.app-page-shell {
-    min-height: calc(100vh - 64px);
-    background: var(--app-background);
+/* --- Spotlight Reveal Utility --- */
+.spotlight-reveal {
+    --mouse-x: 50%;
+    --mouse-y: 50%;
+    position: relative;
+    border-radius: inherit;
 }
 
-.app-page-container {
-    max-width: 80rem;
-    margin-inline: auto;
-    width: 100%;
-    padding: 2rem 1rem;
+/* Spotlight ONLY for dark mode */
+.dark .spotlight-reveal::before,
+:root.dark .spotlight-reveal::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(
+        circle 350px at var(--mouse-x) var(--mouse-y),
+        rgba(255, 255, 255, 0.1) 0%,
+        rgba(255, 255, 255, 0.02) 50%,
+        transparent 100%
+    );
+    pointer-events: none;
+    z-index: 1;
+    transition: opacity 0.5s ease;
+    opacity: 0;
 }
 
-@media (min-width: 640px) {
-    .app-page-container {
-        padding-inline: 1.5rem;
+.dark .spotlight-reveal:hover::before,
+:root.dark .spotlight-reveal:hover::before {
+    opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .spotlight-reveal::before {
+        transition: none !important;
     }
 }
 
-@media (min-width: 1024px) {
-    .app-page-container {
-        padding-inline: 2rem;
+/* --- High-Quality Print Styles (@media print) --- */
+@media print {
+    body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        font-size: 11pt;
+    }
+
+    header,
+    nav,
+    footer,
+    .no-print,
+    button:not(.print-keep),
+    .z-50,
+    .z-60 {
+        display: none !important;
+    }
+
+    main {
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+    }
+
+    .archive-card,
+    table,
+    .border {
+        border: 1px solid #94a3b8 !important;
+        box-shadow: none !important;
+    }
+
+    table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        page-break-inside: auto;
+    }
+
+    tr {
+        page-break-inside: avoid;
+        page-break-after: auto;
+    }
+
+    thead {
+        display: table-header-group;
+    }
+
+    th, td {
+        border: 1px solid #cbd5e1 !important;
+        padding: 6px 10px !important;
+        color: #0f172a !important;
     }
 }

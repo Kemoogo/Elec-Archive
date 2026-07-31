@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { authenticate } from "@/lib/auth/middleware";
 import { logAuditEvent } from "@/lib/auth/audit";
 import { errors } from "@/lib/auth/errors";
+import { handleApiError } from "@/lib/utils/api-error";
 import { Assignment } from "@/lib/db/models/Assignment";
 import { canEditOfficers } from "@/lib/officers/access";
 import { patchAssignmentSchema } from "@/lib/validations/officers";
@@ -80,7 +81,7 @@ export async function PATCH(
     });
 
     return NextResponse.json({ success: true });
-  } catch {
-    return NextResponse.json({ success: false, error: errors.internalError }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

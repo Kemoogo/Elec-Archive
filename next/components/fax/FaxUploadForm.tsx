@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/toast";
 import { DateField } from "@/components/ui/date-field";
+import { extractApiError } from "@/lib/utils";
 
 const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png"];
 const MAX_SIZE = 10 * 1024 * 1024;
@@ -90,7 +91,8 @@ export function FaxUploadForm() {
       const result = await res.json();
 
       if (!res.ok) {
-        showToast(result.error ?? "حدث خطأ أثناء رفع الفاكس", "error");
+        const errorMsg = extractApiError(result, "حدث خطأ أثناء رفع الفاكس");
+        showToast(errorMsg, "error");
         return;
       }
 
@@ -105,7 +107,7 @@ export function FaxUploadForm() {
   }
 
   const inputClass = (field: string) =>
-    `mt-1 block w-full rounded-md border bg-(--app-surface) px-3 py-2 text-(--app-white) placeholder-(--app-muted-foreground) focus:outline-none  ${
+    `mt-1 block w-full rounded-md border bg-(--app-surface) px-3 py-2 text-(--app-foreground) placeholder-(--app-muted-foreground) focus:outline-none  ${
       errors[field]
         ? "border-(--app-error) focus:border-(--app-error) focus:ring-(--app-error)"
         : "border-(--app-border) focus:border-(--app-info) focus:ring-(--app-info)"

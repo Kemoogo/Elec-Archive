@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { authenticate } from "@/lib/auth/middleware";
 import { logAuditEvent } from "@/lib/auth/audit";
 import { errors } from "@/lib/auth/errors";
+import { handleApiError } from "@/lib/utils/api-error";
 import { Officer, RANK_LABELS, type OfficerRank } from "@/lib/db/models/Officer";
 import { DailyRollcall } from "@/lib/db/models/DailyRollcall";
 import type { IRollcallEntry } from "@/lib/db/models/DailyRollcall";
@@ -54,21 +55,23 @@ export async function GET(request: Request) {
   }).lean();
 
   if (!rollcall) {
-    const activeOfficers = await Officer.find({ employmentStatus: "active" })
-      .sort({ rank: 1, fullName: 1 })
-      .lean();
+    const { getSuggestedRollcall } = await import("@/lib/officers/rollcall-engine");
+    const suggestions = await getSuggestedRollcall(queryDate);
 
     return NextResponse.json({
       success: true,
       data: {
         status: "not_found",
         date: parsed.data.date,
-        roster: activeOfficers.map((o) => ({
-          id: o._id.toString(),
-          militaryId: o.militaryId,
-          fullName: o.fullName,
-          rank: o.rank,
-          rankLabel: RANK_LABELS[o.rank as OfficerRank] ?? o.rank,
+        roster: suggestions.map((s) => ({
+          id: s.officerId,
+          militaryId: s.militaryId,
+          fullName: s.fullName,
+          rank: s.rank,
+          rankLabel: RANK_LABELS[s.rank as OfficerRank] ?? s.rank,
+          suggestedStatus: s.suggestedStatus,
+          reason: s.reason,
+          relatedId: s.relatedId,
         })),
       },
     });
@@ -252,10 +255,7 @@ export async function POST(request: Request) {
         date,
       },
     });
-  } catch {
-    return NextResponse.json(
-      { success: false, error: errors.internalError },
-      { status: 500 },
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }

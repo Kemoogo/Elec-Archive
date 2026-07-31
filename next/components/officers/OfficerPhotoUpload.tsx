@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { User, Camera, Loader2, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { extractApiError } from "@/lib/utils";
 
 interface OfficerPhotoUploadProps {
   officerId: string;
@@ -13,14 +14,11 @@ interface OfficerPhotoUploadProps {
 
 export function OfficerPhotoUpload({ officerId, photoUrl, canEdit }: OfficerPhotoUploadProps) {
   const router = useRouter();
-  const [currentPhoto, setCurrentPhoto] = useState(photoUrl);
+  const [photoOverride, setPhotoOverride] = useState<string | null | undefined>(undefined);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
-
-  // Sync state with prop updates from server
-  useEffect(() => {
-    setCurrentPhoto(photoUrl);
-  }, [photoUrl]);
+  const [timestamp, setTimestamp] = useState(0);
+  const currentPhoto = photoOverride === undefined ? photoUrl : photoOverride;
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -45,11 +43,13 @@ export function OfficerPhotoUpload({ officerId, photoUrl, canEdit }: OfficerPhot
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        setError(data.error || "فشل في رفع الصورة");
+        const errorMsg = extractApiError(data, "فشل في رفع الصورة");
+        setError(errorMsg);
         return;
       }
 
-      setCurrentPhoto(data.data.fileUrl);
+      setPhotoOverride(data.data.fileUrl);
+      setTimestamp(prev => prev + 1);
       router.refresh();
     } catch {
       setError("حدث خطأ في الاتصال");
@@ -73,11 +73,13 @@ export function OfficerPhotoUpload({ officerId, photoUrl, canEdit }: OfficerPhot
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        setError(data.error || "فشل في حذف الصورة");
+        const errorMsg = extractApiError(data, "فشل في حذف الصورة");
+        setError(errorMsg);
         return;
       }
 
-      setCurrentPhoto(undefined);
+      setPhotoOverride(null);
+      setTimestamp(prev => prev + 1);
       router.refresh();
     } catch {
       setError("حدث خطأ في الاتصال");
@@ -86,11 +88,15 @@ export function OfficerPhotoUpload({ officerId, photoUrl, canEdit }: OfficerPhot
     }
   };
 
+  const photoSrc = currentPhoto
+    ? (currentPhoto.includes('?') ? `${currentPhoto}&v=${timestamp}` : `${currentPhoto}?v=${timestamp}`)
+    : null;
+
   return (
     <div className="relative group w-40 h-52 bg-(--app-surface-container) border border-(--app-border) rounded-2xl flex items-center justify-center shadow-inner overflow-hidden">
-      {(typeof currentPhoto === 'string' && currentPhoto) ? (
+      {(typeof currentPhoto === 'string' && currentPhoto && photoSrc) ? (
         <Image
-          src={currentPhoto.includes('?') ? `${currentPhoto}&t=${Date.now()}` : `${currentPhoto}?t=${Date.now()}`}
+          src={photoSrc}
           alt="صورة الضابط"
           fill
           className="object-cover"
@@ -102,7 +108,7 @@ export function OfficerPhotoUpload({ officerId, photoUrl, canEdit }: OfficerPhot
       )}
 
       {canEdit && (
-        <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-opacity cursor-pointer">
+        <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-opacity cursor-pointer rounded-full">
           {uploading ? (
             <Loader2 className="h-8 w-8 text-white animate-spin mb-2" />
           ) : (
@@ -126,7 +132,7 @@ export function OfficerPhotoUpload({ officerId, photoUrl, canEdit }: OfficerPhot
       {canEdit && currentPhoto && !uploading && (
         <button
           onClick={handleDelete}
-          className="absolute top-2 left-2 p-1.5 bg-red-500/80 hover:bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute top-2 left-2 p-1.5 bg-(--app-error)/80 hover:bg-(--app-error) text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
           title="حذف الصورة"
         >
           <Trash2 className="h-4 w-4" />
@@ -134,7 +140,7 @@ export function OfficerPhotoUpload({ officerId, photoUrl, canEdit }: OfficerPhot
       )}
 
       {error && (
-        <div className="absolute bottom-0 inset-x-0 bg-red-500 text-white text-[10px] text-center p-1 font-bold truncate px-2">
+        <div className="absolute bottom-0 inset-x-0 bg-(--app-error) text-white text-[10px] text-center p-1 font-bold truncate px-2">
           {error}
         </div>
       )}

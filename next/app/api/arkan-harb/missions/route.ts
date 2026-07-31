@@ -8,6 +8,7 @@ import { Mission } from "@/lib/db/models/Mission";
 import { Officer, RANK_LABELS, type OfficerRank } from "@/lib/db/models/Officer";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
 import { missionsListQuerySchema, createMissionSchema } from "@/lib/validations/arkan-harb";
+import { handleApiError } from "@/lib/utils/api-error";
 
 export async function GET(request: Request) {
   // 1. Auth
@@ -97,8 +98,7 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    console.error("Missions GET error:", error);
-    return NextResponse.json({ success: false, error: errors.internalError }, { status: 500 });
+    return handleApiError(error, "حدث خطأ أثناء تحميل المأموريات");
   }
 }
 
@@ -121,9 +121,8 @@ export async function POST(request: Request) {
     return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
   }
 
-  await connectToDatabase();
-
   try {
+    await connectToDatabase();
     // 4. Parse + Validate body
     const body: unknown = await request.json();
     const parsed = createMissionSchema.safeParse(body);
@@ -168,7 +167,6 @@ export async function POST(request: Request) {
     // 7. Response
     return NextResponse.json({ success: true, data: { id: mission._id.toString() } }, { status: 201 });
   } catch (error) {
-    console.error("Missions POST error:", error);
-    return NextResponse.json({ success: false, error: errors.internalError }, { status: 500 });
+    return handleApiError(error, "حدث خطأ أثناء إنشاء المأمورية");
   }
 }

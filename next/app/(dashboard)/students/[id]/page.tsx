@@ -9,6 +9,9 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/ModernPageHeader";
 import type { Types } from "mongoose";
 
+import Link from "next/link";
+import { GraduationCap } from "lucide-react";
+
 interface StudentProfilePageProps {
   params: Promise<{ id: string }>;
 }
@@ -59,9 +62,20 @@ export default async function StudentProfilePage({ params }: StudentProfilePageP
   return (
     <PageContainer className="max-w-[1600px] mx-auto pb-12">
       <PageHeader
-        title={student.fullName}
-        backHref="/students"
-        backLabel="شئون الطلبة"
+        icon={<GraduationCap className="w-6 h-6" />}
+        title={
+          <span className="flex items-center gap-2 flex-wrap">
+            <Link
+              href="/students"
+              className="text-(--color-primary) hover:underline hover:text-blue-600 transition-colors"
+            >
+              شئون الطلاب
+            </Link>
+            <span className="text-(--app-muted-foreground)/50 font-semibold">-</span>
+            <span>{student.fullName} ({student.studentId})</span>
+          </span>
+        }
+        description="بيانات الملف الدراسي والسجل العام للطالب والوثائق الأكاديمية المرفقة"
       />
       <StudentProfile
         student={serialized}

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { authenticate } from "@/lib/auth/middleware";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Officer } from "@/lib/db/models/Officer";
+import { handleApiError } from "@/lib/utils/api-error";
 import { canEditOfficers } from "@/lib/officers/access";
 import { join } from "path";
 import { writeFile, unlink, mkdir } from "fs/promises";
@@ -69,16 +70,34 @@ export async function POST(
     if (officer) {
       officer.file121Url = relativeUrl;
       officer.file121UpdatedAt = new Date();
+
+      try {
+        const { parseOfficer121PdfAction } = await import("@/app/actions/officers");
+        const parseFormData = new FormData();
+        const pdfBlob = new Blob([buffer], { type: "application/pdf" });
+        parseFormData.append("file", pdfBlob, fileName);
+
+        const parseRes = await parseOfficer121PdfAction(parseFormData);
+        if (parseRes.success && parseRes.extracted?.file121IssueDate) {
+          officer.file121IssueDate = parseRes.extracted.file121IssueDate;
+        }
+      } catch (e) {
+        console.error("Error extracting PDF issue date in API route:", e);
+      }
+
       await officer.save();
     }
 
     return NextResponse.json({
       success: true,
-      data: { fileUrl: relativeUrl }
+      data: {
+        fileUrl: relativeUrl,
+        file121IssueDate: officer?.file121IssueDate,
+        file121UpdatedAt: officer?.file121UpdatedAt ? officer.file121UpdatedAt.toISOString() : new Date().toISOString(),
+      }
     });
   } catch (error) {
-    console.error("Upload Error:", error);
-    return NextResponse.json({ success: false, error: "حدث خطأ أثناء رفع الملف" }, { status: 500 });
+    return handleApiError(error, "حدث خطأ أثناء رفع الملف");
   }
 }
 
@@ -111,7 +130,6 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Delete Error:", error);
-    return NextResponse.json({ success: false, error: "حدث خطأ أثناء حذف الملف" }, { status: 500 });
+    return handleApiError(error, "حدث خطأ أثناء حذف الملف");
   }
 }

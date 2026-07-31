@@ -2,30 +2,3 @@
 > next@0.1.0 lint
 > eslint
 
-
-/home/karim/Elec-Archive/next/components/officers/LeaveAddModal.tsx
-  20:57  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-
-/home/karim/Elec-Archive/next/components/officers/LeaveRegister.tsx
-   5:10  warning  'Plus' is defined but never used. Allowed unused vars must match /^_/u         @typescript-eslint/no-unused-vars
-   5:16  warning  'Save' is defined but never used. Allowed unused vars must match /^_/u         @typescript-eslint/no-unused-vars
-   5:22  warning  'X' is defined but never used. Allowed unused vars must match /^_/u            @typescript-eslint/no-unused-vars
-   5:25  warning  'AlertCircle' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
-   5:53  warning  'History' is defined but never used. Allowed unused vars must match /^_/u      @typescript-eslint/no-unused-vars
-   5:62  warning  'Loader2' is defined but never used. Allowed unused vars must match /^_/u      @typescript-eslint/no-unused-vars
-  58:41  warning  'officers' is defined but never used. Allowed unused args must match /^_/u     @typescript-eslint/no-unused-vars
-
-/home/karim/Elec-Archive/next/components/officers/OfficerForm.tsx
-  362:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-
-/home/karim/Elec-Archive/next/components/officers/OfficerPromoteModal.tsx
-  54:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-
-/home/karim/Elec-Archive/next/components/officers/OfficerTransferModal.tsx
-  42:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-
-/home/karim/Elec-Archive/next/fix_lint.js
-  1:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
-
-✖ 12 problems (5 errors, 7 warnings)
-

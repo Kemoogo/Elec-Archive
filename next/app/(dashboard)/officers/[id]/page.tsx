@@ -2,11 +2,11 @@ import { redirect } from "next/navigation";
 import { authenticate } from "@/lib/auth/middleware";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Officer } from "@/lib/db/models/Officer";
-import { Promotion, type IPromotion } from "@/lib/db/models/Promotion";
-import { Mission, type IMission } from "@/lib/db/models/Mission";
-import { Leave, type ILeave } from "@/lib/db/models/Leave";
-import { PositionAssignment, type IPositionAssignment } from "@/lib/db/models/PositionAssignment";
-import { ServiceHistory, type IServiceHistory } from "@/lib/db/models/ServiceHistory";
+import { Promotion } from "@/lib/db/models/Promotion";
+import { Mission } from "@/lib/db/models/Mission";
+import { Leave } from "@/lib/db/models/Leave";
+import { PositionAssignment } from "@/lib/db/models/PositionAssignment";
+import { ServiceHistory } from "@/lib/db/models/ServiceHistory";
 import { canViewOfficers, canEditOfficers } from "@/lib/officers/access";
 import {
   serializeOfficerDetail,
@@ -21,19 +21,16 @@ import { DeleteOfficerButton } from "@/components/officers/DeleteOfficerButton";
 import { OfficerDocuments } from "@/components/officers/OfficerDocuments";
 import { OfficerPhotoUpload } from "@/components/officers/OfficerPhotoUpload";
 import { LeaveRecordTab } from "@/components/officers/tabs/LeaveRecordTab";
-import { CareerTimeline, type TimelineEvent } from "@/components/officers/CareerTimeline";
+import { CareerTimeline } from "@/components/officers/CareerTimeline";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/ModernPageHeader";
 import Link from "next/link";
-import { ChevronLeft, User, Shield, Briefcase, Calendar, Phone, CreditCard, IdCard, History, FileText, MapPin, LucideIcon, Hash, Tag, Swords } from "lucide-react";
+import { ChevronLeft, User, Shield, Calendar, Phone, CreditCard, IdCard, History, LucideIcon, Hash, Tag, Swords, GraduationCap, Award, Activity, BookOpen, Users } from "lucide-react";
 
 import { OfficerDetailTabs } from "@/components/officers/OfficerDetailTabs";
 import { PositionHistory } from "@/components/officers/PositionHistory";
+import { SectionWrapper } from "@/components/ui/section-wrapper";
 
-
-interface DBObject {
-  _id: { toString(): string };
-}
 
 interface InfoItemProps {
   icon: LucideIcon;
@@ -81,7 +78,7 @@ export default async function OfficerDetailPage({
   if (!officer) {
     return (
       <div className="max-w-[1200px] mx-auto space-y-8 pb-12 text-center py-20">
-        <div className="bg-(--app-surface) border border-(--app-border) rounded-xl p-6 inline-block mx-auto">
+        <SectionWrapper className="inline-block mx-auto">
           <Shield className="h-16 w-16 text-(--app-muted-foreground)/20 mx-auto mb-6" />
           <h2 className="text-2xl font-bold text-(--color-primary) mb-4">السجل غير متوفر</h2>
           <p className="text-(--app-muted-foreground) mb-8">عذراً، لم نتمكن من العثور على الضابط المطلوب في قاعدة البيانات.</p>
@@ -92,7 +89,7 @@ export default async function OfficerDetailPage({
             <ChevronLeft className="h-4 w-4 rotate-180" />
             العودة لقائمة الضباط
           </Link>
-        </div>
+        </SectionWrapper>
       </div>
     );
   }
@@ -186,9 +183,14 @@ export default async function OfficerDetailPage({
             label="الحالة الحالية"
             value={officer.isInUnit ? "قوة الوحدة" : "خارج الوحدة"}
           />
-          {detail.batch && <InfoItem icon={Tag} label="الدفعة" value={detail.batch} />}
-          {detail.typeLabel && <InfoItem icon={User} label="التصنيف" value={`ضابط ${detail.typeLabel}`} />}
-          {detail.weaponLabel && <InfoItem icon={Swords} label="السلاح" value={detail.weaponLabel} />}
+          <InfoItem icon={Tag} label="الدفعة" value={detail.batch || "---"} />
+          <InfoItem icon={GraduationCap} label="الكلية / المعهد" value={detail.faculty || "---"} />
+          <InfoItem icon={Award} label="تاريخ التخرج" value={detail.graduationDate ? new Date(detail.graduationDate).toLocaleDateString("ar-EG") : "---"} />
+          <InfoItem icon={User} label="التصنيف" value={detail.typeLabel || "---"} />
+          <InfoItem icon={Swords} label="السلاح" value={detail.weaponLabel || "---"} />
+          <InfoItem icon={Activity} label="فصيلة الدم" value={detail.bloodType || "---"} mono />
+          <InfoItem icon={BookOpen} label="الديانة" value={detail.religion || "---"} />
+          <InfoItem icon={Users} label="الحالة الاجتماعية" value={detail.maritalStatus || "---"} />
           <InfoItem icon={Calendar} label="تاريخ الانضمام للوحدة" value={currentJoinDate.toLocaleDateString("ar-EG")} />
 
           {isRejoined && originalJoinDate && (
@@ -202,6 +204,7 @@ export default async function OfficerDetailPage({
           officerId={detail.id}
           file121Url={detail.file121Url}
           file121UpdatedAt={detail.file121UpdatedAt}
+          file121IssueDate={detail.file121IssueDate}
           officerLabel={detail.officerLabel}
           canEdit={canEdit}
         />
@@ -229,23 +232,18 @@ export default async function OfficerDetailPage({
 
   return (
     <PageContainer className="max-w-[1400px] mx-auto pb-20">
-      <PageHeader
-        title={detail.fullName}
-        backHref="/officers"
-        backLabel="شئون الضباط"
+      <OfficerDetailTabs
+        officerLabel={detail.officerLabel}
+        basicInfo={basicInfoTab}
+        leaves={leavesTab}
+        careerTimeline={careerTab}
+        positionHistory={<PositionHistory officerId={id} initialData={serializedPositions} />}
         actions={canEdit && (
           <div className="flex items-center gap-2">
             <OfficerForm mode="edit" initialValues={detail} />
             <DeleteOfficerButton officerId={detail.id} officerLabel={detail.officerLabel} />
           </div>
         )}
-      />
-
-      <OfficerDetailTabs
-        basicInfo={basicInfoTab}
-        leaves={leavesTab}
-        careerTimeline={careerTab}
-        positionHistory={<PositionHistory officerId={id} initialData={serializedPositions} />}
         initialTab={tab}
       />
     </PageContainer>

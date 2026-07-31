@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { authenticate } from "@/lib/auth/middleware";
 import { logAuditEvent } from "@/lib/auth/audit";
 import { errors } from "@/lib/auth/errors";
+import { handleApiError } from "@/lib/utils/api-error";
 import { Student } from "@/lib/db/models/Student";
 import { studentsListQuerySchema, createStudentSchema } from "@/lib/validations/student";
 import { escapeRegex } from "@/lib/utils";
@@ -113,11 +114,7 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    console.error("Students GET error:", error);
-    return NextResponse.json(
-      { success: false, error: errors.internalError },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }
 
@@ -143,9 +140,8 @@ export async function POST(request: Request) {
     return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
   }
 
-  await connectToDatabase();
-
   try {
+    await connectToDatabase();
     const body = await request.json();
     const parsed = createStudentSchema.safeParse(body);
 
@@ -213,9 +209,6 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json(
-      { success: false, error: errors.internalError },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

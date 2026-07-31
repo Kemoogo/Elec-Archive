@@ -2,6 +2,8 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/toast";
+import { extractApiError } from "@/lib/utils";
 
 interface DocumentUploadProps {
   studentId: string;
@@ -9,6 +11,7 @@ interface DocumentUploadProps {
 
 export function DocumentUpload({ studentId }: DocumentUploadProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -69,10 +72,13 @@ export function DocumentUpload({ studentId }: DocumentUploadProps) {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error ?? "فشل في رفع المستند");
+        const errMsg = extractApiError(data, "فشل في رفع المستند");
+        setError(errMsg);
+        showToast(errMsg, "error");
         return;
       }
 
+      showToast("تم رفع المستند بنجاح", "success");
       setName("");
       setFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -80,6 +86,7 @@ export function DocumentUpload({ studentId }: DocumentUploadProps) {
       router.refresh();
     } catch {
       setError("حدث خطأ في الاتصال");
+      showToast("حدث خطأ في الاتصال بالخادم", "error");
     } finally {
       setIsUploading(false);
     }
@@ -98,7 +105,7 @@ export function DocumentUpload({ studentId }: DocumentUploadProps) {
 
   return (
     <div className="rounded-lg border border-(--app-border) bg-(--app-surface) p-4" dir="rtl">
-      <h3 className="mb-3 text-sm font-medium text-(--app-white)">رفع مستند جديد</h3>
+      <h3 className="mb-3 text-sm font-medium text-(--app-foreground)">رفع مستند جديد</h3>
       <form onSubmit={handleUpload} className="space-y-3">
         <div>
           <label className="mb-1 block text-xs text-(--app-muted-foreground)">اسم المستند *</label>
@@ -107,7 +114,7 @@ export function DocumentUpload({ studentId }: DocumentUploadProps) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
-            className="w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-white) placeholder:text-(--app-muted-foreground)"
+            className="w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-foreground) placeholder:text-(--app-muted-foreground)"
             placeholder="شهادة التخرج"
           />
         </div>
@@ -120,7 +127,7 @@ export function DocumentUpload({ studentId }: DocumentUploadProps) {
             type="file"
             accept=".pdf,.jpg,.jpeg,.png"
             onChange={handleFileChange}
-            className="w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-white) file:mr-4 file:rounded-md file:border-0 file:bg-(--app-accent) file:text-(--app-accent-foreground) file:font-medium"
+            className="w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-foreground) file:mr-4 file:rounded-md file:border-0 file:bg-(--app-accent) file:text-(--app-accent-foreground) file:font-medium"
           />
         </div>
         {error && <p className="text-sm text-(--app-error)">{error}</p>}

@@ -11,17 +11,14 @@ export function Badge({
   ...props
 }: BadgeProps) {
   return (
-    <button
+    <span
       className={cn(
-        "inline-flex items-center rounded-md border font-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none border",
+        "inline-flex items-center justify-center rounded-full border px-2.5 py-0.5 text-xs font-bold tabular-nums transition-all duration-150",
         {
-          "bg-(--color-primary) text-(--app-white)": variant === "default",
-          "bg-(--app-secondary) text-(--app-secondary-foreground)":
-            variant === "secondary",
-          "bg-(--app-destructive) text-(--app-destructive-foreground)":
-            variant === "destructive",
-          "border text-(--app-foreground) hover:bg-(--app-accent)":
-            variant === "outline",
+          "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20 shadow-xs": variant === "default",
+          "bg-(--app-surface-container) text-(--app-muted-foreground) border-(--app-border)": variant === "secondary",
+          "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20 shadow-xs": variant === "destructive",
+          "border border-(--app-border) text-(--app-foreground) bg-(--app-surface)": variant === "outline",
         },
         className
       )}

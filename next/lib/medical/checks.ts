@@ -66,7 +66,7 @@ export async function runLowStockCheck(): Promise<number> {
   await connectToDatabase();
 
   const lowStockMedicines = await Medicine.find({
-    $expr: { $lt: ["$quantity", "$minThreshold"] },
+    $expr: { $lt: ["$totalQuantity", "$minThreshold"] },
   }).lean();
 
   if (lowStockMedicines.length === 0) return 0;
@@ -80,7 +80,7 @@ export async function runLowStockCheck(): Promise<number> {
         userId: user._id,
         type: "low_stock",
         title: "مخزون منخفض",
-        body: `${med.name}: الكمية أقل من الحد الأدنى (${med.quantity}/${med.minThreshold})`,
+        body: `${med.name}: الكمية أقل من الحد الأدنى (${med.totalQuantity}/${med.minThreshold})`,
         refId: med._id,
         refModel: "Medicine",
       });

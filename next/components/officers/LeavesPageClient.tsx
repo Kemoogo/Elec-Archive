@@ -6,8 +6,6 @@ import { LeaveAddModal } from "@/components/officers/LeaveAddModal";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { ModernPageHeader as PageHeader } from "@/components/layout/ModernPageHeader";
 import { ScrollText } from "lucide-react";
-import type { ILeave } from "@/lib/db/models/Leave";
-import type { IOfficer } from "@/lib/db/models/Officer";
 
 interface LeaveItem {
   id: string;
@@ -25,16 +23,25 @@ interface LeaveItem {
   statusLabel: string;
 }
 
+interface OfficerItem {
+  id: string;
+  fullName: string;
+  militaryId: string;
+  rank?: string;
+}
+
 interface LeavesPageClientProps {
   initialLeaves: LeaveItem[];
-  officers: any[];
+  officers: OfficerItem[];
   canEdit: boolean;
+  hideHeader?: boolean;
 }
 
 export function LeavesPageClient({
   initialLeaves,
   officers,
   canEdit,
+  hideHeader = false,
 }: LeavesPageClientProps) {
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -49,16 +56,19 @@ export function LeavesPageClient({
 
   return (
     <PageContainer className="max-w-[1600px] mx-auto pb-12">
-      <PageHeader
-        title="سجل الإجازات والغياب"
-        description={`متابعة حضور الضباط وسجل الإجازات والغيابات (${filteredLeaves.length})`}
-        icon={<ScrollText className="w-6 h-6" />}
-        showSearch
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        searchPlaceholder="بحث باسم الضابط أو السبب..."
-        action={canEdit && <LeaveAddModal officers={officers} />}
-      />
+      {!hideHeader && (
+        <PageHeader
+          title="سجل الإجازات والغياب"
+          icon={<ScrollText className="w-6 h-6" />}
+          backHref="/arkan-harb"
+          backLabel="أركان الحرب"
+          showSearch
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder="بحث باسم الضابط أو السبب..."
+          action={canEdit && <LeaveAddModal officers={officers} />}
+        />
+      )}
       <LeaveRegister leaves={filteredLeaves} officers={officers} canEdit={canEdit} />
     </PageContainer>
   );

@@ -1,12 +1,13 @@
 "use client";
 
 import * as React from "react";
-
+import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface ModalActionsProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface ModalActionsProps extends React.HTMLAttributes<HTMLDivElement> {
   submitText?: string;
   submitLoading?: boolean;
+  submitVariant?: "primary" | "destructive";
   cancelText?: string;
   onCancel?: () => void;
 }
@@ -15,6 +16,7 @@ export function ModalActions({
   className,
   submitText,
   submitLoading,
+  submitVariant = "primary",
   cancelText,
   onCancel,
   children,
@@ -22,28 +24,37 @@ export function ModalActions({
 }: ModalActionsProps) {
   return (
     <div
-      className={cn("flex flex-col-reverse gap-2 sm:flex-row sm:justify-start", className)}
+      className={cn("flex flex-row-reverse items-center justify-start gap-3 w-full", className)}
       {...props}
     >
-      {children ? children : (
+      {children ? (
+        children
+      ) : (
         <>
           <button
             type="submit"
             disabled={submitLoading}
-            className="inline-flex justify-center items-center rounded-xl bg-(--app-accent) px-4 py-2 text-sm font-bold text-(--app-accent-foreground) hover:bg-(--app-accent)/90 disabled:opacity-50 transition-all cursor-pointer"
+            className={cn(
+              "inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-white transition-all duration-150 cursor-pointer shadow-md hover:shadow-lg active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none disabled:transform-none",
+              submitVariant === "destructive"
+                ? "bg-(--app-error) hover:bg-red-600 focus-visible:ring-2 focus-visible:ring-red-500/40"
+                : "bg-(--color-primary) hover:bg-(--color-primary-hover) focus-visible:ring-2 focus-visible:ring-blue-500/40"
+            )}
           >
             {submitLoading ? (
               <>
-                <span className="animate-spin mr-2">⏳</span>
-                جاري المعالجة...
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
+                <span>جاري الحفظ...</span>
               </>
-            ) : submitText || "حفظ"}
+            ) : (
+              <span>{submitText || "حفظ التغييرات"}</span>
+            )}
           </button>
           {onCancel && (
             <button
               type="button"
               onClick={onCancel}
-              className="inline-flex justify-center items-center rounded-xl bg-(--app-surface-container) border border-(--app-border) px-4 py-2 text-sm font-bold text-slate-500 hover:bg-slate-50 transition-all cursor-pointer"
+              className="inline-flex items-center justify-center rounded-xl bg-(--app-surface-container) hover:bg-(--app-border)/60 border border-(--app-border) px-5 py-2.5 text-sm font-bold text-(--app-foreground) active:scale-[0.97] transition-all duration-150 cursor-pointer focus-visible:ring-2 focus-visible:ring-blue-500/30"
             >
               {cancelText || "إلغاء"}
             </button>

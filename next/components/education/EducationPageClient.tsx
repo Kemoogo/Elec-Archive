@@ -2,15 +2,25 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { CourseGrid } from "@/components/education/CourseGrid";
+import { CoursesTable } from "@/components/education/CoursesTable";
 import { CourseForm } from "@/components/education/CourseForm";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { ModernPageHeader as PageHeader } from "@/components/layout/ModernPageHeader";
 import { BookOpen } from "lucide-react";
-import type { ICourse } from "@/lib/db/models/Course";
+
+interface CourseRow {
+  _id: string;
+  title: string;
+  description?: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+  participantModel: string;
+  participantCount: number;
+}
 
 interface EducationPageClientProps {
-  courses: any[];
+  courses: CourseRow[];
   total: number;
   totalPages: number;
   page: number;
@@ -75,7 +85,7 @@ export function EducationPageClient({
             <select
               value={statusFilter}
               onChange={(e) => handleStatusChange(e.target.value)}
-              className="px-4 py-2 rounded-xl text-sm font-bold transition-all bg-slate-100 text-(--color-primary) hover:bg-slate-200 focus:outline-none   appearance-none cursor-pointer"
+              className="btn-secondary-sm"
             >
               <option value="all">جميع الحالات</option>
               <option value="upcoming">قادمة</option>
@@ -86,7 +96,7 @@ export function EducationPageClient({
           </div>
         }
       />
-      <CourseGrid
+      <CoursesTable
         courses={courses}
         page={page}
         totalPages={totalPages}

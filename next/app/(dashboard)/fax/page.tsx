@@ -1,10 +1,9 @@
 import { connectToDatabase } from "@/lib/db/connect";
 import { authenticate } from "@/lib/auth/middleware";
 import { redirect } from "next/navigation";
-import { Fax, type IFax } from "@/lib/db/models/Fax";
+import { Fax } from "@/lib/db/models/Fax";
 import { faxListQuerySchema } from "@/lib/validations/fax";
 import { buildFaxListSort } from "@/lib/fax/queries";
-import { FaxTable } from "@/components/fax/FaxTable";
 import { FaxPageClient } from "@/components/fax/FaxPageClient";
 import type { Types } from "mongoose";
 
@@ -92,7 +91,7 @@ export default async function FaxListPage({ searchParams }: FaxListPageProps) {
 
   return (
     <FaxPageClient
-      initialFaxes={serializedFaxes as unknown as IFax[]}
+      initialFaxes={serializedFaxes}
       total={total}
       totalPages={totalPages}
       page={page}

@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/auth/middleware";
 import { logAuditEvent } from "@/lib/auth/audit";
 import { updateUserSchema } from "@/validations/auth";
 import { errors } from "@/lib/auth/errors";
+import { handleApiError } from "@/lib/utils/api-error";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
 import { UpdateQuery } from "mongoose";
 
@@ -139,7 +140,7 @@ export async function PATCH(
       updateQuery.$inc = incData;
     }
 
-    const user = await User.findByIdAndUpdate(id, updateQuery, { new: true }).select("-password");
+    const user = await User.findByIdAndUpdate(id, updateQuery, { returnDocument: "after" }).select("-password");
 
     if (!user) {
       return NextResponse.json(
@@ -186,11 +187,7 @@ export async function PATCH(
       },
     });
   } catch (error) {
-    console.error("Update user error:", error);
-    return NextResponse.json(
-      { success: false, error: errors.internalError },
-      { status: 500 },
-    );
+    return handleApiError(error, "حدث خطأ أثناء تحديث المستخدم");
   }
 }
 
@@ -226,7 +223,7 @@ export async function DELETE(
     }
   }
 
-  const user = await User.findByIdAndUpdate(id, { $set: { isActive: false }, $inc: { tokenVersion: 1 } }, { new: true });
+  const user = await User.findByIdAndUpdate(id, { $set: { isActive: false }, $inc: { tokenVersion: 1 } }, { returnDocument: "after" });
 
   if (!user) {
     return NextResponse.json(

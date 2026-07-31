@@ -2,6 +2,9 @@
 
 import type { ReactNode } from 'react';
 import { cn } from "@/lib/utils";
+import { SectionWrapper } from "@/components/ui/section-wrapper";
+import { EmptyState } from "./empty-state";
+import { Database, LucideIcon } from "lucide-react";
 
 export type TableColumn<T extends object> = {
     header: ReactNode;
@@ -28,6 +31,9 @@ type Props<T extends object> = {
     thClassName?: string;
     tdClassName?: string;
     onRowClick?: (row: T) => void;
+    emptyTitle?: string;
+    emptyDescription?: string;
+    isLoading?: boolean;
 };
 
 type GenericTableColumn = TableColumn<object>;
@@ -76,11 +82,16 @@ export default function MainTable<T extends object>({
     columns,
     data,
     showSerialNumber = false,
-    theadClassName = "bg-[var(--color-primary)] text-white text-xs",
+    theadClassName = "bg-[var(--color-primary)] dark:bg-(--color-primary)/10 text-white dark:text-(--color-primary) border-b border-(--app-border) text-xs",
     thClassName = "px-5 py-3",
     tdClassName = "px-5 py-3 text-xs font-bold text-(--app-muted-foreground) whitespace-nowrap",
     onRowClick,
-}: Props<T>) {
+    emptyTitle = "لا توجد بيانات",
+    emptyDescription = "لم يتم العثور على أي سجلات لعرضها في هذا الجدول",
+    emptyIcon = Database,
+    isLoading = false,
+    variant = "primary",
+}: Props<T> & { emptyIcon?: LucideIcon; variant?: "primary" | "secondary" }) {
     const headerDepth = getHeaderDepth(columns);
     const headerRows = buildHeaderRows(columns, headerDepth);
 
@@ -91,110 +102,139 @@ export default function MainTable<T extends object>({
         return value;
     };
 
+    const appliedTheadClassName = variant === "secondary" 
+        ? "bg-(--app-surface-container) text-(--app-muted-foreground) text-xs" 
+        : theadClassName;
+        
+    const appliedTdClassName = variant === "secondary" 
+        ? "px-5 py-4 text-sm font-medium border-b border-(--app-border) text-(--app-muted-foreground)" 
+        : tdClassName;
+
+    if (isLoading) {
+        return (
+            <SectionWrapper noPadding className="overflow-hidden">
+                <div className="p-12 flex flex-col items-center justify-center gap-4">
+                    <div className="w-10 h-10 border-4 border-(--color-primary)/20 border-t-(--color-primary) rounded-full animate-spin" />
+                    <p className="text-sm font-bold text-(--app-muted-foreground)">جاري التحميل...</p>
+                </div>
+            </SectionWrapper>
+        );
+    }
+
+    if (data.length === 0) {
+        return (
+            <EmptyState
+                icon={emptyIcon}
+                title={emptyTitle}
+                description={emptyDescription}
+            />
+        );
+    }
+
     return (
-        <div className="pt-0 pb-0 bg-(--app-surface) rounded-2xl shadow-sm border border-(--app-border) overflow-hidden">
+        <SectionWrapper noPadding className="overflow-hidden rounded-2xl">
             <div className="overflow-x-auto">
                 <table className="w-full table-auto min-w-full">
-                    <thead className={theadClassName}>
-                        {headerRows.map((row, rowIndex) => (
-                            <tr key={rowIndex}>
-                                {rowIndex === 0 && showSerialNumber && (
-                                    <th className={`${thClassName} text-center`} rowSpan={headerDepth} style={{ width: '1%', whiteSpace: 'nowrap' }}>
-                                        م
-                                    </th>
-                                )}
-                                {row.map((col, colIndex) => {
-                                    const hasChildren = col.children && col.children.length > 0;
-                                    const colspan = hasChildren
-                                        ? col.children!.length
-                                        : 1;
-                                    const rowspan = hasChildren ? 1 : headerDepth - rowIndex;
-
-                                    let headerPadding = thClassName;
-                                    const headerAlignClass = getAlignClass(getHeaderAlign(col));
-                                    if (hasChildren) {
-                                        headerPadding = `px-4 pt-2 pb-1 ${headerAlignClass}`;
-                                    } else if (rowIndex > 0) {
-                                        headerPadding = `px-4 pt-1 pb-2 ${headerAlignClass}`;
-                                    } else {
-                                        headerPadding = `${thClassName} ${headerAlignClass}`;
-                                    }
-
-                                    return (
-                                        <th
-                                            key={colIndex}
-                                            className={`${headerPadding} ${col.headerClassName || ""}`}
-                                            colSpan={colspan}
-                                            rowSpan={rowspan}
-                                            style={{
-                                                width: col.minWidth ? '1%' : undefined,
-                                                whiteSpace: 'nowrap'
-                                            }}
-                                        >
-                                            {col.header}
+                    <thead className={appliedTheadClassName}>
+                            {headerRows.map((row, rowIndex) => (
+                                <tr key={rowIndex}>
+                                    {rowIndex === 0 && showSerialNumber && (
+                                        <th className={`${thClassName} text-center`} rowSpan={headerDepth} style={{ width: '1%', whiteSpace: 'nowrap' }}>
+                                            م
                                         </th>
-                                    );
-                                })}
-                            </tr>
-                        ))}
-                    </thead>
+                                    )}
+                                    {row.map((col, colIndex) => {
+                                        const hasChildren = col.children && col.children.length > 0;
+                                        const colspan = hasChildren
+                                            ? col.children!.length
+                                            : 1;
+                                        const rowspan = hasChildren ? 1 : headerDepth - rowIndex;
 
-                    <tbody className="divide-y divide-slate-50">
-                        {data.map((row, i) => {
-                            const rowWithMeta = row as Record<string, unknown> & { id?: string | number; className?: string };
-                            return (
-                            <tr
-                                key={rowWithMeta.id ?? i}
-                                onClick={() => onRowClick?.(row)}
-                                className={cn(
-                                    "transition-colors",
-                                    onRowClick ? "cursor-pointer hover:bg-slate-50" : "hover:bg-slate-50/80",
-                                    rowWithMeta.className
-                                )}
-                            >
-                                {showSerialNumber && <td className={`${tdClassName} font-mono text-center`} style={{ width: '1%', whiteSpace: 'nowrap' }}>{i + 1}</td>}
-                                {columns.map((col, colIndex) => {
-                                    if (col.children && col.children.length > 0) {
-                                        return col.children.map((child, childIndex) => {
-                                            const value = child.accessor ? getValue(rowWithMeta[child.accessor], child.emptyValue) : null;
-                                            const whiteSpace = typeof value === "string" && value.includes("\n") ? "pre-line" : "nowrap";
-                                            const cellAlignClass = getAlignClass(getCellAlign(child));
-                                            return (
-                                                <td
-                                                    key={`${colIndex}-${childIndex}`}
-                                                    className={`${tdClassName} ${child.tdClassName || ""} ${child.isNumeric ? 'font-mono' : ''} ${child.className || ""} ${cellAlignClass}`}
-                                                    style={{
-                                                        width: child.minWidth ? '1%' : undefined,
-                                                        whiteSpace
-                                                    }}
-                                                >
-                                                    {child.render ? child.render(value, row) : value as ReactNode}
-                                                </td>
-                                            );
-                                        });
-                                    }
-                                    const value = col.accessor ? getValue(rowWithMeta[col.accessor], col.emptyValue) : null;
-                                    const whiteSpace = typeof value === "string" && value.includes("\n") ? "pre-line" : "nowrap";
-                                    const cellAlignClass = getAlignClass(getCellAlign(col));
-                                    return (
-                                        <td
-                                            key={colIndex}
-                                            className={`${tdClassName} ${col.tdClassName || ""} ${col.isNumeric ? 'font-mono' : ''} ${col.className || ""} ${cellAlignClass}`}
-                                            style={{
-                                                width: col.minWidth ? '1%' : undefined,
-                                                whiteSpace
-                                            }}
-                                        >
-                                            {col.render ? col.render(value, row) : value as ReactNode}
-                                        </td>
-                                    );
-                                })}
-                            </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
-            </div>
-        </div >
+                                        let headerPadding = thClassName;
+                                        const headerAlignClass = getAlignClass(getHeaderAlign(col));
+                                        if (hasChildren) {
+                                            headerPadding = `px-4 pt-2 pb-1 ${headerAlignClass}`;
+                                        } else if (rowIndex > 0) {
+                                            headerPadding = `px-4 pt-1 pb-2 ${headerAlignClass}`;
+                                        } else {
+                                            headerPadding = `${thClassName} ${headerAlignClass}`;
+                                        }
+
+                                        return (
+                                            <th
+                                                key={colIndex}
+                                                className={`${headerPadding} ${col.headerClassName || ""}`}
+                                                colSpan={colspan}
+                                                rowSpan={rowspan}
+                                                style={{
+                                                    width: col.minWidth ? '1%' : undefined,
+                                                    whiteSpace: 'nowrap'
+                                                }}
+                                            >
+                                                {col.header}
+                                            </th>
+                                        );
+                                    })}
+                                </tr>
+                            ))}
+                        </thead>
+
+                        <tbody className="divide-y divide-(--app-border)/40">
+                            {data.map((row, i) => {
+                                const rowWithMeta = row as Record<string, unknown> & { id?: string | number; className?: string };
+                                return (
+                                <tr
+                                    key={rowWithMeta.id ?? i}
+                                    onClick={() => onRowClick?.(row)}
+                                    className={cn(
+                                        "transition-colors",
+                                        onRowClick ? "cursor-pointer hover:bg-(--app-surface-container)" : "hover:bg-(--app-surface-container)/60",
+                                        rowWithMeta.className
+                                    )}
+                                >
+                                    {showSerialNumber && <td className={`${appliedTdClassName} font-mono text-center`} style={{ width: '1%', whiteSpace: 'nowrap' }}>{i + 1}</td>}
+                                    {columns.map((col, colIndex) => {
+                                        if (col.children && col.children.length > 0) {
+                                            return col.children.map((child, childIndex) => {
+                                                const value = child.accessor ? getValue(rowWithMeta[child.accessor], child.emptyValue) : null;
+                                                const whiteSpace = typeof value === "string" && value.includes("\n") ? "pre-line" : "nowrap";
+                                                const cellAlignClass = getAlignClass(getCellAlign(child));
+                                                return (
+                                                    <td
+                                                        key={`${colIndex}-${childIndex}`}
+                                                        className={`${appliedTdClassName} ${child.tdClassName || ""} ${child.isNumeric ? 'font-mono' : ''} ${child.className || ""} ${cellAlignClass}`}
+                                                        style={{
+                                                            width: child.minWidth ? '1%' : undefined,
+                                                            whiteSpace
+                                                        }}
+                                                    >
+                                                        {child.render ? child.render(value, row) : value as ReactNode}
+                                                    </td>
+                                                );
+                                            });
+                                        }
+                                        const value = col.accessor ? getValue(rowWithMeta[col.accessor], col.emptyValue) : null;
+                                        const whiteSpace = typeof value === "string" && value.includes("\n") ? "pre-line" : "nowrap";
+                                        const cellAlignClass = getAlignClass(getCellAlign(col));
+                                        return (
+                                            <td
+                                                key={colIndex}
+                                                className={`${appliedTdClassName} ${col.tdClassName || ""} ${col.isNumeric ? 'font-mono' : ''} ${col.className || ""} ${cellAlignClass}`}
+                                                style={{
+                                                    width: col.minWidth ? '1%' : undefined,
+                                                    whiteSpace
+                                                }}
+                                            >
+                                                {col.render ? col.render(value, row) : value as ReactNode}
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+        </SectionWrapper>
     );
 }

@@ -6,8 +6,9 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/toast";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { ModalShell } from "@/components/ui/modal-shell";
-
 import { DateField } from "@/components/ui/date-field";
+import { FormLabel, FormSelect, FormInput, FormTextarea } from "@/components/ui/form-fields";
+import { extractApiError } from "@/lib/utils";
 
 const RANK_OPTIONS = [
   { value: "second_lieutenant", label: "ملازم" },
@@ -66,7 +67,8 @@ export function OfficerPromoteModal({ officer, trigger }: OfficerPromoteModalPro
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "فشل تسجيل الترقية");
+        const errorMsg = extractApiError(data, "فشل تسجيل الترقية");
+        throw new Error(errorMsg);
       }
 
       showToast("تم تسجيل الترقية بنجاح", "success");
@@ -86,25 +88,25 @@ export function OfficerPromoteModal({ officer, trigger }: OfficerPromoteModalPro
       </div>
       {open && (
         <ModalShell title="تسجيل ترقية" onClose={() => setOpen(false)}>
-          <div className="mb-4 bg-amber-50 border border-amber-100 p-4 rounded-2xl text-right">
-            <p className="text-sm font-bold text-amber-800">
+          <div className="mb-4 bg-(--app-warning)/10 border border-(--app-warning)/20 p-4 rounded-2xl text-right">
+            <p className="text-sm font-bold text-(--app-warning)">
               تسجيل ترقية جديدة للضابط وتحديث الرتبة الحالية.
             </p>
-            <p className="text-sm text-amber-600 mt-1">
+            <p className="text-sm text-(--app-warning) mt-1">
               {officer.rankLabel || officer.rank} / {officer.fullName}
             </p>
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
               <div className="space-y-1.5 text-right">
-                <label htmlFor="promote-rank" className="text-xs font-bold text-(--app-muted-foreground) block mr-1">
-                  الرتبة الجديدة <span className="text-red-500">*</span>
-                </label>
-                <select
+                <FormLabel htmlFor="promote-rank" required>
+                  الرتبة الجديدة
+                </FormLabel>
+                <FormSelect
                   id="promote-rank"
                   value={newRank}
                   onChange={(e) => setNewRank(e.target.value)}
-                  className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none  focus:ring-amber-500/20 focus:border-amber-500 transition-all appearance-none"
+                  focusVariant="amber"
                   required
                 >
                   {RANK_OPTIONS.map((r) => (
@@ -112,7 +114,7 @@ export function OfficerPromoteModal({ officer, trigger }: OfficerPromoteModalPro
                       {r.label}
                     </option>
                   ))}
-                </select>
+                </FormSelect>
               </div>
 
               <DateField
@@ -125,29 +127,29 @@ export function OfficerPromoteModal({ officer, trigger }: OfficerPromoteModalPro
             </div>
 
             <div className="space-y-1.5 text-right">
-              <label htmlFor="order-number" className="text-xs font-bold text-(--app-muted-foreground) block mr-1">
+              <FormLabel htmlFor="order-number">
                 رقم الأمر / القرار
-              </label>
-              <input
+              </FormLabel>
+              <FormInput
                 type="text"
                 id="order-number"
                 value={orderNumber}
                 onChange={(e) => setOrderNumber(e.target.value)}
                 placeholder="مثلاً: 123 لسنة 2024"
-                className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none  focus:ring-amber-500/20 focus:border-amber-500 transition-all text-right"
+                focusVariant="amber"
               />
             </div>
 
             <div className="space-y-1.5 text-right">
-              <label htmlFor="notes" className="text-xs font-bold text-(--app-muted-foreground) block mr-1">
+              <FormLabel htmlFor="notes">
                 ملاحظات إضافية
-              </label>
-              <textarea
+              </FormLabel>
+              <FormTextarea
                 id="notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}
-                className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none  focus:ring-amber-500/20 focus:border-amber-500 transition-all text-right resize-none"
+                focusVariant="amber"
               />
             </div>
 

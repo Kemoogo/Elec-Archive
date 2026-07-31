@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/auth/middleware";
 import { logAuditEvent } from "@/lib/auth/audit";
 import { createUserSchema } from "@/validations/auth";
 import { errors } from "@/lib/auth/errors";
+import { handleApiError } from "@/lib/utils/api-error";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
 
 export async function GET(request: Request) {
@@ -76,11 +77,7 @@ export async function GET(request: Request) {
       total,
     });
   } catch (error) {
-    console.error("Users GET error:", error);
-    return NextResponse.json(
-      { success: false, error: errors.internalError },
-      { status: 500 },
-    );
+    return handleApiError(error, "حدث خطأ أثناء تحميل المستخدمين");
   }
 }
 
@@ -147,10 +144,6 @@ export async function POST(request: Request) {
       { status: 201 },
     );
   } catch (error) {
-    console.error("Create user error:", error);
-    return NextResponse.json(
-      { success: false, error: errors.internalError },
-      { status: 500 },
-    );
+    return handleApiError(error, "حدث خطأ أثناء إنشاء المستخدم");
   }
 }

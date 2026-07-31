@@ -2,11 +2,11 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { User, LogOut, ChevronDown, Palette, History, Settings } from "lucide-react";
+import { User, LogOut, ChevronDown, Palette, History, Settings, ShieldCheck } from "lucide-react";
 
 const roleLabels: Record<string, string> = {
-  admin: "مسؤول",
-  commander: "قائد",
+  admin: "مسؤول النظام",
+  commander: "قائد الوحدة",
   employee: "موظف",
   viewer: "مشاهد",
 };
@@ -43,62 +43,86 @@ export function UserMenu({ fullName, role }: UserMenuProps) {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white text-(--color-primary) font-bold text-sm shadow-md hover:shadow-lg hover:-translate-y-0.5 hover:bg-blue-50 transition-all active:scale-95 cursor-pointer"
+        className="group relative flex items-center gap-2.5 px-3.5 h-9 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/35 text-white font-extrabold text-xs sm:text-sm transition-all duration-200 shadow-sm active:scale-95 cursor-pointer"
         aria-label="الحساب"
       >
-        <User className="w-4 h-4" />
-        <span>{fullName}</span>
-        <ChevronDown className={`w-4 h-4 transition-transform ${open ? "rotate-180" : ""}`} />
+        <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-white shrink-0 group-hover:scale-105 transition-transform">
+          <User className="w-3.5 h-3.5" />
+        </div>
+        <span className="truncate max-w-[120px]">{fullName}</span>
+        <ChevronDown
+          className={`w-3.5 h-3.5 text-blue-200 transition-transform duration-300 ${
+            open ? "rotate-180 text-white" : ""
+          }`}
+        />
       </button>
 
-      {open && (
-        <div className="absolute left-0 top-full mt-2 w-56 rounded-2xl bg-white shadow-2xl border border-slate-100 overflow-hidden text-(--app-muted-foreground) z-50 origin-top" dir="rtl">
-          <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center gap-3">
-            <div className="p-2 bg-(--color-primary) rounded-lg text-white">
-              <User className="w-5 h-5" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-bold text-(--color-primary)">{fullName}</span>
-              <span className="text-[10px] text-slate-500 font-bold">{roleLabels[role] ?? role}</span>
-            </div>
+      <div
+        className={`absolute left-0 top-full mt-2.5 w-60 rounded-2xl bg-(--app-surface)/98 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-(--app-border) overflow-hidden text-(--app-muted-foreground) z-50 origin-top-left transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          open
+            ? "opacity-100 scale-100 translate-y-0"
+            : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
+        }`}
+        dir="rtl"
+      >
+        <div className="p-4 bg-(--app-surface-container-low)/80 border-b border-(--app-border) flex items-center gap-3">
+          <div className="p-2.5 bg-(--color-primary) rounded-xl text-white shadow-md shadow-blue-900/20">
+            <User className="w-5 h-5" />
           </div>
-          <div className="p-2">
-            {role === "admin" && (
-              <button
-                onClick={() => { setOpen(false); router.push("/admin/users"); }}
-                className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-(--app-muted-foreground) transition-colors hover:bg-slate-50 font-bold cursor-pointer"
-              >
-                <Settings className="w-4 h-4 text-slate-400 group-hover:text-(--color-primary)" />
-                <span>إدارة المستخدمين</span>
-              </button>
-            )}
-            {(role === "admin" || role === "commander") && (
-              <button
-                onClick={() => { setOpen(false); router.push("/audit-log"); }}
-                className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-(--app-muted-foreground) transition-colors hover:bg-slate-50 font-bold cursor-pointer"
-              >
-                <History className="w-4 h-4 text-slate-400 group-hover:text-(--color-primary)" />
-                <span>السجل</span>
-              </button>
-            )}
-            <button
-              onClick={() => { setOpen(false); router.push("/theme-playground"); }}
-              className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-(--app-muted-foreground) transition-colors hover:bg-slate-50 font-bold cursor-pointer"
-            >
-              <Palette className="w-4 h-4 text-slate-400 group-hover:text-(--color-primary)" />
-              <span>لوحة التصميم</span>
-            </button>
-            <button
-              onClick={handleLogout}
-              disabled={loading}
-              className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-red-500 transition-colors hover:bg-red-50 font-bold disabled:opacity-50 cursor-pointer"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>{loading ? "جاري الخروج..." : "تسجيل الخروج"}</span>
-            </button>
+          <div className="flex flex-col text-right min-w-0">
+            <span className="text-sm font-extrabold text-(--app-foreground) truncate">{fullName}</span>
+            <span className="inline-flex items-center gap-1 w-fit mt-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+              <ShieldCheck className="w-3 h-3" />
+              <span>{roleLabels[role] ?? role}</span>
+            </span>
           </div>
         </div>
-      )}
+
+        <div className="p-2 space-y-0.5">
+          {role === "admin" && (
+            <button
+              onClick={() => {
+                setOpen(false);
+                router.push("/admin/users");
+              }}
+              className="group flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-bold text-(--app-foreground) transition-colors hover:bg-(--app-surface-container) cursor-pointer text-right"
+            >
+              <Settings className="w-4 h-4 text-(--app-muted-foreground) group-hover:text-(--color-primary) transition-colors" />
+              <span>إدارة المستخدمين والصلاحيات</span>
+            </button>
+          )}
+          {(role === "admin" || role === "commander") && (
+            <button
+              onClick={() => {
+                setOpen(false);
+                router.push("/audit-log");
+              }}
+              className="group flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-bold text-(--app-foreground) transition-colors hover:bg-(--app-surface-container) cursor-pointer text-right"
+            >
+              <History className="w-4 h-4 text-(--app-muted-foreground) group-hover:text-(--color-primary) transition-colors" />
+              <span>سجل الحركات والتغييرات</span>
+            </button>
+          )}
+          <button
+            onClick={() => {
+              setOpen(false);
+              router.push("/theme-playground");
+            }}
+            className="group flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-bold text-(--app-foreground) transition-colors hover:bg-(--app-surface-container) cursor-pointer text-right"
+          >
+            <Palette className="w-4 h-4 text-(--app-muted-foreground) group-hover:text-(--color-primary) transition-colors" />
+            <span>لوحة التصميم المتقدمة</span>
+          </button>
+          <button
+            onClick={handleLogout}
+            disabled={loading}
+            className="group flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-bold text-red-500 transition-colors hover:bg-red-500/10 disabled:opacity-50 cursor-pointer text-right mt-1 border-t border-(--app-border)/40 pt-2"
+          >
+            <LogOut className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
+            <span>{loading ? "جاري الخروج..." : "تسجيل الخروج"}</span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

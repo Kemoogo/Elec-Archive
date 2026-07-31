@@ -8,7 +8,7 @@ Follow-up TODOs: None
 Notes: PATCH bump — clarified Tech Stack versions to Next.js 16, React 19, Mongoose 9.x, Tailwind CSS 4, Zod 4 (already in use, aligned documentation)
 -->
 
-# الأرشيف אלקטרוני (Elec Archive) Constitution
+# الأرشيف  (Elec Archive) Constitution
 
 ## Core Principles
 

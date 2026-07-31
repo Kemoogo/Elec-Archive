@@ -1,5 +1,16 @@
 import mongoose from "mongoose";
 
+/**
+ * Custom error class for database connection failures.
+ * API routes can check for this type to return a specific error message.
+ */
+export class DatabaseConnectionError extends Error {
+  constructor(message?: string) {
+    super(message ?? "Database connection lost");
+    this.name = "DatabaseConnectionError";
+  }
+}
+
 const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI && process.env.NODE_ENV === "production") {
@@ -84,11 +95,16 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
     if (cached.conn.connection.readyState !== 1) {
       cached.conn = null;
       cached.promise = null;
-      throw new Error("Database connection lost");
+      throw new DatabaseConnectionError("Database connection lost");
     }
   } catch (error) {
     cached.promise = null;
-    throw error;
+    if (error instanceof DatabaseConnectionError) {
+      throw error;
+    }
+    throw new DatabaseConnectionError(
+      error instanceof Error ? error.message : "Failed to connect to database"
+    );
   }
 
   return cached.conn;

@@ -5,26 +5,31 @@ import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { ModalActions } from "@/components/ui/modal-actions";
+import { useToast } from "@/components/ui/toast";
+import { extractApiError } from "@/lib/utils";
 
 export function DeleteOfficerButton({ officerId, officerLabel }: { officerId: string, officerLabel: string }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { showToast } = useToast();
 
   const handleDelete = async () => {
     setLoading(true);
     try {
       const res = await fetch(`/api/officers/${officerId}`, { method: "DELETE" });
       if (res.ok) {
+        showToast("تم حذف الضابط بنجاح", "success");
         router.push("/officers");
         router.refresh();
       } else {
         const data = await res.json();
-        alert(data.error || "Failed to delete the officer.");
+        const errorMsg = extractApiError(data, "فشل في حذف الضابط");
+        showToast(errorMsg, "error");
         setLoading(false);
       }
     } catch {
-      alert("An error occurred during deletion.");
+      showToast("حدث خطأ في الاتصال بالخادم", "error");
       setLoading(false);
     }
   };
@@ -43,10 +48,10 @@ export function DeleteOfficerButton({ officerId, officerLabel }: { officerId: st
               هل أنت متأكد من حذف الضابط <span className="text-(--app-error)">{officerLabel}</span>؟ هذا الإجراء لا يمكن التراجع عنه.
             </p>
             <ModalActions>
-              <button onClick={handleDelete} disabled={loading} className="btn-destructive flex-1 justify-center">
+              <button onClick={handleDelete} disabled={loading} className="btn-modal-destructive">
                 {loading ? "جاري الحذف..." : "نعم، احذف الضابط"}
               </button>
-              <button onClick={() => setOpen(false)} disabled={loading} className="btn-secondary flex-1 justify-center">
+              <button onClick={() => setOpen(false)} disabled={loading} className="btn-modal-secondary">
                 إلغاء
               </button>
             </ModalActions>

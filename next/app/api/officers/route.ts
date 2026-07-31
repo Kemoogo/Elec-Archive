@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { authenticate } from "@/lib/auth/middleware";
 import { logAuditEvent } from "@/lib/auth/audit";
 import { errors } from "@/lib/auth/errors";
+import { handleApiError } from "@/lib/utils/api-error";
 import { Officer } from "@/lib/db/models/Officer";
 import { canViewOfficers, canEditOfficers } from "@/lib/officers/access";
 import { serializeOfficerListItem } from "@/lib/officers/queries";
@@ -74,7 +75,12 @@ export async function GET(request: Request) {
 
     const skip = (page - 1) * limit;
     const [officers, total] = await Promise.all([
-      Officer.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      Officer.find(query)
+        .collation({ locale: "en", numericOrdering: true })
+        .sort({ seniorityNumber: 1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
       Officer.countDocuments(query),
     ]);
 
@@ -101,11 +107,7 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    console.error("Officers GET error:", error);
-    return NextResponse.json(
-      { success: false, error: errors.internalError },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }
 
@@ -234,9 +236,6 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json(
-      { success: false, error: errors.internalError },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }
