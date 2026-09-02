@@ -10,9 +10,9 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 const buttonVariants = {
   default: "bg-(--color-primary) text-white hover:bg-(--color-primary-hover) shadow-md hover:shadow-lg active:scale-[0.97]",
   destructive: "bg-(--app-error) text-white hover:bg-(--app-error)/90 shadow-sm active:scale-[0.97]",
-  outline: "border border-(--app-border) bg-(--app-surface) hover:bg-(--app-surface-container) hover:text-(--app-foreground) active:scale-[0.97]",
-  secondary: "bg-(--app-surface-container) text-(--app-foreground) hover:bg-(--app-surface-container-low) border border-(--app-border)/20 active:scale-[0.97]",
-  ghost: "hover:bg-(--app-surface-container) hover:text-(--app-foreground) active:scale-[0.97]",
+  outline: "border border-(--app-border) bg-(--app-surface) text-(--app-muted-foreground) hover:bg-(--app-surface-container) hover:text-(--color-primary) active:scale-[0.97]",
+  secondary: "bg-(--app-surface-container) text-(--app-muted-foreground) hover:text-(--color-primary) hover:bg-(--app-surface-container-low) border border-(--app-border)/20 active:scale-[0.97]",
+  ghost: "text-(--app-muted-foreground) hover:bg-(--app-surface-container) hover:text-(--color-primary) active:scale-[0.97]",
   link: "text-(--color-primary) underline-offset-4 hover:underline",
 };
 

@@ -1,5 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
+import { isDatabaseError } from "@/lib/db/is-db-error";
+import { Database, AlertTriangle, RefreshCcw, RotateCcw } from "lucide-react";
+
 export default function DashboardError({
   error,
   reset,
@@ -7,44 +11,61 @@ export default function DashboardError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  const isDbError = error.name === "DatabaseConnectionError" || 
-                    error.message.includes("Database connection lost") ||
-                    error.message.includes("Failed to connect to database");
+  const isDb = isDatabaseError(error);
+
+  useEffect(() => {
+    console.error("Dashboard caught error:", error);
+  }, [error]);
 
   return (
-    <div className="flex min-h-[60vh] items-center justify-center" dir="rtl">
-      <div className="text-center space-y-4 max-w-md px-6">
-        <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full mb-2 ${isDbError ? 'bg-(--app-error)/20 text-(--app-error)' : 'bg-(--app-primary)/10 text-(--app-primary)'}`}>
-          <h2 className="text-3xl font-bold">!</h2>
-        </div>
-
-        <h2 className="text-xl font-bold text-(--color-primary)">
-          {isDbError ? "فشل الاتصال بقاعدة البيانات" : "حدث خطأ غير متوقع"}
-        </h2>
-
-        <p className="text-sm text-(--app-muted-foreground) leading-relaxed">
-          {isDbError 
-            ? "نواجه صعوبة في الاتصال بقاعدة البيانات حالياً. يرجى التأكد من تشغيل الخدمة والمحاولة مرة أخرى."
-            : "عذراً، حدث خطأ أثناء تحميل هذه الصفحة."}
-        </p>
-
-        <div className="flex flex-col gap-2">
-          <button
-            onClick={reset}
-            className="rounded-lg bg-(--color-primary) px-6 py-2.5 text-sm font-medium text-(--app-white) hover:bg-(--color-primary-hover) transition shadow-lg shadow-(--color-primary)/20"
-          >
-            إعادة المحاولة
-          </button>
-
-          {isDbError && (
-            <button
-              onClick={() => window.location.reload()}
-              className="text-xs text-(--app-muted-foreground) hover:underline"
-            >
-              تحديث الصفحة بالكامل
-            </button>
+    <div className="flex min-h-[70vh] items-center justify-center p-6" dir="rtl">
+      <div className="max-w-md w-full bg-(--app-surface) border border-(--app-border) rounded-2xl shadow-depth-lg p-8 text-center space-y-6">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 mb-2">
+          {isDb ? (
+            <Database className="w-8 h-8" />
+          ) : (
+            <AlertTriangle className="w-8 h-8" />
           )}
         </div>
+
+        <div className="space-y-2">
+          <h2 className="text-xl font-black text-(--color-primary)">
+            {isDb ? "قاعدة البيانات غير جاهزة (فقد الاتصال)" : "حدث خطأ غير متوقع"}
+          </h2>
+          <p className="text-xs font-bold text-(--app-muted-foreground) leading-relaxed">
+            {isDb
+              ? "تعذر الاتصال بقاعدة البيانات الخاصة بالنظام. يرجى التأكد من تشغيل خادم قاعدة البيانات (MongoDB) والمحاولة مرة أخرى."
+              : "عذراً، حدث خطأ غير متوقع أثناء معالجة هذا الطلب."}
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-2.5 pt-2">
+          <button
+            type="button"
+            onClick={reset}
+            className="btn-primary w-full py-2.5 text-xs font-bold flex items-center justify-center gap-2"
+          >
+            <RefreshCcw className="w-4 h-4" />
+            <span>إعادة المحاولة</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="btn-secondary w-full py-2.5 text-xs font-bold flex items-center justify-center gap-2"
+          >
+            <RotateCcw className="w-4 h-4" />
+            <span>تحديث الصفحة بالكامل</span>
+          </button>
+        </div>
+
+        {isDb && (
+          <div className="pt-2 border-t border-(--app-border)/40">
+            <span className="text-[10px] font-mono text-rose-600 dark:text-rose-400 font-bold">
+              STATUS: DATABASE_UNAVAILABLE_503
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

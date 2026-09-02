@@ -42,16 +42,21 @@ export function DeleteOfficerButton({ officerId, officerLabel }: { officerId: st
       </button>
 
       {open && (
-        <ModalShell title={<span className="text-base font-semibold text-(--app-error)">تأكيد الحذف</span>} onClose={() => setOpen(false)}>
+        <ModalShell
+          title="تأكيد الحذف"
+          icon={<Trash2 className="w-4 h-4" />}
+          titleVariant="danger"
+          onClose={() => setOpen(false)}
+        >
           <div className="p-6">
             <p className="text-sm font-bold text-(--app-muted-foreground) mb-6 font-sans">
               هل أنت متأكد من حذف الضابط <span className="text-(--app-error)">{officerLabel}</span>؟ هذا الإجراء لا يمكن التراجع عنه.
             </p>
             <ModalActions>
-              <button onClick={handleDelete} disabled={loading} className="btn-modal-destructive">
+              <button onClick={handleDelete} disabled={loading} className="btn-destructive">
                 {loading ? "جاري الحذف..." : "نعم، احذف الضابط"}
               </button>
-              <button onClick={() => setOpen(false)} disabled={loading} className="btn-modal-secondary">
+              <button onClick={() => setOpen(false)} disabled={loading} className="btn-secondary">
                 إلغاء
               </button>
             </ModalActions>

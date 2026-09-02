@@ -5,7 +5,7 @@
 
 // ─── Mission statuses ───
 
-export type MissionStatusType = "scheduled" | "active" | "completed" | "cancelled";
+export type MissionStatusType = "scheduled" | "active" | "completed" | "cancelled" | "postponed";
 
 export function getMissionStatusLabel(status: string): string {
   switch (status) {
@@ -17,6 +17,8 @@ export function getMissionStatusLabel(status: string): string {
       return "مكتملة";
     case "cancelled":
       return "ملغاة";
+    case "postponed":
+      return "مؤجلة";
     default:
       return status;
   }
@@ -54,6 +56,8 @@ export function getStatusBadgeClass(status: string): string {
       return "bg-(--app-surface-container) text-(--app-foreground)";
     case "cancelled":
       return "bg-(--app-error)/20 text-(--app-error)";
+    case "postponed":
+      return "bg-purple-500/20 text-purple-700 dark:text-purple-300";
     default:
       return "bg-(--app-surface-container) text-(--app-foreground)";
   }

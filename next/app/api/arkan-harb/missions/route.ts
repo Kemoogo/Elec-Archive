@@ -89,6 +89,8 @@ export async function GET(request: Request) {
           startDate: m.startDate,
           endDate: m.endDate ?? null,
           status: m.status,
+          statusReason: m.statusReason ?? null,
+          resultSummary: m.resultSummary ?? null,
           createdBy: m.createdBy.toString(),
           createdAt: m.createdAt,
         })),
@@ -135,15 +137,34 @@ export async function POST(request: Request) {
 
     const data = parsed.data;
 
+    // Automatic status determination based on current date
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    const start = new Date(data.startDate);
+    const startDay = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+
+    const end = data.endDate ? new Date(data.endDate) : null;
+    const endDay = end ? new Date(end.getFullYear(), end.getMonth(), end.getDate()) : null;
+
+    let computedStatus: "scheduled" | "active" | "completed" | "cancelled" = "scheduled";
+    if (endDay && today > endDay) {
+      computedStatus = "completed";
+    } else if (today >= startDay && (!endDay || today <= endDay)) {
+      computedStatus = "active";
+    } else {
+      computedStatus = "scheduled";
+    }
+
     // 5. Create mission
     const mission = await Mission.create({
       officerId: data.officerId,
       title: data.title,
       description: data.description,
       destination: data.destination,
-      startDate: new Date(data.startDate),
-      endDate: data.endDate ? new Date(data.endDate) : undefined,
-      status: data.status,
+      startDate: start,
+      endDate: end ?? undefined,
+      status: computedStatus,
       createdBy: auth.user!.id,
       updatedBy: auth.user!.id,
     });

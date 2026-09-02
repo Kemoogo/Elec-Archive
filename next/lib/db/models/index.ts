@@ -24,7 +24,12 @@ export { Promotion } from "./Promotion";
 export { Mission, MISSION_STATUSES, MISSION_STATUS_LABELS } from "./Mission";
 
 
+export { Branch } from "./Branch";
+export { Department } from "./Department";
+
 export type { IUser, UserRole, ModulePermission } from "./User";
+export type { IBranch } from "./Branch";
+export type { IDepartment } from "./Department";
 export type { IFax, FaxStatus, FileType, ForwardedToType } from "./Fax";
 export type {
   IOfficer,

@@ -1,214 +1,524 @@
 "use client";
 
-import Link from "next/link";
+import React from "react";
 import MainTable, { type TableColumn } from "@/components/ui/Table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Paginator } from "@/components/ui/paginator";
-import { getStatusBadgeClass, getPositionStatusLabel } from "@/lib/utils/status-badge";
-import { Edit, User, UserPlus } from "lucide-react";
+import { SectionWrapper } from "@/components/ui/section-wrapper";
 import { ActionButton } from "@/components/officers/OfficersTable";
+import { RANK_LABELS, type OfficerRank } from "@/lib/db/models/Officer.shared";
+import { compareOfficers } from "@/lib/officers/seniority";
+import { Edit, UserPlus, Briefcase, History, Building2, Database } from "lucide-react";
+import { ModalBadge } from "@/components/ui/modal-shell";
+import type { PositionHistoryItem } from "./PositionHistoryModal";
 
-export type PositionType = "primary" | "substitute";
-export type PositionStatus = "active" | "ended";
-
-interface OfficerOption {
+export interface OfficerInfo {
   id: string;
-  name: string;
+  fullName: string;
   rank: string;
-  militaryId: string;
+  militaryId?: string;
+  seniorityNumber?: string;
+  isArkanHarb?: boolean;
+  officerLabel?: string;
 }
 
-export interface Position {
+export interface PositionRowData {
   id: string;
-  officerId: string;
-  officerName?: string;
-  officerRankLabel?: string;
-  officerMilitaryId?: string;
   positionTitle: string;
-  positionType: PositionType;
-  substituteForOfficerId?: string;
-  substituteForOfficerName?: string;
-  substituteRankLabel?: string;
-  substituteMilitaryId?: string;
-  startDate: Date | string;
-  endDate?: Date | string | null;
+  department: string;
+  primaryOfficer?: OfficerInfo | null;
+  substituteOfficers?: OfficerInfo[];
+  hasNoSubstitute?: boolean;
+  assignmentHistory?: PositionHistoryItem[];
   orderNumber?: string;
-  status: PositionStatus;
   notes?: string;
-  createdBy: string;
-  createdAt: Date | string;
 }
 
-// Helper function to format date for display
-function formatDate(date: Date | string): string {
-  if (!date) return "";
-  const d = typeof date === "string" ? new Date(date) : date;
-  return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
+interface PositionAssignmentTableProps {
+  viewMode: "by-position" | "by-officer";
+  positions: PositionRowData[];
+  officers: OfficerInfo[];
+  canEdit: boolean;
+  onViewPosition: (position: PositionRowData) => void;
+  onEditPosition: (position: PositionRowData) => void;
+  onAssignPosition?: (position: PositionRowData) => void;
+  onViewHistory: (position: PositionRowData) => void;
+  onDeletePosition?: (position: PositionRowData) => void;
+  onSelectOfficer: (officer: OfficerInfo) => void;
 }
 
+export function extractOfficerId(officer: unknown): string {
+  if (!officer) return "";
+  if (typeof officer === "string") return officer.trim();
+  if (typeof officer === "object" && officer !== null) {
+    const obj = officer as { _id?: unknown; id?: unknown };
+    if (obj._id && String(obj._id) !== "undefined" && String(obj._id) !== "null") {
+      return typeof obj._id === "object" && "_id" in (obj._id as object)
+        ? String((obj._id as { _id: unknown })._id)
+        : String(obj._id);
+    }
+    if (obj.id && String(obj.id) !== "undefined" && String(obj.id) !== "null") {
+      return String(obj.id);
+    }
+  }
+  return "";
+}
 
 export function PositionAssignmentTable({
+  viewMode,
   positions,
-  total,
-  page,
-  limit,
-  onPageChange,
-  onLimitChange,
+  officers,
+  canEdit,
+  onViewPosition,
   onEditPosition,
-}: {
-  positions: Position[];
-  officers: OfficerOption[];
-  total: number;
-  page: number;
-  limit: number;
-  onPageChange: (page: number) => void;
-  onLimitChange: (limit: number) => void;
-  onOfficerFilterChange: (officerId: string) => void;
-  onStatusFilterChange: (status: string) => void;
-  onEditPosition: (position: Position) => void;
-  officerFilter: string;
-  statusFilter: string;
-}) {
-  const columns: TableColumn<Position>[] = [
+  onAssignPosition,
+  onViewHistory,
+  onDeletePosition: _onDeletePosition,
+  onSelectOfficer,
+}: PositionAssignmentTableProps) {
+  const officerMap = React.useMemo(() => {
+    const map = new Map<string, OfficerInfo>();
+    (officers || []).forEach((o) => {
+      const id = extractOfficerId(o);
+      if (id) map.set(id, o);
+    });
+    return map;
+  }, [officers]);
+
+  const sortSubstituteOfficers = React.useCallback(
+    (subs?: OfficerInfo[]): OfficerInfo[] => {
+      if (!subs || subs.length === 0) return [];
+      return [...subs].sort((a, b) => compareOfficers(a, b, officerMap));
+    },
+    [officerMap]
+  );
+
+  function getOfficerDisplay(officer?: OfficerInfo | null): string {
+    if (!officer) return "شاغر";
+    const id = extractOfficerId(officer);
+    const full = officerMap.get(id) || officer;
+    if (full.officerLabel) return full.officerLabel;
+    const rLabel = full.rank ? RANK_LABELS[full.rank as OfficerRank] || full.rank : "";
+    const arkan = full.isArkanHarb ? " أ ح" : "";
+    return rLabel ? `${rLabel}${arkan} / ${full.fullName}` : full.fullName;
+  }
+
+  // -------------------------------------------------------------
+  // VIEW 1: BY POSITION (Grouped Department rowSpan + Officers Table Styling)
+  // -------------------------------------------------------------
+  if (viewMode === "by-position") {
+    if (positions.length === 0) {
+      return (
+        <SectionWrapper noPadding className="overflow-hidden rounded-2xl border border-(--app-border)/80 shadow-sm">
+          <div className="p-12 text-center flex flex-col items-center justify-center gap-3">
+            <Database className="w-12 h-12 text-slate-300 dark:text-slate-600" />
+            <h3 className="text-base font-bold text-(--app-foreground)">لا توجد وظائف مسجلة</h3>
+            <p className="text-xs text-(--app-muted-foreground)">لم يتم العثور على أي وظائف في الهيكل الإداري حالياً. اضغط على (+ إضافة وظيفة) للبدء.</p>
+          </div>
+        </SectionWrapper>
+      );
+    }
+
+    // Group consecutive positions by department to calculate rowSpan
+    interface DepartmentGroup {
+      department: string;
+      items: PositionRowData[];
+    }
+
+    const departmentGroups: DepartmentGroup[] = [];
+    let currentGroup: DepartmentGroup | null = null;
+
+    positions.forEach((pos) => {
+      if (!currentGroup || currentGroup.department !== pos.department) {
+        currentGroup = {
+          department: pos.department,
+          items: [pos],
+        };
+        departmentGroups.push(currentGroup);
+      } else {
+        currentGroup.items.push(pos);
+      }
+    });
+
+    let runningSerial = 1;
+
+    return (
+      <SectionWrapper noPadding className="overflow-hidden rounded-2xl border border-(--app-border)/80 shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full table-auto min-w-full text-right border-collapse" dir="rtl">
+            <thead className="bg-[var(--color-primary)] dark:bg-(--color-primary)/10 text-white dark:text-(--color-primary) border-b border-(--app-border) text-xs">
+              <tr>
+                <th className="px-5 py-3 text-center font-bold" style={{ width: "1%", whiteSpace: "nowrap" }}>
+                  م
+                </th>
+                <th className="px-5 py-3 text-right font-bold" style={{ width: "1%", whiteSpace: "nowrap" }}>
+                  اسم الفرع
+                </th>
+                <th className="px-5 py-3 text-right font-bold">الوظيفة</th>
+                <th className="px-5 py-3 text-right font-bold">الضابط الأساسي</th>
+                <th className="px-5 py-3 text-right font-bold">الضابط البديل</th>
+                <th className="px-5 py-3 text-center font-bold" style={{ width: "1%", whiteSpace: "nowrap" }}>
+                  الإجراءات
+                </th>
+              </tr>
+            </thead>
+
+            {departmentGroups.map((group, gIdx) => {
+              const rowSpan = group.items.length;
+              const firstItem = group.items[0];
+
+              return (
+                <tbody key={`${group.department}-${gIdx}`} className="group/branch divide-y divide-(--app-border)/40 text-xs border-b border-(--app-border)/40 has-[.branch-cell:hover]:bg-(--app-surface-container) transition-colors duration-150">
+                  {/* Row 0 of this department group */}
+                  <tr className="hover:bg-(--app-surface-container) group-has-[.branch-cell:hover]/branch:bg-(--app-surface-container) transition-colors duration-150">
+                    {/* Serial Number */}
+                    <td
+                      className="px-5 py-3 text-center font-mono font-bold text-(--app-muted-foreground) align-middle border-l border-(--app-border)/30 whitespace-nowrap tabular-nums"
+                      style={{ width: "1%" }}
+                    >
+                      {runningSerial++}
+                    </td>
+
+                    {/* Merged Branch / Department Cell with rowSpan */}
+                    <td
+                      rowSpan={rowSpan}
+                      className="branch-cell px-5 py-3 align-middle border-l border-(--app-border)/30 group-hover/branch:bg-(--app-surface-container) hover:!bg-blue-500/10 dark:hover:!bg-blue-900/20 transition-colors duration-150 whitespace-nowrap bg-(--app-surface) cursor-default"
+                      style={{ width: "1%" }}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Building2 className="w-4 h-4 text-(--color-primary) shrink-0" />
+                        <span className="font-bold text-xs text-(--app-muted-foreground)">{group.department}</span>
+                      </div>
+                    </td>
+
+                    {/* Position Title */}
+                    <td className="px-5 py-3 text-xs font-bold text-(--app-muted-foreground) align-middle">
+                      <button
+                        type="button"
+                        onClick={() => onViewPosition(firstItem)}
+                        className="font-bold text-xs text-(--app-muted-foreground) hover:underline hover:text-(--app-info) cursor-pointer transition-colors text-right"
+                        title="عرض تفاصيل وبيانات الوظيفة"
+                      >
+                        {firstItem.positionTitle}
+                      </button>
+                    </td>
+
+                    {/* Primary Officer */}
+                    <td className="px-5 py-3 text-xs font-bold text-(--app-muted-foreground) align-middle">
+                      {!firstItem.primaryOfficer ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                          شاغر
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => onSelectOfficer(firstItem.primaryOfficer!)}
+                          className="font-bold text-xs text-(--app-muted-foreground) hover:underline hover:text-(--app-info) cursor-pointer transition-colors text-right"
+                        >
+                          {getOfficerDisplay(firstItem.primaryOfficer)}
+                        </button>
+                      )}
+                    </td>
+
+                    {/* Substitute Officer */}
+                    <td className="px-5 py-3 text-xs font-bold text-(--app-muted-foreground) align-middle">
+                      {firstItem.hasNoSubstitute ? null : (!firstItem.substituteOfficers || firstItem.substituteOfficers.length === 0) ? (
+                        <span className="text-xs font-bold text-(--app-muted-foreground)">بدون بديل</span>
+                      ) : (
+                        <div className="flex flex-col items-start gap-1">
+                          {sortSubstituteOfficers(firstItem.substituteOfficers).map((sub, i) => (
+                            <ModalBadge
+                              key={extractOfficerId(sub) || i}
+                              onClick={() => onSelectOfficer(officerMap.get(extractOfficerId(sub)) || sub)}
+                            >
+                              {getOfficerDisplay(sub)}
+                            </ModalBadge>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+
+                    {/* Actions */}
+                    <td className="px-5 py-3 text-center align-middle whitespace-nowrap" style={{ width: "1%" }}>
+                      <div className="flex items-center justify-center gap-1">
+                        <ActionButton
+                          icon={<History className="w-4 h-4 text-slate-500 hover:text-(--color-primary)" />}
+                          color="btn-action-primary"
+                          title="السجل التاريخي للوظيفة"
+                          onClick={() => onViewHistory(firstItem)}
+                        />
+                        {canEdit && onAssignPosition && (
+                          <ActionButton
+                            icon={<UserPlus className="w-4 h-4 text-slate-500 hover:text-(--color-primary)" />}
+                            color="btn-action-primary"
+                            title="تسكين وتكليف ضابط للوظيفة"
+                            onClick={() => onAssignPosition(firstItem)}
+                          />
+                        )}
+                        {canEdit && (
+                          <ActionButton
+                            icon={<Edit className="w-4 h-4 text-slate-500 hover:text-(--color-primary)" />}
+                            color="btn-action-primary"
+                            title="تعديل بيانات الوظيفة"
+                            onClick={() => onEditPosition(firstItem)}
+                          />
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+
+                  {/* Remaining rows in this department group */}
+                  {group.items.slice(1).map((item) => (
+                    <tr key={item.id} className="hover:bg-(--app-surface-container) group-has-[.branch-cell:hover]/branch:bg-(--app-surface-container) transition-colors duration-150">
+                      {/* Serial Number */}
+                      <td
+                        className="px-5 py-3 text-center font-mono font-bold text-(--app-muted-foreground) align-middle border-l border-(--app-border)/30 whitespace-nowrap tabular-nums"
+                        style={{ width: "1%" }}
+                      >
+                        {runningSerial++}
+                      </td>
+
+                      {/* Position Title */}
+                      <td className="px-5 py-3 text-xs font-bold text-(--app-muted-foreground) align-middle">
+                        <button
+                          type="button"
+                          onClick={() => onViewPosition(item)}
+                          className="font-bold text-xs text-(--app-muted-foreground) hover:underline hover:text-(--app-info) cursor-pointer transition-colors text-right"
+                          title="عرض تفاصيل وبيانات الوظيفة"
+                        >
+                          {item.positionTitle}
+                        </button>
+                      </td>
+
+                      {/* Primary Officer */}
+                      <td className="px-5 py-3 text-xs font-bold text-(--app-muted-foreground) align-middle">
+                        {!item.primaryOfficer ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                            شاغر
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => onSelectOfficer(item.primaryOfficer!)}
+                            className="font-bold text-xs text-(--app-muted-foreground) hover:underline hover:text-(--app-info) cursor-pointer transition-colors text-right"
+                          >
+                            {getOfficerDisplay(item.primaryOfficer)}
+                          </button>
+                        )}
+                      </td>
+
+                      {/* Substitute Officer */}
+                      <td className="px-5 py-3 text-xs font-bold text-(--app-muted-foreground) align-middle">
+                        {item.hasNoSubstitute ? null : (!item.substituteOfficers || item.substituteOfficers.length === 0) ? (
+                          <span className="text-xs font-bold text-(--app-muted-foreground)">بدون بديل</span>
+                        ) : (
+                          <div className="flex flex-col items-start gap-1">
+                            {sortSubstituteOfficers(item.substituteOfficers).map((sub, i) => (
+                              <ModalBadge
+                                key={extractOfficerId(sub) || i}
+                                onClick={() => onSelectOfficer(officerMap.get(extractOfficerId(sub)) || sub)}
+                              >
+                                {getOfficerDisplay(sub)}
+                              </ModalBadge>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-5 py-3 text-center align-middle whitespace-nowrap" style={{ width: "1%" }}>
+                        <div className="flex items-center justify-center gap-1">
+                          <ActionButton
+                            icon={<History className="w-4 h-4 text-slate-500 hover:text-(--color-primary)" />}
+                            color="btn-action-primary"
+                            title="السجل التاريخي للوظيفة"
+                            onClick={() => onViewHistory(item)}
+                          />
+                          {canEdit && onAssignPosition && (
+                            <ActionButton
+                              icon={<UserPlus className="w-4 h-4 text-slate-500 hover:text-(--color-primary)" />}
+                              color="btn-action-primary"
+                              title="تسكين وتكليف ضابط للوظيفة"
+                              onClick={() => onAssignPosition(item)}
+                            />
+                          )}
+                          {canEdit && (
+                            <ActionButton
+                              icon={<Edit className="w-4 h-4 text-slate-500 hover:text-(--color-primary)" />}
+                              color="btn-action-primary"
+                              title="تعديل بيانات الوظيفة"
+                              onClick={() => onEditPosition(item)}
+                            />
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              );
+            })}
+          </table>
+        </div>
+      </SectionWrapper>
+    );
+  }
+
+  // -------------------------------------------------------------
+  // VIEW 2: BY OFFICER (Grouped & Merged Headers - Officers Table Styling)
+  // -------------------------------------------------------------
+  interface OfficerRowItem {
+    id: string;
+    officer: OfficerInfo;
+    officerDisplay: string;
+    militaryId: string;
+    primaryPositions: PositionRowData[];
+    substitutePositions: PositionRowData[];
+    primaryDisplay: string;
+    substituteDisplay: string;
+    isUnassigned: boolean;
+  }
+
+  // Preserve the exact officers registry sorting (by seniority number, rank, and name)
+  const sortedOfficers = [...officers].sort((a, b) => compareOfficers(a, b, officerMap));
+
+  const officerRows: OfficerRowItem[] = sortedOfficers.map((off) => {
+    const offId = extractOfficerId(off);
+    const pPositions = positions.filter((p) => {
+      const pId = extractOfficerId(p.primaryOfficer);
+      return Boolean(pId && pId === offId);
+    });
+
+    const sPositions = positions.filter((p) =>
+      (p.substituteOfficers || []).some((sub) => {
+        const sId = extractOfficerId(sub);
+        return Boolean(sId && sId === offId);
+      })
+    );
+
+    const isUnassigned = pPositions.length === 0 && sPositions.length === 0;
+
+    return {
+      id: off.id,
+      officer: off,
+      officerDisplay: getOfficerDisplay(off),
+      militaryId: off.militaryId || "",
+      primaryPositions: pPositions,
+      substitutePositions: sPositions,
+      primaryDisplay: pPositions.map((p) => `${p.department}: ${p.positionTitle}`).join(" • ") || "-",
+      substituteDisplay: sPositions.map((p) => `${p.department}: ${p.positionTitle}`).join(" • ") || "-",
+      isUnassigned,
+    };
+  });
+
+  const byOfficerColumns: TableColumn<OfficerRowItem>[] = [
     {
-      header: "الضابط",
-      accessor: "officerName",
-      cellAlign: "right" as const,
-      headerAlign: "right" as const,
-      render: (value: unknown, row: Position) => {
-        const name = value as string;
-        const rankAndName = row.officerRankLabel ? `${row.officerRankLabel} / ${name}` : name;
+      header: "الرتبة",
+      headerAlign: "center" as const,
+      cellAlign: "center" as const,
+      minWidth: true,
+      render: (_val, row) => {
+        const rLabel = row.officer.rank ? RANK_LABELS[row.officer.rank as OfficerRank] || row.officer.rank : "-";
+        const arkan = row.officer.isArkanHarb ? " أ ح" : "";
         return (
-          <div className="flex items-center gap-2">
-            <User className="h-4 w-4 text-(--app-muted-foreground) shrink-0" />
-            <div className="flex flex-col text-right">
-              {row.officerId ? (
-                <Link
-                  href={`/officers/${row.officerId}`}
-                  className="text-sm font-extrabold text-(--app-foreground) hover:text-(--app-info) hover:underline transition-colors"
-                >
-                  {rankAndName || "ضابط غير معروف"}
-                </Link>
-              ) : (
-                <span className="text-sm font-extrabold text-(--app-foreground)">{rankAndName || "غير معروف"}</span>
-              )}
-              {row.officerMilitaryId && (
-                <span className="text-xs font-mono text-(--app-muted-foreground)">عسكري: #{row.officerMilitaryId}</span>
-              )}
-            </div>
+          <span className="font-bold text-xs text-(--app-muted-foreground) whitespace-nowrap">
+            {rLabel}{arkan}
+          </span>
+        );
+      },
+      className: "border-l border-(--app-border)/30",
+    },
+    {
+      header: "الأسم",
+      headerAlign: "right" as const,
+      cellAlign: "right" as const,
+      render: (_val, row) => (
+        <button
+          type="button"
+          onClick={() => onSelectOfficer(row.officer)}
+          className="font-bold text-xs text-(--app-muted-foreground) hover:underline hover:text-(--app-info) cursor-pointer text-right transition-colors"
+          title="عرض وتعديل تكليفات الضابط"
+        >
+          {row.officer.fullName}
+        </button>
+      ),
+      className: "border-l border-(--app-border)/30",
+    },
+    {
+      header: "وظائف اساسية",
+      headerAlign: "right" as const,
+      cellAlign: "right" as const,
+      render: (_val, row) => {
+        if (row.primaryPositions.length === 0) {
+          return <span className="text-xs font-bold text-(--app-muted-foreground)/60">-</span>;
+        }
+        return (
+          <div className="flex flex-col items-start gap-1">
+            {row.primaryPositions.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => onViewPosition(p)}
+                className="font-bold text-xs text-(--app-muted-foreground) hover:underline hover:text-(--app-info) cursor-pointer transition-colors text-right"
+                title="عرض تفاصيل وبيانات الوظيفة"
+              >
+                {p.positionTitle}
+              </button>
+            ))}
           </div>
         );
       },
+      className: "border-l border-(--app-border)/30",
     },
     {
-      header: "المسمى الوظيفي",
-      accessor: "positionTitle",
-      cellAlign: "right" as const,
+      header: "الوظائف البديل",
       headerAlign: "right" as const,
-      render: (value: unknown, row: Position) => (
-        <div className="flex flex-col">
-          <span className="font-bold text-(--app-foreground)">{value as string}</span>
-          {row.positionType === "substitute" && row.substituteForOfficerName && (
-            <span className="text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-1">
-              <UserPlus className="h-3 w-3" />
-              بديل عن: {row.substituteRankLabel ? `${row.substituteRankLabel} / ` : ""}{row.substituteForOfficerName}
-            </span>
-          )}
-        </div>
-      )
+      cellAlign: "right" as const,
+      render: (_val, row) => {
+        if (row.substitutePositions.length === 0) {
+          return <span className="text-xs font-bold text-(--app-muted-foreground)/60">-</span>;
+        }
+        return (
+          <div className="flex flex-col items-start gap-1">
+            {row.substitutePositions.map((p) => (
+              <ModalBadge
+                key={p.id}
+                onClick={() => onViewPosition(p)}
+              >
+                {p.positionTitle}
+              </ModalBadge>
+            ))}
+          </div>
+        );
+      },
+      className: "border-l border-(--app-border)/30",
     },
-    {
-      header: "النوع",
-      accessor: "positionType",
-      cellAlign: "center" as const,
-      headerAlign: "center" as const,
-      render: (value: unknown) => (
-        <Badge variant="outline" className={(value as string) === "primary" ? "border-(--app-info)/30 text-(--app-info) bg-(--app-info)/10 text-xs font-bold" : "border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10 text-xs font-bold"}>
-          {(value as string) === "primary" ? "أساسي" : "بديل"}
-        </Badge>
-      ),
-    },
-    {
-      header: "الفترة",
-      accessor: "startDate",
-      cellAlign: "center" as const,
-      headerAlign: "center" as const,
-      render: (_: unknown, row: Position) => (
-        <div className="flex flex-col text-xs font-bold">
-          <span>من: {formatDate(row.startDate)}</span>
-          {row.endDate && <span>إلى: {formatDate(row.endDate)}</span>}
-        </div>
-      ),
-    },
-    {
-      header: "الحالة",
-      accessor: "status",
-      cellAlign: "center" as const,
-      headerAlign: "center" as const,
-      render: (value: unknown) => (
-        <Badge
-          variant="secondary"
-          className={`${getStatusBadgeClass(value as PositionStatus)} text-[10px] font-bold px-2.5 py-1 rounded-lg border-none`}
-        >
-          {getPositionStatusLabel(value as PositionStatus)}
-        </Badge>
-      ),
-    },
-    {
-      header: "الإجراءات",
-      accessor: undefined,
-      cellAlign: "center" as const,
-      headerAlign: "center" as const,
-      className: "w-[80px]",
-      render: (_: unknown, row: Position) => (
-        <div className="flex items-center justify-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-          <ActionButton
-            icon={<Edit className="h-4 w-4" />}
-            color="btn-action-info"
-            title="تعديل التعيين الوظيفي"
-            onClick={() => onEditPosition(row)}
-          />
-        </div>
-      ),
-    },
+    ...(canEdit
+      ? [
+          {
+            header: "الإجراءات",
+            headerAlign: "center" as const,
+            cellAlign: "center" as const,
+            minWidth: true,
+            render: (_val: unknown, row: OfficerRowItem) => (
+              <div className="flex items-center justify-center gap-1">
+                <ActionButton
+                  icon={<Briefcase className="w-4 h-4 text-slate-500 hover:text-(--color-primary)" />}
+                  color="btn-action-primary"
+                  title="عرض وتعديل تكليفات الضابط"
+                  onClick={() => onSelectOfficer(row.officer)}
+                />
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
-    <div className="space-y-4">
-
-      {/* Table section */}
-      <MainTable<Position>
-        columns={columns}
-        data={positions}
-        showSerialNumber={true}
-        emptyTitle="لا يوجد تعيينات وظيفية مسجلة حالياً"
-        emptyDescription="حاول تغيير خيارات البحث أو أضف تعيين جديد"
-      />
-
-        {/* Pagination section */}
-        {total > 0 && (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-(--app-muted-foreground)">إجمالي: {total}</span>
-              <div className="flex items-center gap-1">
-                {[5, 10, 20].map((l) => (
-                  <Button
-                    key={l}
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onLimitChange(l)}
-                    className={`h-7 w-7 p-0 text-[10px] font-bold rounded-lg ${limit === l ? "bg-(--color-primary) text-white hover:bg-(--color-primary) hover:text-white" : "text-(--app-muted-foreground)"}`}
-                  >
-                    {l}
-                  </Button>
-                ))}
-              </div>
-            </div>
-            <Paginator page={page} totalPages={Math.max(1, Math.ceil(total / limit))} onPageChange={onPageChange} showTotal={false} />
-          </div>
-        )}
-
-    </div>
+    <MainTable
+      columns={byOfficerColumns}
+      data={officerRows}
+      showSerialNumber
+      emptyTitle="لا توجد بيانات ضباط"
+      emptyDescription="لم يتم العثور على أي ضباط مسجلين في النظام."
+    />
   );
 }

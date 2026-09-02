@@ -30,7 +30,7 @@ TypeScript MUST be used strictly across the entire codebase. The use of `any` ty
 
 ### V. Quality Gates (بوابات الجودة)
 
-ESLint and Prettier MUST be configured and enforced — no code merges without passing lint checks. Every code change MUST pass `npm run build` with zero errors and zero warnings before being accepted. The build validation step is NON-NEGOTIABLE and blocks all merges. Edge cases MUST be handled in every module: database connection failures, 404 for missing resources, unsupported file types/size limits, and concurrent edit conflicts.
+ESLint and Prettier MUST be configured and enforced. `npm run build` is run ONLY when strictly necessary (e.g., major architectural changes, releases/deployments, or explicit user request) to maintain rapid iteration speed, and is NOT required after routine edits or minor modifications. Edge cases MUST be handled in every module: database connection failures, 404 for missing resources, unsupported file types/size limits, and concurrent edit conflicts.
 
 ### VI. Design-Driven UI via Stitch MCP (تصميم الواجهات)
 

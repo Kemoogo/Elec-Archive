@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { NotificationBell } from "@/components/dashboard/NotificationBell";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
@@ -78,7 +77,7 @@ export function AuthenticatedNavbar({ user, accessibleModules }: AuthenticatedNa
             <div className="hidden md:flex items-center gap-2.5">
               <ThemeToggle />
               {user.role === "commander" && <NotificationBell />}
-              <UserMenu fullName={user.fullName} role={user.role} />
+              <UserMenu fullName={user.fullName} role={user.role} permissions={user.permissions} />
             </div>
 
             {/* Mobile Drawer Trigger */}

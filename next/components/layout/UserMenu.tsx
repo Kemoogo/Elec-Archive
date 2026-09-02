@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { User, LogOut, ChevronDown, Palette, History, Settings, ShieldCheck } from "lucide-react";
+import { User, LogOut, ChevronDown, Palette, History, Settings, ShieldCheck, Building2 } from "lucide-react";
+import type { ModulePermissions } from "@/lib/auth/types";
 
 const roleLabels: Record<string, string> = {
   admin: "مسؤول النظام",
@@ -14,13 +15,19 @@ const roleLabels: Record<string, string> = {
 interface UserMenuProps {
   fullName: string;
   role: string;
+  permissions?: ModulePermissions;
 }
 
-export function UserMenu({ fullName, role }: UserMenuProps) {
+export function UserMenu({ fullName, role, permissions }: UserMenuProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  const canManageDepartments =
+    role === "admin" ||
+    role === "commander" ||
+    (permissions && permissions.arkan_harb !== "none");
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -89,6 +96,18 @@ export function UserMenu({ fullName, role }: UserMenuProps) {
             >
               <Settings className="w-4 h-4 text-(--app-muted-foreground) group-hover:text-(--color-primary) transition-colors" />
               <span>إدارة المستخدمين والصلاحيات</span>
+            </button>
+          )}
+          {canManageDepartments && (
+            <button
+              onClick={() => {
+                setOpen(false);
+                router.push("/admin/departments");
+              }}
+              className="group flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-bold text-(--app-foreground) transition-colors hover:bg-(--app-surface-container) cursor-pointer text-right"
+            >
+              <Building2 className="w-4 h-4 text-(--app-muted-foreground) group-hover:text-(--color-primary) transition-colors" />
+              <span>إدارة الفروع والأقسام</span>
             </button>
           )}
           {(role === "admin" || role === "commander") && (

@@ -1,36 +1,28 @@
 import { Schema, model, models, type Document } from "mongoose";
+import {
+  OFFICER_RANKS,
+  RANK_LABELS,
+  RANK_WEIGHTS,
+  EMPLOYMENT_STATUSES,
+  OFFICER_TYPES,
+  OFFICER_WEAPONS,
+  type OfficerRank,
+  type EmploymentStatus,
+  type OfficerType,
+  type OfficerWeapon,
+} from "./Officer.shared";
 
-export const OFFICER_RANKS = [
-  "second_lieutenant",
-  "first_lieutenant",
-  "captain",
-  "major",
-  "lieutenant_colonel",
-  "colonel",
-  "brigadier",
-  "major_general",
-] as const;
-
-export type OfficerRank = (typeof OFFICER_RANKS)[number];
-
-export const EMPLOYMENT_STATUSES = ["active", "inactive", "retired"] as const;
-export type EmploymentStatus = (typeof EMPLOYMENT_STATUSES)[number];
-
-export const OFFICER_TYPES = ["worker", "reserve", "university", "honorary", "technical", "engineer"] as const;
-export type OfficerType = (typeof OFFICER_TYPES)[number];
-
-export const OFFICER_WEAPONS = ["signals", "vehicles", "armored", "admin_affairs", "infantry"] as const;
-export type OfficerWeapon = (typeof OFFICER_WEAPONS)[number];
-
-export const RANK_LABELS: Record<OfficerRank, string> = {
-  second_lieutenant: "ملازم",
-  first_lieutenant: "ملازم أول",
-  captain: "نقيب",
-  major: "رائد",
-  lieutenant_colonel: "مقدم",
-  colonel: "عقيد",
-  brigadier: "عميد",
-  major_general: "لواء",
+export {
+  OFFICER_RANKS,
+  RANK_LABELS,
+  RANK_WEIGHTS,
+  EMPLOYMENT_STATUSES,
+  OFFICER_TYPES,
+  OFFICER_WEAPONS,
+  type OfficerRank,
+  type EmploymentStatus,
+  type OfficerType,
+  type OfficerWeapon,
 };
 
 export const EMPLOYMENT_LABELS: Record<EmploymentStatus, string> = {

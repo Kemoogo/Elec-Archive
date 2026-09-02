@@ -15,22 +15,35 @@ interface ActionButtonProps {
   color: string;
   title: string;
   onClick?: () => void;
+  placement?: "top" | "bottom";
 }
 
-export const ActionButton = ({ icon, color, title, onClick }: ActionButtonProps) => {
+export const ActionButton = ({ icon, color, title, onClick, placement = "top" }: ActionButtonProps) => {
+  const isBottom = placement === "bottom";
+
   return (
     <div className="relative flex flex-col items-center group">
       <button
         type="button"
         onClick={onClick}
-        className={`p-1.5 rounded-lg transition-all ${color} relative`}
+        className={`p-1.5 rounded-lg transition-all ${color} relative cursor-pointer`}
       >
         {icon}
       </button>
       {title && (
-        <div className="absolute bottom-full left-0 mb-2 z-50 w-max max-w-[200px] whitespace-normal bg-(--app-foreground) text-(--app-surface) text-[10px] font-bold px-2.5 py-1.5 rounded-xl shadow-2xl hidden group-hover:block pointer-events-none border border-(--app-border)/20">
+        <div
+          className={`absolute left-0 z-50 w-max max-w-[220px] whitespace-normal bg-(--app-foreground) text-(--app-surface) text-[10px] font-bold px-2.5 py-1.5 rounded-xl shadow-2xl hidden group-hover:block pointer-events-none border border-(--app-border)/20 ${
+            isBottom ? "top-full mt-2" : "bottom-full mb-2"
+          }`}
+        >
           {title}
-          <div className="absolute top-full left-3 -translate-x-1/2 border-x-4 border-x-transparent border-t-4 border-t-(--app-foreground)"></div>
+          <div
+            className={`absolute left-3 -translate-x-1/2 border-x-4 border-x-transparent ${
+              isBottom
+                ? "bottom-full border-b-4 border-b-(--app-foreground)"
+                : "top-full border-t-4 border-t-(--app-foreground)"
+            }`}
+          ></div>
         </div>
       )}
     </div>
@@ -163,6 +176,9 @@ export function OfficersTable({ officers, page, totalPages, total, canEdit }: Of
       headerAlign: "center",
       minWidth: true,
       render: (_, row: OfficerListItem) => {
+        const isTopRow = sortedOfficers.findIndex(o => o.id === row.id) === 0;
+        const placement = isTopRow ? "bottom" : "top";
+
         return (
           <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
             {!row._isComplete && (
@@ -175,6 +191,7 @@ export function OfficersTable({ officers, page, totalPages, total, canEdit }: Of
                     icon={<AlertTriangle className="w-4 h-4 text-amber-500 animate-pulse" />}
                     color="btn-action-warning"
                     title={`بيانات غير مكتملة (${row._missingFields?.join("، ") || "بيانات تنظيمية"})`}
+                    placement={placement}
                   />
                 }
               />
@@ -189,6 +206,7 @@ export function OfficersTable({ officers, page, totalPages, total, canEdit }: Of
                       icon={<Award className="w-4 h-4" />}
                       color="btn-action-warning"
                       title="تسجيل ترقية"
+                      placement={placement}
                     />
                   }
                 />
@@ -200,6 +218,7 @@ export function OfficersTable({ officers, page, totalPages, total, canEdit }: Of
                       icon={<ArrowRightCircle className="w-4 h-4" />}
                       color="btn-action-warning"
                       title="نقل / إنهاء خدمة"
+                      placement={placement}
                     />
                   }
                 />
@@ -214,6 +233,7 @@ export function OfficersTable({ officers, page, totalPages, total, canEdit }: Of
                     icon={<ArrowRightCircle className="w-4 h-4 -rotate-180" />}
                     color="btn-action-info"
                     title="عودة للخدمة / إعادة انضمام"
+                    placement={placement}
                   />
                 }
               />

@@ -1,617 +1,682 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
-import { Bell, Search, Plus, Trash2, Edit, Check, X, AlertTriangle, Info, ChevronLeft, FileText, Users, Shield, BookOpen, GraduationCap } from "lucide-react";
-import { type LucideIcon } from "lucide-react";
+import { useState } from "react";
+import {
+  Shield,
+  Briefcase,
+  User,
+  Plus,
+  Trash2,
+  Edit,
+  CheckCircle2,
+  AlertCircle,
+  AlertTriangle,
+  Info,
+  Eye,
+  FileText,
+  Search,
+  Check,
+  X,
+  Layers,
+  Sparkles,
+  Award,
+  Activity,
+  Users,
+  Building2,
+  CreditCard,
+  Hash,
+  Calendar,
+} from "lucide-react";
+import {
+  ModalShell,
+  ModalHeaderCard,
+  ModalSection,
+  ModalBadge,
+} from "@/components/ui/modal-shell";
+import { MonoBadge } from "@/components/ui/mono-badge";
+import { DateField } from "@/components/ui/date-field";
+import { FormLabel, FormInput, FormSelect, FormTextarea } from "@/components/ui/form-fields";
+import { SectionWrapper } from "@/components/ui/section-wrapper";
+import { FolderTabs, type TabItem } from "@/components/ui/folder-tabs";
+import MainTable, { type TableColumn } from "@/components/ui/Table";
+import { ActionButton } from "@/components/officers/OfficersTable";
+import { ModernPageHeader as PageHeader, PrimaryHeaderBtn, SecondaryHeaderBtn } from "@/components/layout/ModernPageHeader";
+import { useToast } from "@/components/ui/toast";
 
-const navItems = [
-  { label: "شئون الضباط", icon: Shield },
-  { label: "الفاكسات", icon: FileText },
-  { label: "الطلبة", icon: Users },
-  { label: "التعليم", icon: GraduationCap },
-  { label: "السجل", icon: BookOpen },
-];
-
-function SlidingNavbar({ items }: { items: { label: string; icon: LucideIcon }[] }) {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
-  const refs = useRef<(HTMLButtonElement | null)[]>([]);
-
-  const updateIndicator = useCallback((index: number) => {
-    const el = refs.current[index];
-    if (el) {
-      setIndicatorStyle({ left: el.offsetLeft, width: el.offsetWidth });
-    }
-  }, []);
-
-  useEffect(() => {
-    updateIndicator(activeIndex);
-    const handleResize = () => updateIndicator(activeIndex);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [activeIndex, updateIndicator]);
-
-  return (
-    <div className="rounded-xl overflow-hidden shadow-depth-lg">
-      <div className="bg-linear-to-br from-(--app-gradient-start) to-(--app-gradient-end) p-3">
-        <span className="text-label text-(--app-info)/80 block mb-3">شريط التنقل — Sliding Navbar</span>
-        <nav className="relative flex items-center gap-1">
-          <div
-            className="absolute top-0 h-full bg-(--app-surface) rounded-lg shadow-md transition-all duration-300 ease-out"
-            style={{ left: indicatorStyle.left, width: indicatorStyle.width }}
-          />
-          {items.map((item, i) => {
-            const Icon = item.icon;
-            const isActive = i === activeIndex;
-            return (
-              <button
-                key={item.label}
-                ref={(el) => { refs.current[i] = el; }}
-                onClick={() => setActiveIndex(i)}
-                className={`relative z-10 flex items-center gap-2 px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors duration-300 cursor-pointer ${isActive ? "text-(--color-primary)" : "text-(--app-white) hover:text-(--app-white)/80"
-                  }`}
-              >
-                <Icon className="w-4 h-4" />
-                {item.label}
-              </button>
-            );
-          })}
-        </nav>
-      </div>
-    </div>
-  );
+interface DemoTableRow {
+  id: string;
+  rank: string;
+  name: string;
+  department: string;
+  role: string;
+  status: "active" | "vacant";
 }
 
 export default function ThemePlaygroundPage() {
-  return (
-    <div dir="rtl" className="space-y-12 pb-20">
+  const { showToast } = useToast();
+  const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
+  const [demoDate, setDemoDate] = useState("2026-08-28");
+  const [inputVal, setInputVal] = useState("نص تجريبي");
+  const [selectVal, setSelectVal] = useState("branch-1");
+  const [textareaVal, setTextareaVal] = useState("ملاحظات تجريبية موثقة وفق الهوية البصرية الموحدة.");
 
-      {/* ===== INSTRUCTIONS ===== */}
-      <section className="archive-card border-l-4 border-l-(--color-primary)">
-        <h2 className="text-xl font-bold text-(--color-primary) mb-3">كيف تطلب تعديل أي عنصر</h2>
-        <p className="text-sm text-(--app-muted-foreground) leading-relaxed">
-          كل قسم أدناه له <code className="bg-(--app-surface-container) px-1.5 py-0.5 rounded text-xs font-mono">data-section</code> فريد.
-          كل عنصر داخل القسم له <code className="bg-(--app-surface-container) px-1.5 py-0.5 rounded text-xs font-mono">data-element</code>.
-          مثلاً: <strong>&quot;عدّل الـ <code>data-section=&quot;buttons&quot;</code> الـ primary hover&quot;</strong>.
-          أو: <strong>&quot;غيّر لون badge في <code>data-section=&quot;badges&quot; data-element=&quot;success&quot;</code>&quot;</strong>.
-        </p>
-      </section>
+  const demoData: DemoTableRow[] = [
+    { id: "1", rank: "لواء أ ح", name: "احمد عبد اللطيف الجرف", department: "القيادة", role: "قائد المركز", status: "active" },
+    { id: "2", rank: "عميد أ ح", name: "محمد ابراهيم السيد", department: "القيادة", role: "قائد ثان المركز", status: "active" },
+    { id: "3", rank: "عقيد", name: "طارق محمود علي", department: "فرع التعليم", role: "رئيس فرع التعليم", status: "active" },
+    { id: "4", rank: "---", name: "شاغر", department: "فرع التعليم", role: "مساعد رئيس الفرع", status: "vacant" },
+  ];
 
-      {/* ===== 1. COLOR PALETTE ===== */}
-      <section data-section="palette">
-        <SectionTitle title="لوحة الألوان — Color Palette" />
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          <ColorSwatch name="Primary" hex="#1E3C72" varName="--app-primary" />
-          <ColorSwatch name="Primary Hover" hex="#2a5298" varName="--app-primary-hover" />
-          <ColorSwatch name="Secondary / Slate" hex="#64748B" varName="--app-secondary" />
-          <ColorSwatch name="Accent / Gold" hex="#d4a843" varName="--app-accent" />
-          <ColorSwatch name="Destructive" hex="#ef4444" varName="red-500" />
-          <ColorSwatch name="Background" hex="#f8fafc" varName="--app-background" />
-          <ColorSwatch name="Surface" hex="#ffffff" varName="--app-surface" />
-          <ColorSwatch name="Surface Container" hex="#f1f5f9" varName="--app-surface-container" />
-          <ColorSwatch name="Foreground" hex="#0f172a" varName="--app-foreground" />
-          <ColorSwatch name="Muted FG" hex="#64748B" varName="--app-muted-foreground" />
-          <ColorSwatch name="Border" hex="#e2e8f0" varName="--app-border" />
+  const demoColumns: TableColumn<DemoTableRow>[] = [
+    {
+      header: "الرتبة",
+      accessor: "rank",
+      className: "text-xs font-bold text-(--app-muted-foreground)",
+    },
+    {
+      header: "الاسم والبيانات العسكرية",
+      accessor: "name",
+      render: (val, row) => (
+        <span
+          onClick={() => setIsDemoModalOpen(true)}
+          className={`text-xs font-bold ${
+            row.status === "vacant"
+              ? "text-amber-600"
+              : "text-(--app-muted-foreground) hover:underline hover:text-(--app-info) cursor-pointer"
+          }`}
+        >
+          {String(val)}
+        </span>
+      ),
+    },
+    {
+      header: "الفرع / القسم",
+      accessor: "department",
+      className: "text-xs font-bold text-(--app-muted-foreground)",
+    },
+    {
+      header: "الوظيفة",
+      accessor: "role",
+      render: (val) => <span className="font-extrabold text-xs text-(--color-primary)">{String(val)}</span>,
+    },
+    {
+      header: "حالة التسكين",
+      render: (_val, row) =>
+        row.status === "active" ? (
+          <ModalBadge icon={<CheckCircle2 className="w-3.5 h-3.5 text-(--app-muted-foreground) shrink-0" />}>
+            مسكن
+          </ModalBadge>
+        ) : (
+          <ModalBadge icon={<AlertCircle className="w-3.5 h-3.5 text-(--app-muted-foreground) shrink-0" />}>
+            شاغر
+          </ModalBadge>
+        ),
+    },
+    {
+      header: "الإجراءات",
+      cellAlign: "center",
+      headerAlign: "center",
+      render: (_val) => (
+        <div className="flex items-center justify-center gap-1">
+          <ActionButton
+            icon={<Eye className="w-4 h-4 text-slate-500 hover:text-(--color-primary)" />}
+            color="btn-action-primary"
+            title="معاينة التفاصيل"
+            onClick={() => setIsDemoModalOpen(true)}
+          />
+          <ActionButton
+            icon={<Edit className="w-4 h-4 text-slate-500 hover:text-(--color-primary)" />}
+            color="btn-action-primary"
+            title="تعديل"
+            onClick={() => {}}
+          />
+          <ActionButton
+            icon={<Trash2 className="w-4 h-4 text-red-500" />}
+            color="btn-action-danger"
+            title="حذف"
+            onClick={() => {}}
+          />
         </div>
-        <p className="mt-3 text-xs text-(--app-muted-foreground)">
-          ← قل: &quot;غيّر لون Primary في <code>data-section=&quot;palette&quot;</code> إلى #xxx&quot;
-        </p>
+      ),
+    },
+  ];
 
-        <div className="mt-6 archive-card space-y-4">
-          <span className="text-label text-(--app-muted-foreground) block mb-2">استخدامات كل لون — Color Usage</span>
+  const playgroundTabs: TabItem[] = [
+    {
+      id: "modals",
+      label: "المودالز والشاشات المنبثقة",
+      icon: <Layers className="w-4 h-4" />,
+      content: (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Live Component Preview */}
+            <div className="p-6 bg-(--app-surface) border border-(--app-border) rounded-2xl shadow-xs space-y-4">
+              <h4 className="text-sm font-extrabold text-(--color-primary) border-b border-(--app-border) pb-2">
+                المكونات الفرعية الجاهزة للمودال (`ModalHeaderCard` & `ModalSection` & `ModalBadge`)
+              </h4>
 
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-(--color-primary) shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-(--color-primary)">Primary — الأزرق</p>
-                <p className="text-xs text-(--app-muted-foreground)">النصوص الأساسية، الأزرار الرئيسية، العناوين</p>
+              <ModalHeaderCard
+                icon={<Briefcase className="w-6 h-6" />}
+                title="قائد المركز (نموذج عنوان الوظيفة)"
+                subtitle="الفرع / القسم: القيادة العامة"
+                badge={
+                  <ModalBadge icon={<AlertCircle className="w-3.5 h-3.5 text-(--app-muted-foreground) shrink-0" />}>
+                    وظيفة بدون بديل
+                  </ModalBadge>
+                }
+              />
+
+              <ModalSection
+                title="الضابط الأساسي المكلف بالوظيفة"
+                badge={
+                  <ModalBadge icon={<CheckCircle2 className="w-3.5 h-3.5 text-(--app-muted-foreground) shrink-0" />}>
+                    مسكن
+                  </ModalBadge>
+                }
+              >
+                <div className="space-y-1 pt-1">
+                  <p className="text-xs font-bold text-(--app-muted-foreground) hover:underline hover:text-(--app-info) cursor-pointer">
+                    لواء أ ح / احمد عبد اللطيف الجرف
+                  </p>
+                  <p className="text-[11px] font-bold text-(--app-muted-foreground)/80">
+                    الرقم العسكري: 199823412 · الأقدمية: 1420
+                  </p>
+                </div>
+              </ModalSection>
+
+              <ModalSection
+                title={
+                  <span className="flex items-center gap-1.5">
+                    <User className="w-4 h-4 text-(--color-primary)" />
+                    <span>الضباط البدلاء المسكنين</span>
+                  </span>
+                }
+                badge={<span className="text-xs font-bold text-(--app-muted-foreground)">2 ضابط</span>}
+              >
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <ModalBadge icon={<User className="w-3.5 h-3.5 text-(--app-muted-foreground)" />}>
+                    عميد أ ح / محمد ابراهيم
+                  </ModalBadge>
+                  <ModalBadge icon={<User className="w-3.5 h-3.5 text-(--app-muted-foreground)" />}>
+                    عقيد / طارق محمود
+                  </ModalBadge>
+                </div>
+              </ModalSection>
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsDemoModalOpen(true)}
+                  className="btn-primary w-full justify-center text-xs"
+                >
+                  <Eye className="w-4 h-4" />
+                  <span>فتح المودال الحي للتجربة والمعاينة</span>
+                </button>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-(--app-accent) shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-(--color-primary)">Accent / Gold — الذهبي</p>
-                <p className="text-xs text-(--app-muted-foreground)">أزرار CTA، Active states، Focus rings، Highlights</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-secondary shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-(--color-primary)">Secondary — الرمادي</p>
-                <p className="text-xs text-(--app-muted-foreground)">النصوص الثانوية، Metadata، الحدود</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-(--app-error) shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-(--color-primary)">Destructive — الأحمر</p>
-                <p className="text-xs text-(--app-muted-foreground)">أزرار الحذف، الأخطاء، التنبيهات الحرجة</p>
-              </div>
-            </div>
-          </div>
 
-          <div className="flex flex-wrap gap-3 pt-2">
-            <button className="btn-primary">
-              <Plus className="w-4 h-4" /> Primary Button
-            </button>
-            <button className="btn-accent">
-              <Check className="w-4 h-4" /> Accent / Gold Button
-            </button>
-            <button className="btn-secondary">
-              <Search className="w-4 h-4" /> Secondary Button
-            </button>
-            <button className="btn-destructive">
-              <Trash2 className="w-4 h-4" /> Destructive Button
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* ===== 2. TYPOGRAPHY ===== */}
-      <section data-section="typography">
-        <SectionTitle title="التايبوغرافي — Typography" />
-        <div className="archive-card space-y-4">
-          <div data-element="display">
-            <span className="text-label text-(--app-muted-foreground)">Display / Hero — 3rem→5rem</span>
-            <p className="text-display text-(--color-primary)">الأرشيف الإلكتروني</p>
-          </div>
-          <div data-element="headline">
-            <span className="text-label text-(--app-muted-foreground)">Headline — 1.5rem→1.875rem</span>
-            <h2 className="text-2xl font-bold text-(--color-primary)">عنوان القسم</h2>
-          </div>
-          <div data-element="body">
-            <span className="text-label text-(--app-muted-foreground)">Body — 0.875rem→1.125rem</span>
-            <p className="text-sm text-(--color-primary) leading-relaxed">هذا نص عادي للمحتوى. خط Segoe UI أو Tahoma مع line-height 1.6.</p>
-            <p className="text-base text-(--color-primary) leading-relaxed mt-1">وهذا بحجم أكبر قليلاً للقراءة المريحة.</p>
-          </div>
-          <div data-element="muted-text">
-            <span className="text-label text-(--app-muted-foreground)">نص ثانوي — Muted</span>
-            <p className="text-sm text-(--app-muted-foreground)">هذا النص الثانوي يُستخدم للبيانات الوصفية والتعليقات</p>
-          </div>
-          <div data-element="label">
-            <span className="text-label text-(--app-muted-foreground)">Label — 9px→12px uppercase tracking 0.2em</span>
-            <p className="text-label text-(--app-muted-foreground) mt-1">METADATA LABEL · SECONDARY BRANDING</p>
-          </div>
-          <div data-element="gradient-text">
-            <span className="text-label text-(--app-muted-foreground)">Gradient Text Accent</span>
-            <p className="text-3xl font-bold text-gradient-accent">نص بتدرج لوني</p>
-          </div>
-        </div>
-      </section>
-
-      {/* ===== 3. BUTTONS ===== */}
-      <section data-section="buttons">
-        <SectionTitle title="الأزرار — Buttons" />
-        <div className="archive-card space-y-6">
-          <div>
-            <span className="text-label text-(--app-muted-foreground) block mb-3">المفتاح الرئيسي — Primary</span>
-            <div className="flex flex-wrap gap-3">
-              <button data-element="primary" className="btn-primary">
-                <Plus className="w-4 h-4" />
-                <span>إضافة ضابط</span>
-              </button>
-              <button data-element="primary" className="btn-primary">
-                <FileText className="w-4 h-4" />
-                <span>حفظ</span>
-              </button>
-            </div>
-          </div>
-          <div>
-            <span className="text-label text-(--app-muted-foreground) block mb-3">المفتاح الثانوي — Secondary</span>
-            <div className="flex flex-wrap gap-3">
-              <button data-element="secondary" className="btn-secondary">
-                <Search className="w-4 h-4" />
-                <span>بحث</span>
-              </button>
-              <button data-element="secondary" className="btn-secondary">
-                <Edit className="w-4 h-4" />
-                <span>تعديل</span>
-              </button>
-            </div>
-          </div>
-          <div>
-            <span className="text-label text-(--app-muted-foreground) block mb-3">حذف — Destructive</span>
-            <div className="flex flex-wrap gap-3">
-              <button data-element="destructive" className="btn-destructive">
-                <Trash2 className="w-4 h-4" />
-                <span>حذف</span>
-              </button>
-              <button data-element="destructive-ghost" className="btn-destructive-ghost">
-                <X className="w-4 h-4" />
-                <span>إلغاء</span>
-              </button>
-            </div>
-          </div>
-          <div>
-            <span className="text-label text-(--app-muted-foreground) block mb-3">أيقونة فقط — Icon Only</span>
-            <div className="flex flex-wrap gap-3">
-              <button data-element="icon-only" className="btn-icon btn-icon-primary">
-                <Bell className="w-5 h-5" />
-              </button>
-              <button data-element="icon-only" className="btn-icon">
-                <Search className="w-5 h-5" />
-              </button>
-              <button data-element="icon-only" className="btn-icon btn-icon-destructive">
-                <Trash2 className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ===== 4. NAVBAR ITEMS ===== */}
-      <section data-section="navbar-items">
-        <SectionTitle title="عناصر شريط التنقل — Navbar Items" />
-
-        <SlidingNavbar items={navItems} />
-
-        <div className="mt-6 archive-card space-y-4">
-          <div>
-            <span className="text-label text-(--app-muted-foreground) block mb-2">عنصر نشط — Active</span>
-            <code className="text-xs bg-(--app-surface-container) px-2 py-1 rounded font-mono block whitespace-pre-wrap text-(--color-primary)">
-              {`<a class="relative px-3 py-2 text-sm font-medium transition-all group">
-  <span class="relative z-10 flex items-center gap-2 whitespace-nowrap text-(--color-primary)">
-    <Icon /> label
-  </span>
-  <div class="absolute inset-0 bg-(--app-surface) rounded-lg shadow-md" />
-</a>`}</code>
-          </div>
-          <div>
-            <span className="text-label text-(--app-muted-foreground) block mb-2">عنصر غير نشط — Inactive</span>
-            <code className="text-xs bg-(--app-surface-container) px-2 py-1 rounded font-mono block whitespace-pre-wrap text-(--color-primary)">
-              {`<a class="relative px-3 py-2 text-sm font-medium transition-all group">
-  <span class="relative z-10 flex items-center gap-2 whitespace-nowrap text-(--app-white)">
-    <Icon /> label
-  </span>
-  <div class="absolute inset-0 bg-(--app-surface)/0 group-hover:bg-(--app-surface)/10 rounded-lg transition-colors" />
-</a>`}</code>
-          </div>
-        </div>
-      </section>
-
-      {/* ===== 5. CARDS — Archive Card ===== */}
-      <section data-section="cards">
-        <SectionTitle title="الكروت — Archive Cards" />
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div data-element="archive-card" className="archive-card">
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-(--color-primary)">الفاكسات</h3>
-                <p className="mt-2 text-3xl font-bold text-(--color-primary)">12</p>
-                <p className="mt-1 text-sm text-(--app-muted-foreground)">فاكس معلق</p>
-              </div>
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-(--app-info)/10">
-                <FileText className="w-6 h-6 text-(--color-primary)" />
-              </div>
-            </div>
-          </div>
-          <div data-element="archive-card-hover" className="archive-card">
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-(--color-primary)">الضباط</h3>
-                <p className="mt-2 text-3xl font-bold text-(--app-success)">45</p>
-                <p className="mt-1 text-sm text-(--app-muted-foreground)">حاضر اليوم</p>
-              </div>
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-(--app-success)/20">
-                <Users className="w-6 h-6 text-(--app-success)" />
-              </div>
-            </div>
-          </div>
-          <div data-element="archive-card-alert" className="archive-card border-l-4 border-l-(--app-error)">
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-(--color-primary)">تنبيه طبي</h3>
-                <p className="mt-2 text-3xl font-bold text-(--app-error)">3</p>
-                <p className="mt-1 text-sm text-(--app-muted-foreground)">أدوية منتهية</p>
-              </div>
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-(--app-error)/10">
-                <AlertTriangle className="w-6 h-6 text-(--app-error)" />
+            {/* Architecture Guidelines */}
+            <div className="p-6 bg-(--app-surface-container) border border-(--app-border) rounded-2xl shadow-xs space-y-4">
+              <h4 className="text-sm font-extrabold text-(--color-primary) border-b border-(--app-border) pb-2">
+                قواعد استخدام مكونات المودال (Centralized Rules)
+              </h4>
+              <div className="space-y-3 text-xs text-(--app-muted-foreground) font-bold leading-relaxed">
+                <div className="p-3 bg-(--app-surface) rounded-xl border border-(--app-border)">
+                  <span className="text-(--color-primary) font-black block mb-1">1. الحاوية الرئيسية:</span>
+                  استخدام `ModalShell` فقط مع `overlayClassName=&apos;bg-black/40&apos;` (ممنوع backdrop-blur).
+                </div>
+                <div className="p-3 bg-(--app-surface) rounded-xl border border-(--app-border)">
+                  <span className="text-(--color-primary) font-black block mb-1">2. كروت وبيانات الملخص:</span>
+                  استخدام `ModalHeaderCard` و `ModalSection` (تأخذ تلقائياً `bg-(--color-primary)/5`).
+                </div>
+                <div className="p-3 bg-(--app-surface) rounded-xl border border-(--app-border)">
+                  <span className="text-(--color-primary) font-black block mb-1">3. الشارات والعناصر الداخلية:</span>
+                  استخدام `ModalBadge` (تأخذ تلقائياً `bg-(--app-surface-container)` مع `shadow-sm`).
+                </div>
+                <div className="p-3 bg-(--app-surface) rounded-xl border border-(--app-border)">
+                  <span className="text-(--color-primary) font-black block mb-1">4. الأزرار والتذييل:</span>
+                  استخدام الأزرار القياسية الموحدة `btn-primary`، `btn-secondary`، `btn-destructive`.
+                </div>
               </div>
             </div>
           </div>
         </div>
-        <p className="mt-3 text-xs text-(--app-muted-foreground)">
-          ← قل: &quot;عدّل الـ <code>data-section=&quot;cards&quot; data-element=&quot;archive-card&quot;</code> padding&quot;
-        </p>
-      </section>
-
-      {/* ===== 5. BADGES ===== */}
-      <section data-section="badges">
-        <SectionTitle title="الشارات — Badges" />
-        <div className="archive-card">
-          <div className="flex flex-wrap gap-3">
-            <span data-element="success" className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-(--app-success)/20 text-(--app-success)">
-              <Check className="w-3 h-3" /> نشط
-            </span>
-            <span data-element="warning" className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-(--app-warning)/20 text-(--app-warning)">
-              <AlertTriangle className="w-3 h-3" /> معلق
-            </span>
-            <span data-element="error" className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-(--app-error)/20 text-(--app-error)">
-              <X className="w-3 h-3" /> مغلق
-            </span>
-            <span data-element="info" className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-(--app-info)/20 text-(--app-info)">
-              <Info className="w-3 h-3" /> جديد
-            </span>
-            <span data-element="neutral" className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-(--app-surface-container) text-(--app-muted-foreground)">
-              مسودة
-            </span>
-          </div>
-          <p className="mt-4 text-xs text-(--app-muted-foreground)">
-            ← قل: &quot;غيّر لون <code>data-section=&quot;badges&quot; data-element=&quot;success&quot;</code>&quot;
+      ),
+    },
+    {
+      id: "tables",
+      label: "الجداول ومنظومة العرض",
+      icon: <TableIcon className="w-4 h-4" />,
+      content: (
+        <div className="space-y-4">
+          <SectionWrapper noPadding className="overflow-hidden rounded-2xl border border-(--app-border)/80 shadow-xs">
+            <MainTable
+              columns={demoColumns}
+              data={demoData}
+              showSerialNumber
+              emptyTitle="لا توجد بيانات"
+            />
+          </SectionWrapper>
+          <p className="text-xs font-bold text-(--app-muted-foreground) text-right">
+            * الجداول تدعم الترقيم التلقائي، دمج الخلايا متعددة الصفوف (`rowSpan`)، تلميحات التحويم للأزرار، والتنقل السلس.
           </p>
         </div>
-      </section>
-
-      {/* ===== 6. FORM INPUTS ===== */}
-      <section data-section="inputs">
-        <SectionTitle title="حقول الإدخال — Inputs" />
-        <div className="archive-card space-y-4 max-w-lg">
-          <div data-element="text-input">
-            <label className="block text-sm font-medium text-(--color-primary) mb-1.5">نص عادي</label>
-            <input
+      ),
+    },
+    {
+      id: "forms",
+      label: "النماذج والمدخلات",
+      icon: <FileText className="w-4 h-4" />,
+      content: (
+        <div className="p-6 bg-(--app-surface) border border-(--app-border) rounded-2xl shadow-xs grid grid-cols-1 md:grid-cols-2 gap-5 text-right">
+          <div className="space-y-1.5">
+            <FormLabel htmlFor="form-input-demo" required>
+              حقل نصي قياسي (FormInput)
+            </FormLabel>
+            <FormInput
+              id="form-input-demo"
               type="text"
-              placeholder="اكتب هنا..."
-              className="w-full rounded-lg border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--color-primary) placeholder:text-(--app-muted-foreground) focus:outline-none focus:ring-2 focus:ring-(--color-primary) transition"
+              value={inputVal}
+              onChange={(e) => setInputVal(e.target.value)}
+              placeholder="أدخل النص هنا..."
             />
           </div>
-          <div data-element="select">
-            <label className="block text-sm font-medium text-(--color-primary) mb-1.5">قائمة منسدلة</label>
-            <select className="w-full rounded-lg border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--color-primary) focus:outline-none focus:ring-2 focus:ring-(--color-primary) transition">
-              <option>خيار 1</option>
-              <option>خيار 2</option>
-            </select>
+
+          <div className="space-y-1.5">
+            <FormLabel htmlFor="form-select-demo" required>
+              قائمة منسدلة قياسية (FormSelect)
+            </FormLabel>
+            <FormSelect
+              id="form-select-demo"
+              value={selectVal}
+              onChange={(e) => setSelectVal(e.target.value)}
+            >
+              <option value="branch-1">فرع القيادة</option>
+              <option value="branch-2">فرع التعليم</option>
+              <option value="branch-3">فرع أركان حرب</option>
+            </FormSelect>
           </div>
-          <div data-element="textarea">
-            <label className="block text-sm font-medium text-(--color-primary) mb-1.5">نص طويل</label>
-            <textarea
+
+          <div className="space-y-1.5">
+            <DateField
+              id="form-date-demo"
+              label="حقل التاريخ الذكي (DateField)"
+              value={demoDate}
+              onChange={setDemoDate}
+              required
+            />
+          </div>
+
+          <div className="space-y-1.5 md:col-span-2">
+            <FormLabel htmlFor="form-textarea-demo">
+              مربع نص متعدد الأسطر (FormTextarea)
+            </FormLabel>
+            <FormTextarea
+              id="form-textarea-demo"
+              value={textareaVal}
+              onChange={(e) => setTextareaVal(e.target.value)}
               rows={3}
-              placeholder="اكتب هنا..."
-              className="w-full rounded-lg border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--color-primary) placeholder:text-(--app-muted-foreground) focus:outline-none focus:ring-2 focus:ring-(--color-primary) transition resize-none"
             />
           </div>
-          <div data-element="input-with-icon">
-            <label className="block text-sm font-medium text-(--color-primary) mb-1.5">مع أيقونة</label>
-            <div className="relative">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-(--app-muted-foreground)" />
-              <input
-                type="text"
-                placeholder="بحث..."
-                className="w-full rounded-lg border border-(--app-border) bg-(--app-surface) pr-10 px-3 py-2 text-sm text-(--color-primary) placeholder:text-(--app-muted-foreground) focus:outline-none focus:ring-2 focus:ring-(--color-primary) transition"
+        </div>
+      ),
+    },
+    {
+      id: "buttons-badges",
+      label: "الأزرار والشارات والتنبيهات",
+      icon: <Award className="w-4 h-4" />,
+      content: (
+        <div className="space-y-6 text-right">
+          {/* Buttons Showcase */}
+          <div className="p-6 bg-(--app-surface) border border-(--app-border) rounded-2xl shadow-xs space-y-4">
+            <h4 className="text-xs font-black text-(--color-primary)">منظومة الأزرار المعتمدة</h4>
+            <div className="flex flex-wrap items-center gap-3">
+              <button type="button" className="btn-primary">
+                <Plus className="w-4 h-4" />
+                <span>Primary Button (btn-primary)</span>
+              </button>
+              <button type="button" className="btn-secondary">
+                <Search className="w-4 h-4" />
+                <span>Secondary Button (btn-secondary)</span>
+              </button>
+              <button type="button" className="btn-destructive">
+                <Trash2 className="w-4 h-4 text-white" />
+                <span>Destructive Button (btn-destructive)</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Badges Showcase */}
+          <div className="p-6 bg-(--app-surface) border border-(--app-border) rounded-2xl shadow-xs space-y-4">
+            <h4 className="text-xs font-black text-(--color-primary)">منظومة الشارات والبطاقات (ModalBadge)</h4>
+            <div className="flex flex-wrap items-center gap-3">
+              <ModalBadge icon={<CheckCircle2 className="w-3.5 h-3.5 text-(--app-muted-foreground)" />}>
+                شارة حالة (مسكن)
+              </ModalBadge>
+              <ModalBadge icon={<AlertCircle className="w-3.5 h-3.5 text-(--app-muted-foreground)" />}>
+                شارة تنبيه (شاغر)
+              </ModalBadge>
+              <ModalBadge icon={<User className="w-3.5 h-3.5 text-(--app-muted-foreground)" />}>
+                شارة ضابط بديل
+              </ModalBadge>
+              <ModalBadge icon={<Building2 className="w-3.5 h-3.5 text-(--app-muted-foreground)" />}>
+                شارة قسم / فرع
+              </ModalBadge>
+            </div>
+          </div>
+
+          {/* MonoBadge Showcase */}
+          <div className="p-6 bg-(--app-surface) border border-(--app-border) rounded-2xl shadow-xs space-y-4">
+            <h4 className="text-xs font-black text-(--color-primary)">منظومة الأرقام والبيانات العسكرية (MonoBadge - font-mono)</h4>
+            <div className="flex flex-wrap items-center gap-3">
+              <MonoBadge
+                label="الرقم العسكري"
+                value="132488"
+                icon={<CreditCard className="w-3.5 h-3.5" />}
+                size="md"
+              />
+              <MonoBadge
+                label="رقم الأقدمية"
+                value="42627"
+                icon={<Hash className="w-3.5 h-3.5" />}
+                size="md"
+              />
+              <MonoBadge
+                label="الدفعة"
+                value="115"
+                variant="primary"
+                size="md"
+              />
+              <MonoBadge
+                label="تاريخ التعيين"
+                value="2026/05/12"
+                icon={<Calendar className="w-3.5 h-3.5" />}
+                variant="surface"
+                size="md"
+              />
+              <MonoBadge
+                label="كود القرار"
+                value="#ORD-889"
+                variant="muted"
+                size="sm"
               />
             </div>
           </div>
-          <div data-element="input-error">
-            <label className="block text-sm font-medium text-(--color-primary) mb-1.5">مع خطأ</label>
-            <input
-              type="text"
-              defaultValue="قيمة خاطئة"
-              className="w-full rounded-lg border border-(--app-error) bg-(--app-surface) px-3 py-2 text-sm text-(--color-primary) focus:outline-none focus:ring-2 focus:ring-(--app-error) transition"
-            />
-            <p className="mt-1 text-xs text-(--app-error)">هذا الحقل مطلوب</p>
-          </div>
-          <p className="text-xs text-(--app-muted-foreground)">
-            ← قل: &quot;عدّل <code>data-section=&quot;inputs&quot; data-element=&quot;text-input&quot;</code> focus ring&quot;
-          </p>
-        </div>
-      </section>
 
-      {/* ===== 7. TABLE ===== */}
-      <section data-section="table">
-        <SectionTitle title="الجداول — Tables" />
-        <div className="archive-card overflow-x-auto">
-          <table data-element="data-table" className="w-full text-right text-sm">
-            <thead>
-              <tr className="border-b border-(--app-border) text-(--app-muted-foreground)">
-                <th className="py-3 px-3 font-medium">الاسم</th>
-                <th className="py-3 px-3 font-medium">الدور</th>
-                <th className="py-3 px-3 font-medium">الحالة</th>
-                <th className="py-3 px-3 font-medium">إجراءات</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-b border-(--app-border) hover:bg-(--app-surface-container) transition-colors">
-                <td className="py-3 px-3 text-(--color-primary) font-medium">أحمد محمد</td>
-                <td className="py-3 px-3 text-(--app-muted-foreground)">مسؤول</td>
-                <td className="py-3 px-3"><span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-(--app-success)/20 text-(--app-success)">نشط</span></td>
-                <td className="py-3 px-3">
-                  <div className="flex gap-1">
-                    <button className="btn-table-action"><Edit className="w-4 h-4" /></button>
-                    <button className="btn-table-action-destructive"><Trash2 className="w-4 h-4" /></button>
-                  </div>
-                </td>
-              </tr>
-              <tr className="border-b border-(--app-border) hover:bg-(--app-surface-container) transition-colors">
-                <td className="py-3 px-3 text-(--color-primary) font-medium">محمد علي</td>
-                <td className="py-3 px-3 text-(--app-muted-foreground)">موظف</td>
-                <td className="py-3 px-3"><span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-(--app-warning)/20 text-(--app-warning)">معلق</span></td>
-                <td className="py-3 px-3">
-                  <div className="flex gap-1">
-                    <button className="btn-table-action"><Edit className="w-4 h-4" /></button>
-                    <button className="btn-table-action-destructive"><Trash2 className="w-4 h-4" /></button>
-                  </div>
-                </td>
-              </tr>
-              <tr className="hover:bg-(--app-surface-container) transition-colors">
-                <td className="py-3 px-3 text-(--color-primary) font-medium">سعيد عبدالله</td>
-                <td className="py-3 px-3 text-(--app-muted-foreground)">قائد</td>
-                <td className="py-3 px-3"><span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-(--app-error)/20 text-(--app-error)">مغلق</span></td>
-                <td className="py-3 px-3">
-                  <div className="flex gap-1">
-                    <button className="btn-table-action"><Edit className="w-4 h-4" /></button>
-                    <button className="btn-table-action-destructive"><Trash2 className="w-4 h-4" /></button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <p className="mt-4 text-xs text-(--app-muted-foreground)">
-            ← قل: &quot;عدّل <code>data-section=&quot;table&quot; data-element=&quot;data-table&quot;</code> header color&quot;
-          </p>
-        </div>
-      </section>
-
-      {/* ===== 8. SURFACES & ELEVATION ===== */}
-      <section data-section="surfaces">
-        <SectionTitle title="الطبقات والارتفاع — Surfaces & Elevation" />
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div data-element="surface-lowest" className="rounded-xl p-5 bg-(--app-surface-container-lowest) border border-(--app-border)">
-            <p className="text-xs text-label text-(--app-muted-foreground) mb-2">surface_container_lowest</p>
-            <p className="text-sm text-(--color-primary)">خلفية الكروت الأساسية</p>
-          </div>
-          <div data-element="surface-low" className="rounded-xl p-5 bg-(--app-surface-container-low) border border-(--app-border)">
-            <p className="text-xs text-label text-(--app-muted-foreground) mb-2">surface_container_low</p>
-            <p className="text-sm text-(--color-primary)">الخلفية العامة للصفحة</p>
-          </div>
-          <div data-element="surface-container" className="rounded-xl p-5 bg-(--app-surface-container) border border-(--app-border)">
-            <p className="text-xs text-label text-(--app-muted-foreground) mb-2">surface_container</p>
-            <p className="text-sm text-(--color-primary)">منطقة معلومات ثانوية</p>
-          </div>
-          <div data-element="surface-primary" className="rounded-xl p-5 bg-linear-to-br from-(--app-gradient-start) to-(--app-gradient-end)">
-            <p className="text-xs text-label text-(--app-info)/80 mb-2">primary gradient</p>
-            <p className="text-sm text-(--app-white)">التوقيع البصري</p>
-          </div>
-        </div>
-
-        <div className="mt-4 grid md:grid-cols-4 gap-4">
-          <div data-element="shadow-sm" className="rounded-xl p-5 bg-(--app-surface) shadow-depth-sm">
-            <p className="text-xs text-label text-(--app-muted-foreground)">shadow-sm</p>
-          </div>
-          <div data-element="shadow-md" className="rounded-xl p-5 bg-(--app-surface) shadow-depth-md">
-            <p className="text-xs text-label text-(--app-muted-foreground)">shadow-md</p>
-          </div>
-          <div data-element="shadow-lg" className="rounded-xl p-5 bg-(--app-surface) shadow-depth-lg">
-            <p className="text-xs text-label text-(--app-muted-foreground)">shadow-lg</p>
-          </div>
-          <div data-element="shadow-xl" className="rounded-xl p-5 bg-(--app-surface) shadow-depth-xl">
-            <p className="text-xs text-label text-(--app-muted-foreground)">shadow-xl</p>
-          </div>
-        </div>
-        <p className="mt-3 text-xs text-(--app-muted-foreground)">
-          ← قل: &quot;عدّل <code>data-section=&quot;surfaces&quot; data-element=&quot;shadow-lg&quot;</code>&quot;
-        </p>
-      </section>
-
-      {/* ===== 9. TOASTS / ALERTS ===== */}
-      <section data-section="alerts">
-        <SectionTitle title="التنبيهات — Toasts & Alerts" />
-        <div className="archive-card space-y-3">
-          <div data-element="alert-success" className="flex items-center gap-3 rounded-lg bg-(--app-success)/10 border border-(--app-success)/20 px-4 py-3">
-            <Check className="w-5 h-5 text-(--app-success) shrink-0" />
-            <p className="text-sm text-(--app-success)">تم الحفظ بنجاح</p>
-          </div>
-          <div data-element="alert-error" className="flex items-center gap-3 rounded-lg bg-(--app-error)/10 border border-(--app-error)/20 px-4 py-3">
-            <X className="w-5 h-5 text-(--app-error) shrink-0" />
-            <p className="text-sm text-(--app-error)">حدث خطأ أثناء العملية</p>
-          </div>
-          <div data-element="alert-warning" className="flex items-center gap-3 rounded-lg bg-(--app-warning)/10 border border-(--app-warning)/20 px-4 py-3">
-            <AlertTriangle className="w-5 h-5 text-(--app-warning) shrink-0" />
-            <p className="text-sm text-(--app-warning)">تنبيه: صلاحية الدواء ستنتهي قريباً</p>
-          </div>
-          <div data-element="alert-info" className="flex items-center gap-3 rounded-lg bg-(--app-info)/10 border border-(--app-info)/20 px-4 py-3">
-            <Info className="w-5 h-5 text-(--app-info) shrink-0" />
-            <p className="text-sm text-(--app-info)">معلومة: تم تحديث النظام</p>
-          </div>
-        </div>
-        <p className="mt-3 text-xs text-(--app-muted-foreground)">
-          ← قل: &quot;غيّر <code>data-section=&quot;alerts&quot; data-element=&quot;alert-success&quot;</code> background&quot;
-        </p>
-      </section>
-
-      {/* ===== 10. MODAL / DIALOG ===== */}
-      <section data-section="modals">
-        <SectionTitle title="النوافذ المنبثقة — Modals" />
-        <div className="relative rounded-xl overflow-hidden min-h-[320px]">
-          <div className="absolute inset-0 grid grid-cols-3 gap-2 p-3 opacity-50">
-            <div className="rounded-lg bg-(--app-surface-container)" />
-            <div className="rounded-lg bg-(--app-border)" />
-            <div className="rounded-lg bg-(--app-surface-container)" />
-            <div className="rounded-lg bg-(--app-border)" />
-            <div className="rounded-lg bg-(--app-surface-container)" />
-            <div className="rounded-lg bg-(--app-border)" />
-          </div>
-          <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" />
-          <div className="relative z-10 flex items-center justify-center p-6">
-            <div data-element="modal" className="w-full max-w-md rounded-xl bg-(--app-surface) border border-(--app-border) shadow-depth-xl overflow-hidden">
-              <div className="px-6 py-4 border-b border-(--app-border) flex items-center justify-between">
-                <h3 className="text-base font-semibold text-(--color-primary)">تأكيد الحذف</h3>
-                <button className="p-1 rounded-md hover:bg-(--app-surface-container) text-(--app-muted-foreground) transition">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="px-6 py-5">
-                <p className="text-sm text-(--app-muted-foreground)">هل أنت متأكد من حذف هذا العنصر؟ لا يمكن التراجع عن هذا الإجراء.</p>
-              </div>
-              <div className="px-6 py-3 bg-(--app-surface-container) flex justify-start gap-3">
-                <button className="btn-pill-secondary text-sm">إلغاء</button>
-                <button className="flex items-center gap-1.5 px-4 py-1.5 rounded-2xl bg-(--app-error) text-(--app-white) text-sm font-medium hover:bg-(--app-error)/90 transition active:scale-95">
-                  <Trash2 className="w-3.5 h-3.5" /> حذف
-                </button>
-              </div>
+          {/* Toast Notification Triggers */}
+          <div className="p-6 bg-(--app-surface) border border-(--app-border) rounded-2xl shadow-xs space-y-4">
+            <h4 className="text-xs font-black text-(--color-primary)">اختبار التنبيهات المنبثقة (Toast Notifications)</h4>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => showToast("تم حفظ وتحديث البيانات بنجاح", "success")}
+                className="btn-secondary text-xs"
+              >
+                <Check className="w-4 h-4 text-emerald-500" />
+                <span>Toast نجاح (Success)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => showToast("حدث خطأ أثناء الاتصال بالخادم", "error")}
+                className="btn-secondary text-xs"
+              >
+                <X className="w-4 h-4 text-red-500" />
+                <span>Toast خطأ (Error)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => showToast("تنبيه: يرجى استكمال البيانات المطلوبة", "info")}
+                className="btn-secondary text-xs"
+              >
+                <AlertTriangle className="w-4 h-4 text-amber-500" />
+                <span>Toast تنبيه (Warning/Info)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => showToast("معلومة: تم تطبيق التحديث في النظام", "info")}
+                className="btn-secondary text-xs"
+              >
+                <Info className="w-4 h-4 text-blue-500" />
+                <span>Toast معلومة (Info)</span>
+              </button>
             </div>
           </div>
         </div>
-        <p className="mt-3 text-xs text-(--app-muted-foreground)">
-          ← قل: &quot;عدّل <code>data-section=&quot;modals&quot; data-element=&quot;modal&quot;</code> footer bg&quot;
-        </p>
-      </section>
-
-      {/* ===== 11. BREADCRUMBS ===== */}
-      <section data-section="breadcrumbs">
-        <SectionTitle title="Breadcrumb" />
-        <nav data-element="breadcrumb" className="flex items-center gap-1.5 text-xs text-(--app-muted-foreground)">
-          <a href="#" className="hover:text-(--color-primary) transition">الرئيسية</a>
-          <ChevronLeft className="w-3 h-3 rotate-180" />
-          <a href="#" className="hover:text-(--color-primary) transition">الضباط</a>
-          <ChevronLeft className="w-3 h-3 rotate-180" />
-          <span className="text-(--color-primary) font-medium">أحمد محمد</span>
-        </nav>
-        <p className="mt-3 text-xs text-(--app-muted-foreground)">
-          ← قل: &quot;عدّل <code>data-section=&quot;breadcrumbs&quot;</code>&quot;
-        </p>
-      </section>
-
-      {/* ===== 12. PAGINATION ===== */}
-      <section data-section="pagination">
-        <SectionTitle title="التنقل بين الصفحات — Pagination" />
-        <div className="archive-card">
-          <div data-element="pagination" className="flex items-center gap-1">
-            <button className="px-3 py-1.5 text-xs rounded-lg bg-(--app-surface-container) text-(--app-muted-foreground) hover:bg-(--app-border) transition">السابق</button>
-            <button className="px-3 py-1.5 text-xs rounded-lg bg-(--color-primary) text-(--app-white) font-medium">1</button>
-            <button className="px-3 py-1.5 text-xs rounded-lg bg-(--app-surface-container) text-(--app-muted-foreground) hover:bg-(--app-border) transition">2</button>
-            <button className="px-3 py-1.5 text-xs rounded-lg bg-(--app-surface-container) text-(--app-muted-foreground) hover:bg-(--app-border) transition">3</button>
-            <button className="px-3 py-1.5 text-xs rounded-lg bg-(--app-surface-container) text-(--app-muted-foreground) hover:bg-(--app-border) transition">التالي</button>
-          </div>
-          <p className="mt-4 text-xs text-(--app-muted-foreground)">
-            ← قل: &quot;عدّل <code>data-section=&quot;pagination&quot; data-element=&quot;pagination&quot;</code> active color&quot;
-          </p>
+      ),
+    },
+    {
+      id: "stats-cards",
+      label: "الكروت والإحصائيات",
+      icon: <Activity className="w-4 h-4" />,
+      content: (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-right">
+          <StatCard
+            icon={<Users className="w-6 h-6 text-(--color-primary)" />}
+            title="إجمالي الضباط المسجلين"
+            value="142"
+            subtitle="ضابط على قوة المركز"
+          />
+          <StatCard
+            icon={<CheckCircle2 className="w-6 h-6 text-emerald-600" />}
+            title="الوظائف المسكنة"
+            value="38"
+            subtitle="وظيفة مأهولة حالياً"
+          />
+          <StatCard
+            icon={<AlertCircle className="w-6 h-6 text-amber-600" />}
+            title="الوظائف الشاغرة"
+            value="6"
+            subtitle="تتطلب تسكين ضابط"
+          />
+          <StatCard
+            icon={<Activity className="w-6 h-6 text-blue-600" />}
+            title="الزيارات الطبية اليومية"
+            value="14"
+            subtitle="كشف ومتابعة بالعيادة"
+          />
         </div>
-      </section>
+      ),
+    },
+    {
+      id: "palette",
+      label: "لوحة الألوان و Design Tokens",
+      icon: <Sparkles className="w-4 h-4" />,
+      content: (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            <ColorSwatch name="Primary Navy" hex="#1E3C72" varName="--color-primary" />
+            <ColorSwatch name="Primary Hover" hex="#2a5298" varName="--color-primary-hover" />
+            <ColorSwatch name="Surface" hex="#ffffff" varName="--app-surface" />
+            <ColorSwatch name="Surface Container" hex="#f1f5f9" varName="--app-surface-container" />
+            <ColorSwatch name="Surface Low" hex="#f8fafc" varName="--app-surface-container-low" />
+            <ColorSwatch name="Border" hex="#e2e8f0" varName="--app-border" />
+            <ColorSwatch name="Muted FG" hex="#4a638c" varName="--app-muted-foreground" />
+            <ColorSwatch name="Foreground" hex="#172b53" varName="--app-foreground" />
+            <ColorSwatch name="Info Blue" hex="#3b82f6" varName="--app-info" />
+            <ColorSwatch name="Success Green" hex="#10b981" varName="--app-success" />
+            <ColorSwatch name="Warning Amber" hex="#f59e0b" varName="--app-warning" />
+            <ColorSwatch name="Error Red" hex="#ef4444" varName="--app-error" />
+          </div>
+        </div>
+      ),
+    },
+  ];
 
+  return (
+    <div dir="rtl" className="space-y-8 pb-24">
+      {/* Page Header */}
+      <PageHeader
+        icon={<Shield className="w-6 h-6" />}
+        title="المرجع القياسي للتصميم والمكونات — Sapphire Archive Design System"
+        subtitle="Single Source of Truth (SSOT) لكافة مكونات، ألوان، ومودالز النظام"
+        actions={
+          <div className="flex items-center gap-2">
+            <SecondaryHeaderBtn
+              label="معاينة المودال التفاعلي"
+              icon={<Eye className="w-4 h-4" />}
+              onClick={() => setIsDemoModalOpen(true)}
+            />
+            <PrimaryHeaderBtn
+              label="إضافة عنصر جديد"
+              icon={<Plus className="w-4 h-4" />}
+              onClick={() => {}}
+            />
+          </div>
+        }
+      />
+
+      {/* ===== INSTRUCTIONS BANNER ===== */}
+      <div className="p-4 bg-(--color-primary)/5 border border-(--color-primary)/15 rounded-2xl shadow-xs text-right space-y-1.5">
+        <h3 className="text-sm font-black text-(--color-primary) flex items-center gap-2">
+          <Info className="w-4 h-4 text-(--color-primary)" />
+          <span>المرجع الشامل والوحيد (SSOT) لكافة عناصر وتنسيقات النظام</span>
+        </h3>
+        <p className="text-xs text-(--app-muted-foreground) leading-relaxed font-bold">
+          هذه الصفحة تمثل المرجع الأساسي الموحد لجميع المكونات البرمجية (`@/components/ui/`). لا يتم كتابة أي كود تنسيق مخصص (Custom Inline Styles) داخل الصفحات أو المودالز، بل يتم استخدام المكونات الجاهزة الموضحة أدناه فقط لضمان انعكاس أي تعديل مستقبلي تلقائياً على كامل المشروع.
+        </p>
+      </div>
+
+      {/* ===== CENTRAL TABS SYSTEM ===== */}
+      <FolderTabs tabs={playgroundTabs} initialTab="modals" />
+
+      {/* ===== LIVE DEMO MODAL ===== */}
+      {isDemoModalOpen && (
+        <ModalShell
+          title="معاينة حية لمودال قياسي موحد"
+          icon={<Briefcase className="w-4 h-4" />}
+          onClose={() => setIsDemoModalOpen(false)}
+          overlayClassName="bg-black/40"
+          panelClassName="max-w-xl border-(--app-border) shadow-depth-xl"
+          bodyClassName="p-5 space-y-4 no-scrollbar"
+          footer={
+            <div className="flex items-center justify-between w-full flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setIsDemoModalOpen(false)}
+                className="btn-destructive text-xs"
+              >
+                <Trash2 className="w-4 h-4 text-white" />
+                <span>حذف الوظيفة</span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsDemoModalOpen(false)}
+                  className="btn-secondary text-xs"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsDemoModalOpen(false)}
+                  className="btn-primary text-xs"
+                >
+                  <Edit className="w-4 h-4" />
+                  <span>تعديل الوظيفة</span>
+                </button>
+              </div>
+            </div>
+          }
+        >
+          {/* Header Card */}
+          <ModalHeaderCard
+            icon={<Briefcase className="w-6 h-6" />}
+            title="قائد المركز"
+            subtitle="الفرع / القسم: القيادة العامة"
+            badge={
+              <ModalBadge icon={<AlertCircle className="w-3.5 h-3.5 text-(--app-muted-foreground) shrink-0" />}>
+                وظيفة بدون بديل
+              </ModalBadge>
+            }
+          />
+
+          {/* Primary Officer Section */}
+          <ModalSection
+            title="الضابط الأساسي المكلف بالوظيفة"
+            badge={
+              <ModalBadge icon={<CheckCircle2 className="w-3.5 h-3.5 text-(--app-muted-foreground) shrink-0" />}>
+                مسكن
+              </ModalBadge>
+            }
+          >
+            <div className="space-y-1 pt-1">
+              <p className="text-xs font-bold text-(--app-muted-foreground) hover:underline hover:text-(--app-info) cursor-pointer">
+                لواء أ ح / احمد عبد اللطيف الجرف
+              </p>
+              <p className="text-[11px] font-bold text-(--app-muted-foreground)/80">
+                الرقم العسكري: 199823412 · الأقدمية: 1420
+              </p>
+            </div>
+          </ModalSection>
+
+          {/* Substitute Officers Section */}
+          <ModalSection
+            title={
+              <span className="flex items-center gap-1.5">
+                <User className="w-4 h-4 text-(--color-primary)" />
+                <span>الضباط البدلاء</span>
+              </span>
+            }
+            badge={<span className="text-xs font-bold text-(--app-muted-foreground)">2 ضابط</span>}
+          >
+            <div className="flex flex-wrap gap-2 pt-1">
+              <ModalBadge icon={<User className="w-3.5 h-3.5 text-(--app-muted-foreground)" />}>
+                عميد أ ح / محمد ابراهيم
+              </ModalBadge>
+              <ModalBadge icon={<User className="w-3.5 h-3.5 text-(--app-muted-foreground)" />}>
+                عقيد / طارق محمود
+              </ModalBadge>
+            </div>
+          </ModalSection>
+        </ModalShell>
+      )}
     </div>
   );
 }
 
-/* --- Helpers --- */
-
-function SectionTitle({ title }: { title: string }) {
+function StatCard({
+  icon,
+  title,
+  value,
+  subtitle,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  value: string;
+  subtitle?: string;
+}) {
   return (
-    <div className="flex items-center gap-3 mb-4">
-      <h2 className="text-xl font-bold text-(--color-primary)">{title}</h2>
-      <div className="flex-1 h-px bg-(--app-border)" />
+    <div className="p-4 bg-(--app-surface) border border-(--app-border) rounded-2xl shadow-xs space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-bold text-(--app-muted-foreground)">{title}</span>
+        <div className="p-2 rounded-xl bg-(--color-primary)/5 border border-(--color-primary)/10">{icon}</div>
+      </div>
+      <div className="text-2xl font-black text-(--color-primary) font-mono tabular-nums">{value}</div>
+      {subtitle && <p className="text-[11px] font-bold text-(--app-muted-foreground)/80">{subtitle}</p>}
     </div>
   );
 }
 
 function ColorSwatch({ name, hex, varName }: { name: string; hex: string; varName: string }) {
   return (
-    <div className="space-y-2">
-      <div className="h-16 rounded-xl border border-(--app-border) shadow-depth-sm" style={{ background: hex }} />
+    <div className="p-3 bg-(--app-surface) border border-(--app-border) rounded-2xl shadow-xs space-y-2">
+      <div className="h-10 rounded-xl border border-(--app-border)" style={{ background: hex }} />
       <div>
-        <p className="text-sm font-medium text-(--color-primary)">{name}</p>
-        <p className="text-xs text-(--app-muted-foreground) font-mono">{hex}</p>
+        <p className="text-xs font-extrabold text-(--color-primary)">{name}</p>
         <p className="text-[10px] text-(--app-muted-foreground) font-mono">{varName}</p>
       </div>
     </div>
+  );
+}
+
+function TableIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3v18" />
+      <rect width="18" height="18" x="3" y="3" rx="2" />
+      <path d="M3 9h18" />
+      <path d="M3 15h18" />
+    </svg>
   );
 }

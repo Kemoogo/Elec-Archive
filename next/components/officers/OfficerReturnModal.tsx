@@ -9,12 +9,14 @@ import { ModalShell } from "@/components/ui/modal-shell";
 import { DateField } from "@/components/ui/date-field";
 import { FormLabel, FormTextarea } from "@/components/ui/form-fields";
 import { extractApiError } from "@/lib/utils";
+import { RotateCcw } from "lucide-react";
 
 interface OfficerSummary {
   id: string;
   rank: string;
   rankLabel: string;
   fullName: string;
+  militaryId?: string;
 }
 
 export function OfficerReturnModal({ officer, trigger }: { officer: OfficerSummary; trigger?: React.ReactNode }) {
@@ -66,10 +68,21 @@ export function OfficerReturnModal({ officer, trigger }: { officer: OfficerSumma
         {trigger}
       </div>
       {open && (
-        <ModalShell title="تسجيل عودة للخدمة" onClose={() => setOpen(false)}>
-          <div className="mb-6 bg-(--app-info)/10 border border-(--app-info)/20 p-4 rounded-2xl text-right">
-            <p className="text-xs font-bold text-(--app-info)">سيتم إعادة الضابط للحالة النشطة وتوثيق تاريخ العودة.</p>
-            <p className="text-xs text-(--app-info) mt-1">{officer.rankLabel || officer.rank} / {officer.fullName}</p>
+        <ModalShell
+          title="تسجيل عودة للخدمة"
+          icon={<RotateCcw className="w-4 h-4" />}
+          onClose={() => setOpen(false)}
+        >
+          <div className="mb-6 p-4 bg-(--color-primary)/5 border border-(--color-primary)/10 shadow-sm rounded-2xl text-right flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-(--app-muted-foreground)">سيتم إعادة الضابط للحالة النشطة وتوثيق تاريخ العودة للخدمة.</p>
+              <h4 className="text-sm font-extrabold text-(--color-primary) mt-0.5">{officer.rankLabel || officer.rank} / {officer.fullName}</h4>
+            </div>
+            {officer.militaryId && (
+              <div className="px-3 py-1.5 bg-(--app-surface-container) border border-(--app-border) rounded-xl shadow-sm text-xs font-bold text-(--app-muted-foreground)">
+                الرقم العسكري: {officer.militaryId}
+              </div>
+            )}
           </div>
           
           <form onSubmit={handleSubmit} className="space-y-5">

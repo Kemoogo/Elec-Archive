@@ -33,12 +33,17 @@ interface RollcallSheetProps {
 }
 
 const STATUS_OPTIONS = [
-  { value: "present", label: "حاضر", color: "bg-(--app-success)/10 text-(--app-success) border-(--app-success)/20 active:bg-(--app-success)" },
-  { value: "absent", label: "غائب", color: "bg-(--app-error)/10 text-(--app-error) border-(--app-error)/20 active:bg-(--app-error)" },
-  { value: "leave", label: "إجازة", color: "bg-(--app-warning)/10 text-(--app-warning) border-(--app-warning)/20 active:bg-(--app-warning)" },
-  { value: "mission", label: "مأمورية", color: "bg-(--color-primary)/10 text-(--color-primary) border-(--color-primary)/20 active:bg-(--color-primary)" },
-  { value: "medical", label: "عيادة/راحة", color: "bg-(--app-error)/10 text-(--app-error) border-(--app-error)/20 active:bg-(--app-error)" },
-  { value: "course", label: "فرقة", color: "bg-(--app-info)/10 text-(--app-info) border-(--app-info)/20 active:bg-(--app-info)" },
+  { value: "present", label: "داخل الوحدة", color: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20" },
+  { value: "daily_mission", label: "مأمورية يومية", color: "bg-blue-500/10 text-blue-700 border-blue-500/20" },
+  { value: "clinic", label: "عيادة", color: "bg-teal-500/10 text-teal-700 border-teal-500/20" },
+  { value: "leave", label: "إجازة", color: "bg-amber-500/10 text-amber-700 border-amber-500/20" },
+  { value: "external_mission", label: "مأمورية خارجية", color: "bg-indigo-500/10 text-indigo-700 border-indigo-500/20" },
+  { value: "course", label: "فرقة", color: "bg-purple-500/10 text-purple-700 border-purple-500/20" },
+  { value: "rest", label: "راحة", color: "bg-sky-500/10 text-sky-700 border-sky-500/20" },
+  { value: "absent", label: "غياب", color: "bg-red-500/10 text-red-700 border-red-500/20" },
+  { value: "attached", label: "ملحق", color: "bg-orange-500/10 text-orange-700 border-orange-500/20" },
+  { value: "hospital", label: "مستشفى", color: "bg-rose-500/10 text-rose-700 border-rose-500/20" },
+  { value: "custom_out", label: "سبب آخر", color: "bg-slate-500/10 text-slate-700 border-slate-500/20" },
 ];
 
 const DRAFT_STORAGE_KEY = "rollcall_draft_";
@@ -243,43 +248,47 @@ export function RollcallSheet({ date, roster, existingEntries, isDraft }: Rollca
           </div>
         )}
 
-        <div className="overflow-x-auto rounded-lg bg-(--app-surface)">
+        <div className="overflow-x-auto rounded-2xl border border-(--app-border) bg-(--app-surface)">
           <table className="w-full text-right text-sm">
-            <thead>
-              <tr className="border-b border-(--app-border) text-sm text-(--app-muted-foreground)">
-                <th className="p-4">البيانات العسكرية</th>
-                <th className="p-4">الرتبة</th>
-                <th className="p-4">الحالة</th>
-                <th className="p-4">ملاحظات إضافية</th>
+            <thead className="bg-(--color-primary) dark:bg-(--color-primary)/10 text-white dark:text-(--color-primary) border-b border-(--app-border) text-xs font-bold">
+              <tr>
+                <th className="px-4 py-3 text-center w-10">م</th>
+                <th className="px-5 py-3 text-center w-28">الرتبة</th>
+                <th className="px-5 py-3 text-right">الاسم والبيانات العسكرية</th>
+                <th className="px-5 py-3 text-center">التمام والموقع الحقيقي</th>
+                <th className="px-5 py-3 text-right">ملاحظات وتفاصيل التمام</th>
               </tr>
             </thead>
-            <tbody>
-              {roster.map((officer) => {
+            <tbody className="divide-y divide-(--app-border)/40">
+              {roster.map((officer, index) => {
                 const entry = entries.get(officer.id);
                 return (
-                  <tr key={officer.id} className="border-b border-(--app-border) transition hover:bg-(--app-surface-container)">
-                    <td className="p-4">
-                       <div className="flex flex-col">
-                          <span className="text-(--color-primary) font-bold">{officer.fullName}</span>
-                          <span className="text-xs font-mono text-(--app-muted-foreground)">{officer.militaryId}</span>
-                       </div>
+                  <tr key={officer.id} className="border-b border-(--app-border)/40 transition hover:bg-(--app-surface-container)">
+                    <td className="px-4 py-3 text-center font-mono text-xs font-bold text-(--app-muted-foreground)">
+                      {index + 1}
                     </td>
-                    <td className="p-4">
-                       <span className="text-(--app-muted-foreground)">
+                    <td className="px-5 py-3 text-center">
+                       <span className="text-xs font-extrabold text-(--app-muted-foreground)">
                         {officer.rankLabel}
                        </span>
                     </td>
-                    <td className="p-4">
-                      <div className="flex flex-col gap-1">
-                        <div className="flex gap-1.5 flex-wrap">
+                    <td className="px-5 py-3">
+                       <div className="flex flex-col text-right">
+                          <span className="text-sm font-extrabold text-(--app-foreground)">{officer.fullName}</span>
+                          <span className="text-xs font-mono text-(--app-muted-foreground)">عسكري: #{officer.militaryId}</span>
+                       </div>
+                    </td>
+                    <td className="px-5 py-3">
+                      <div className="flex flex-col items-center gap-1">
+                        <div className="flex gap-1.5 flex-wrap justify-center">
                           {STATUS_OPTIONS.map((opt) => (
                             <button
                               key={opt.value}
                               onClick={() => updateEntry(officer.id, "status", opt.value)}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                                 entry?.status === opt.value
-                                  ? `${opt.color}`
-                                  : "bg-(--app-surface-container) border border-(--app-border) text-(--app-muted-foreground) hover:text-(--app-muted-foreground) hover:bg-(--app-surface-container)"
+                                  ? `${opt.color} shadow-xs`
+                                  : "bg-(--app-surface-container) border border-(--app-border) text-(--app-muted-foreground) hover:text-(--color-primary) hover:bg-(--app-surface)"
                               }`}
                             >
                               {opt.label}

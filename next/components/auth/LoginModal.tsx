@@ -61,7 +61,7 @@ export default function LoginModal({ isOpen, onOpenChange }: LoginModalProps) {
                 <DialogDescription className="sr-only">تسجيل الدخول إلى النظام</DialogDescription>
                 <div className="bg-(--app-surface) w-full rounded-3xl shadow-2xl relative overflow-hidden" dir="rtl">
                     <DialogClose
-                        className="absolute top-4 right-4 p-2 rounded-full hover:bg-(--app-surface-container) transition-colors text-(--app-muted-foreground) hover:text-(--app-foreground) focus:outline-none"
+                        className="absolute top-4 right-4 p-2 rounded-full hover:bg-(--app-surface-container) transition-colors text-(--app-muted-foreground) hover:text-(--color-primary) focus:outline-none"
                     >
                         <X className="w-5 h-5" />
                     </DialogClose>
@@ -72,7 +72,7 @@ export default function LoginModal({ isOpen, onOpenChange }: LoginModalProps) {
                                 <Lock className="w-8 h-8" />
                             </div>
                             <h2 className="text-2xl font-bold text-(--color-primary)">تسجيل الدخول</h2>
-                            <p className="text-(--app-foreground) mt-2 font-medium">مرحباً بك في الأرشيف الإلكتروني</p>
+                            <p className="text-(--app-muted-foreground) mt-2 font-bold text-sm">مرحباً بك في الأرشيف الإلكتروني</p>
                         </div>
 
                         <form onSubmit={handleSubmit} className="space-y-4">

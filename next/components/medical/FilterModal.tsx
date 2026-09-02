@@ -67,12 +67,8 @@ export function FilterModal({ tab, onClose }: FilterModalProps) {
 
   return (
     <ModalShell
-      title={
-        <span className="text-base font-semibold text-(--color-primary) flex items-center gap-2">
-          <SlidersHorizontal className="w-5 h-5 text-(--color-primary)" />
-          خيارات الفلترة المتقدمة
-        </span>
-      }
+      title="خيارات الفلترة المتقدمة"
+      icon={<SlidersHorizontal className="w-4 h-4" />}
       onClose={onClose}
       overlayClassName="bg-black/40"
       panelClassName="max-h-[85vh] max-w-md border-(--app-border) shadow-depth-xl"
@@ -82,14 +78,14 @@ export function FilterModal({ tab, onClose }: FilterModalProps) {
           <button
             type="button"
             onClick={handleApply}
-            className="btn-modal-primary"
+            className="btn-primary"
           >
             تطبيق الفلترة
           </button>
           <button
             type="button"
             onClick={handleReset}
-            className="btn-modal-secondary"
+            className="btn-secondary"
           >
             <RotateCcw className="w-4 h-4" />
             <span>إعادة ضبط</span>

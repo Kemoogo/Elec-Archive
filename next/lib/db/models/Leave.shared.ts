@@ -12,7 +12,7 @@ export const LEAVE_TYPES = [
 ] as const;
 export type LeaveType = (typeof LEAVE_TYPES)[number];
 
-export const LEAVE_STATUSES = ["draft", "approved", "closed", "cancelled"] as const;
+export const LEAVE_STATUSES = ["draft", "approved", "interrupted", "closed", "cancelled"] as const;
 export type LeaveStatus = (typeof LEAVE_STATUSES)[number];
 
 export const LEAVE_TYPE_LABELS: Record<LeaveType, string> = {
@@ -28,6 +28,7 @@ export const LEAVE_TYPE_LABELS: Record<LeaveType, string> = {
 export const LEAVE_STATUS_LABELS: Record<LeaveStatus, string> = {
   draft: "مسودة",
   approved: "معتمدة",
+  interrupted: "مقطوعة (عودة مبكرة)",
   closed: "منتهية",
   cancelled: "ملغاة",
 };

@@ -115,11 +115,8 @@ export function NewMedicineModal({ onClose }: { onClose: () => void }) {
 
   return (
     <ModalShell
-      title={
-        <span className="text-base font-semibold text-(--color-primary)">
-          إضافة دواء جديد
-        </span>
-      }
+      title="إضافة دواء جديد"
+      icon={<Plus className="w-4 h-4" />}
       onClose={onClose}
       overlayClassName="bg-black/40"
       panelClassName="max-h-[85vh] max-w-xl border-(--app-border) shadow-depth-xl"

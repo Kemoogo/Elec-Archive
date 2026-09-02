@@ -108,12 +108,13 @@ export function ModernPageHeader({
   const displaySubtitle = subtitle || description;
   const displayActions = actions || action;
 
-  /* Auto-open search if searchQuery exists */
-  useEffect(() => {
+  const [prevSearchQuery, setPrevSearchQuery] = useState(searchQuery);
+  if (searchQuery !== prevSearchQuery) {
+    setPrevSearchQuery(searchQuery);
     if (searchQuery && !isSearchOpen) {
       setIsSearchOpen(true);
     }
-  }, [searchQuery]);
+  }
 
   /* Auto-focus input when search opens */
   useEffect(() => {
@@ -188,7 +189,7 @@ export function ModernPageHeader({
                   <button
                     type="button"
                     onClick={() => onSearchChange?.("")}
-                    className="absolute left-2.5 top-1/2 -translate-y-1/2 p-0.5 hover:bg-(--app-border) rounded-md text-(--app-muted-foreground) hover:text-(--app-foreground) transition-colors cursor-pointer"
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 p-0.5 hover:bg-(--app-border) rounded-md text-(--app-muted-foreground) hover:text-(--color-primary) transition-colors cursor-pointer"
                     title="مسح النص"
                   >
                     <X className="w-3.5 h-3.5" />

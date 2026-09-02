@@ -149,13 +149,13 @@ export function CareerTimeline({ events, officerName }: CareerTimelineProps) {
                 <div className="flex flex-col items-end shrink-0 pt-1">
                   <div className="flex items-center gap-2 text-(--app-muted-foreground) font-mono text-xs bg-(--app-surface-container) px-3 py-1.5 rounded-lg border border-(--app-border)">
                     <Calendar className="h-3.5 w-3.5" />
-                    <span dir="ltr">
+                    <span dir="ltr" suppressHydrationWarning>
                       {new Date(event.date).toLocaleDateString("ar-EG", { year: 'numeric', month: 'long', day: 'numeric' })}
                     </span>
                     {event.endDate && (
                       <>
                         <span className="opacity-30 mx-1">/</span>
-                        <span dir="ltr">
+                        <span dir="ltr" suppressHydrationWarning>
                           {new Date(event.endDate).toLocaleDateString("ar-EG", { year: 'numeric', month: 'long', day: 'numeric' })}
                         </span>
                       </>

@@ -25,6 +25,8 @@ interface OfficerOption {
   id: string;
   fullName: string;
   militaryId: string;
+  rank?: string;
+  officerLabel?: string;
 }
 
 export function LeaveAddModal({ officers }: { officers: OfficerOption[] }) {
@@ -83,7 +85,11 @@ export function LeaveAddModal({ officers }: { officers: OfficerOption[] }) {
       />
 
       {open && (
-        <ModalShell title="إضافة سجل حركة جديد" onClose={() => setOpen(false)}>
+        <ModalShell
+          title="إضافة سجل حركة جديد"
+          icon={<Plus className="w-4 h-4" />}
+          onClose={() => setOpen(false)}
+        >
           {error && (
             <div className="mb-4 rounded-lg bg-(--app-error)/10 border border-(--app-error)/20 p-4 text-(--app-error) font-bold text-sm text-right">
               {error}
@@ -103,7 +109,7 @@ export function LeaveAddModal({ officers }: { officers: OfficerOption[] }) {
                   <option value="">اختر ضابط من القائمة</option>
                   {officers.map((o) => (
                     <option key={o.id} value={o.id}>
-                      {o.fullName} ({o.militaryId})
+                      {o.officerLabel || (o.rank ? `${o.rank} / ${o.fullName}` : o.fullName)} ({o.militaryId})
                     </option>
                   ))}
                 </FormSelect>

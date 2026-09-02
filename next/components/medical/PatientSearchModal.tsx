@@ -52,11 +52,8 @@ export function PatientSearchModal({ onClose }: PatientSearchModalProps) {
   return (
     <>
       <ModalShell
-        title={
-          <span className="text-base font-semibold text-(--color-primary)">
-            بحث المرضى
-          </span>
-        }
+        title="بحث المرضى"
+        icon={<Search className="w-4 h-4" />}
         onClose={onClose}
         overlayClassName="bg-black/40"
         panelClassName="max-h-[85vh] max-w-lg border-(--app-border) shadow-depth-xl"

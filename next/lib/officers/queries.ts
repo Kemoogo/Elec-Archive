@@ -198,19 +198,47 @@ export function serializeOfficerDetail(officer: OfficerLean): OfficerDetailData 
   };
 }
 
-export function serializePositions(positions: (IPositionAssignment & { _id: Types.ObjectId })[]): SerializedPosition[] {
-  return positions.map(pa => ({
-    id: pa._id.toString(),
-    positionTitle: pa.positionTitle,
-    positionType: pa.positionType as PositionType,
-    startDate: pa.startDate.toISOString(),
-    endDate: pa.endDate?.toISOString() || null,
-    status: pa.status as PositionStatus,
-  }));
+export function serializePositions(
+  positions: (IPositionAssignment & { _id: Types.ObjectId })[],
+  officerId?: string
+): SerializedPosition[] {
+  const result: SerializedPosition[] = [];
+
+  for (const pa of positions) {
+    if (pa.assignmentHistory && pa.assignmentHistory.length > 0) {
+      for (const h of pa.assignmentHistory) {
+        if (!officerId || h.officerId.toString() === officerId) {
+          result.push({
+            id: pa._id.toString(),
+            positionTitle: pa.positionTitle,
+            positionType: h.role,
+            startDate: new Date(h.startDate).toISOString(),
+            endDate: h.endDate ? new Date(h.endDate).toISOString() : null,
+            status: h.endDate ? "ended" : "active",
+          });
+        }
+      }
+    } else {
+      const isPrimary = officerId && pa.primaryOfficerId?.toString() === officerId;
+      const isSub = officerId && pa.substituteOfficerIds?.some((s) => s.toString() === officerId);
+      if (!officerId || isPrimary || isSub) {
+        result.push({
+          id: pa._id.toString(),
+          positionTitle: pa.positionTitle,
+          positionType: isPrimary ? "primary" : "substitute",
+          startDate: (pa.primaryStartDate || pa.createdAt || new Date()).toISOString(),
+          endDate: null,
+          status: "active",
+        });
+      }
+    }
+  }
+
+  return result;
 }
 
 export function serializeLeaves(leaves: (ILeave & { _id: Types.ObjectId })[]): SerializedLeave[] {
-  return leaves.map(l => ({
+  return leaves.map((l) => ({
     id: l._id.toString(),
     type: l.type,
     category: l.category,
@@ -229,21 +257,23 @@ export function buildCareerTimeline(
 ): SerializedTimelineEvent[] {
   const isArkanHarb = officer.isArkanHarb;
   const currentJoinDate = new Date(officer.joinDate).getTime();
-  
+
   // Separate join movements to avoid duplicates and handle rejoined status
-  const nonJoinMovements = movements.filter(m => m.action !== "join");
-  const joinMovements = movements.filter(m => m.action === "join").sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  
+  const nonJoinMovements = movements.filter((m) => m.action !== "join");
+  const joinMovements = movements
+    .filter((m) => m.action === "join")
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
   const joinEvents: SerializedTimelineEvent[] = joinMovements.map((m, idx) => {
     const isFirstJoin = idx === 0;
     const isCurrentJoin = new Date(m.date).getTime() === currentJoinDate;
-    
+
     return {
       id: m._id.toString(),
       type: "join",
       date: new Date(m.date).getTime(),
       title: isFirstJoin ? "أول انضمام للخدمة" : "إعادة انضمام للخدمة",
-      description: isCurrentJoin 
+      description: isCurrentJoin
         ? `تم الانضمام برتبة ${RANK_LABELS[officer.rank] || officer.rank}${isArkanHarb ? " أ ح" : ""}`
         : m.notes,
       badge: isFirstJoin && !isCurrentJoin ? "تاريخ أصلي" : undefined,
@@ -279,26 +309,60 @@ export function buildCareerTimeline(
       title: m.title,
       description: m.description,
       statusLabel: MISSION_STATUS_LABELS[m.status] || m.status,
-      statusColor: MISSION_STATUS_COLORS[m.status] || "bg-(--app-surface-container) text-(--app-muted-foreground) border-(--app-border)",
+      statusColor:
+        MISSION_STATUS_COLORS[m.status] ||
+        "bg-(--app-surface-container) text-(--app-muted-foreground) border-(--app-border)",
     })),
-    ...positions.map((pa) => ({
-      id: pa._id.toString(),
-      type: "transfer" as SerializedTimelineEventType,
-      date: new Date(pa.startDate).getTime(),
-      endDate: pa.endDate ? new Date(pa.endDate).getTime() : undefined,
-      title: pa.positionTitle,
-      description: pa.notes,
-      statusLabel: POSITION_STATUS_LABELS[pa.status] || pa.status,
-      statusColor: POSITION_STATUS_COLORS[pa.status] || "bg-(--app-surface-container) text-(--app-muted-foreground) border-(--app-border)",
-      badge: pa.positionType === 'primary' ? 'أساسي' : 'بديل',
-    })),
+    ...positions.flatMap((pa) => {
+      const entries = (pa.assignmentHistory || []).filter(
+        (h) => h.officerId && h.officerId.toString() === officer._id.toString()
+      );
+      if (entries.length > 0) {
+        return entries.map((h) => {
+          const isAct = !h.endDate;
+          const statusKey: PositionStatus = isAct ? "active" : "ended";
+          return {
+            id: `${pa._id.toString()}-${h._id?.toString() || h.startDate.toString()}`,
+            type: "transfer" as SerializedTimelineEventType,
+            date: new Date(h.startDate).getTime(),
+            endDate: h.endDate ? new Date(h.endDate).getTime() : undefined,
+            title: pa.positionTitle,
+            description: h.notes || pa.notes,
+            statusLabel: POSITION_STATUS_LABELS[statusKey] || statusKey,
+            statusColor:
+              POSITION_STATUS_COLORS[statusKey] ||
+              "bg-(--app-surface-container) text-(--app-muted-foreground) border-(--app-border)",
+            badge: h.role === "primary" ? "أساسي" : "بديل",
+          };
+        });
+      }
+      const isPrimary = pa.primaryOfficerId?.toString() === officer._id.toString();
+      const isSub = pa.substituteOfficerIds?.some((s) => s.toString() === officer._id.toString());
+      if (isPrimary || isSub) {
+        const statusKey: PositionStatus = "active";
+        return [
+          {
+            id: pa._id.toString(),
+            type: "transfer" as SerializedTimelineEventType,
+            date: (pa.primaryStartDate || pa.createdAt || new Date()).getTime(),
+            endDate: undefined,
+            title: pa.positionTitle,
+            description: pa.notes,
+            statusLabel: POSITION_STATUS_LABELS[statusKey],
+            statusColor: POSITION_STATUS_COLORS[statusKey],
+            badge: isPrimary ? "أساسي" : "بديل",
+          },
+        ];
+      }
+      return [];
+    }),
     ...nonJoinMovements.map((m) => ({
       id: m._id.toString(),
       type: m.action as SerializedTimelineEventType,
       date: new Date(m.date).getTime(),
       title: MOVEMENT_LABELS[m.action] || m.action,
       description: m.notes,
-    }))
+    })),
   ];
 }
 

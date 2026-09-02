@@ -1,37 +1,36 @@
-import { Schema, model, models, type Document, type Types } from "mongoose";
+import { Schema, model, models, type Document } from "mongoose";
+import {
+  ROLLCALL_STATUSES,
+  ROLLCALL_DRAFT_STATUSES,
+  type RollcallStatus,
+  type RollcallDraftStatus,
+  type IRollcallEntry,
+  PRESENT_STATUSES,
+  OUT_STATUSES,
+  ROLLCALL_STATUS_LABELS,
+  isRollcallPresent,
+  isRollcallOut,
+} from "./DailyRollcall.shared";
 
-export const ROLLCALL_STATUSES = ["present", "absent", "leave", "mission", "medical", "course"] as const;
-export type RollcallStatus = (typeof ROLLCALL_STATUSES)[number];
-
-export const ROLLCALL_STATUS_LABELS: Record<RollcallStatus, string> = {
-  present: "حاضر",
-  absent: "غائب",
-  leave: "إجازة",
-  mission: "مأمورية",
-  medical: "عيادة/راحة",
-  course: "فرقة",
+export {
+  ROLLCALL_STATUSES,
+  ROLLCALL_DRAFT_STATUSES,
+  type RollcallStatus,
+  type RollcallDraftStatus,
+  type IRollcallEntry,
+  PRESENT_STATUSES,
+  OUT_STATUSES,
+  ROLLCALL_STATUS_LABELS,
+  isRollcallPresent,
+  isRollcallOut,
 };
-
-export const ROLLCALL_DRAFT_STATUSES = ["draft", "submitted"] as const;
-export type RollcallDraftStatus = (typeof ROLLCALL_DRAFT_STATUSES)[number];
-
-export interface IRollcallEntry {
-  officerId: Types.ObjectId;
-  militaryId: string;
-  fullName: string;
-  rank: string;
-  status: RollcallStatus;
-  note?: string;
-  relatedLeaveId?: Types.ObjectId;
-  relatedAssignmentId?: Types.ObjectId;
-}
 
 export interface IDailyRollcall extends Document {
   date: Date;
   status: RollcallDraftStatus;
   targetOfficerCount: number;
   entries: IRollcallEntry[];
-  submittedBy?: Types.ObjectId;
+  submittedBy?: typeof Schema.Types.ObjectId;
   submittedAt?: Date;
   viewedByCommander: boolean;
   createdAt: Date;
@@ -50,7 +49,10 @@ const RollcallEntrySchema = new Schema<IRollcallEntry>(
       enum: ROLLCALL_STATUSES,
     },
     note: { type: String, trim: true },
+    customReason: { type: String, trim: true },
+    attachedDestination: { type: String, trim: true },
     relatedLeaveId: { type: Schema.Types.ObjectId, ref: "Leave" },
+    relatedMissionId: { type: Schema.Types.ObjectId, ref: "Mission" },
     relatedAssignmentId: { type: Schema.Types.ObjectId, ref: "Assignment" },
   },
   { _id: false },
@@ -80,3 +82,4 @@ DailyRollcallSchema.index({ submittedAt: 1 });
 
 export const DailyRollcall =
   models.DailyRollcall ?? model<IDailyRollcall>("DailyRollcall", DailyRollcallSchema);
+

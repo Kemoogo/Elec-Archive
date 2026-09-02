@@ -7,6 +7,14 @@ import { MissionForm } from "./MissionForm";
 import { Plus, FileText, ChevronDown } from "lucide-react";
 import { PageHeader, PrimaryHeaderBtn } from "@/components/layout/ModernPageHeader";
 
+interface OfficerOption {
+  id: string;
+  fullName: string;
+  militaryId: string;
+  rank?: string;
+  officerLabel?: string;
+}
+
 interface MissionsClientProps {
   initialMissions: Mission[];
   total: number;
@@ -15,7 +23,9 @@ interface MissionsClientProps {
   officerFilter: string;
   statusFilter: string;
   canEdit: boolean;
+  isAdmin?: boolean;
   hideHeader?: boolean;
+  officers?: OfficerOption[];
 }
 
 export function MissionsClient({
@@ -26,7 +36,9 @@ export function MissionsClient({
   officerFilter,
   statusFilter,
   canEdit,
+  isAdmin = false,
   hideHeader = false,
+  officers,
 }: MissionsClientProps) {
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -83,6 +95,7 @@ export function MissionsClient({
                   <option value="scheduled">مجدولة</option>
                   <option value="active">نشطة</option>
                   <option value="completed">مكتملة</option>
+                  <option value="postponed">مؤجلة</option>
                   <option value="cancelled">ملغاة</option>
                 </select>
                 <ChevronDown className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-(--app-muted-foreground) pointer-events-none" />
@@ -104,6 +117,7 @@ export function MissionsClient({
         total={total}
         page={page}
         limit={limit}
+        isAdmin={isAdmin}
         officerFilter={officerFilter}
         statusFilter={statusFilter}
         onPageChange={(p) => updateFilters({ page: p })}
@@ -115,6 +129,7 @@ export function MissionsClient({
 
       <MissionForm
         mission={selectedMission}
+        officers={officers}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSave={handleSave}

@@ -153,9 +153,9 @@ export default function MainTable<T extends object>({
                                         let headerPadding = thClassName;
                                         const headerAlignClass = getAlignClass(getHeaderAlign(col));
                                         if (hasChildren) {
-                                            headerPadding = `px-4 pt-2 pb-1 ${headerAlignClass}`;
+                                            headerPadding = `px-4 pt-2 pb-1.5 ${headerAlignClass} border-b border-white/20 dark:border-white/10 font-extrabold`;
                                         } else if (rowIndex > 0) {
-                                            headerPadding = `px-4 pt-1 pb-2 ${headerAlignClass}`;
+                                            headerPadding = `px-4 pt-1.5 pb-2 ${headerAlignClass} text-[11px] font-bold`;
                                         } else {
                                             headerPadding = `${thClassName} ${headerAlignClass}`;
                                         }
@@ -163,7 +163,7 @@ export default function MainTable<T extends object>({
                                         return (
                                             <th
                                                 key={colIndex}
-                                                className={`${headerPadding} ${col.headerClassName || ""}`}
+                                                className={`${headerPadding} ${col.headerClassName || ""} ${colIndex > 0 ? "border-l border-white/15 dark:border-white/10" : ""}`}
                                                 colSpan={colspan}
                                                 rowSpan={rowspan}
                                                 style={{

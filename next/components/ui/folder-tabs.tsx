@@ -15,7 +15,10 @@ export interface TabItem {
 
 interface FolderTabsProps {
   tabs: TabItem[];
+  value?: string;
+  onValueChange?: (val: string) => void;
   initialTab?: string;
+  syncWithUrl?: boolean;
   fallback?: React.ReactNode;
   variant?: "folder" | "pills" | "underlined" | "cards";
   className?: string;
@@ -24,7 +27,10 @@ interface FolderTabsProps {
 
 export function FolderTabs({
   tabs,
+  value,
+  onValueChange,
   initialTab,
+  syncWithUrl = true,
   fallback,
   variant = "folder",
   className,
@@ -41,7 +47,10 @@ export function FolderTabs({
     <React.Suspense fallback={fallback || defaultFallback}>
       <FolderTabsContent
         tabs={tabs}
+        value={value}
+        onValueChange={onValueChange}
         initialTab={initialTab}
+        syncWithUrl={syncWithUrl}
         variant={variant}
         className={className}
         contentClassName={contentClassName}
@@ -52,7 +61,10 @@ export function FolderTabs({
 
 function FolderTabsContent({
   tabs,
+  value,
+  onValueChange,
   initialTab,
+  syncWithUrl = true,
   variant = "folder",
   className,
   contentClassName,
@@ -60,19 +72,32 @@ function FolderTabsContent({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [, startTransition] = React.useTransition();
 
-  const currentTab = searchParams.get("tab") || initialTab || (tabs.length > 0 ? tabs[0].id : "");
+  const urlTab = syncWithUrl ? searchParams.get("tab") : null;
+  const [selectedTab, setSelectedTab] = React.useState<string | null>(null);
 
-  const handleTabChange = (value: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("tab", value);
-    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  // Controlled value > (URL searchParam if syncWithUrl) > local selectedTab > initialTab > first tab id
+  const activeTab = value || urlTab || selectedTab || initialTab || (tabs.length > 0 ? tabs[0].id : "");
+
+  const handleTabChange = (val: string) => {
+    setSelectedTab(val);
+    if (onValueChange) {
+      onValueChange(val);
+    }
+    if (syncWithUrl) {
+      startTransition(() => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("tab", val);
+        router.push(`${pathname}?${params.toString()}`, { scroll: false });
+      });
+    }
   };
 
   if (tabs.length === 0) return null;
 
   return (
-    <Tabs value={currentTab} onValueChange={handleTabChange} variant={variant} dir="rtl" className={className}>
+    <Tabs value={activeTab} onValueChange={handleTabChange} variant={variant} dir="rtl" className={className}>
       <TabsList>
         {tabs.map((tab, index) => (
           <TabsTrigger

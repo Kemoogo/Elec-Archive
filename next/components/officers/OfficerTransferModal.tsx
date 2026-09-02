@@ -9,6 +9,7 @@ import { ModalShell } from "@/components/ui/modal-shell";
 import { DateField } from "@/components/ui/date-field";
 import { FormLabel, FormSelect, FormTextarea } from "@/components/ui/form-fields";
 import { extractApiError } from "@/lib/utils";
+import { LogOut } from "lucide-react";
 
 import { 
   MOVEMENT_LABELS, 
@@ -25,6 +26,7 @@ interface OfficerSummary {
   rank: string;
   rankLabel: string;
   fullName: string;
+  militaryId?: string;
 }
 
 export function OfficerTransferModal({ officer, trigger }: { officer: OfficerSummary; trigger?: React.ReactNode }) {
@@ -77,10 +79,22 @@ export function OfficerTransferModal({ officer, trigger }: { officer: OfficerSum
         {trigger}
       </div>
       {open && (
-        <ModalShell title="تسجيل مغادرة / إنهاء خدمة" onClose={() => setOpen(false)}>
-          <div className="mb-6 bg-(--app-warning)/10 border border-(--app-warning)/20 p-4 rounded-2xl text-right">
-            <p className="text-xs font-bold text-(--app-warning)">سيتم تسجيل الضابط كخارج الوحدة وتوثيق السبب في السجل المهني.</p>
-            <p className="text-xs text-(--app-warning) mt-1">{officer.rankLabel || officer.rank} / {officer.fullName}</p>
+        <ModalShell
+          title="تسجيل مغادرة / إنهاء خدمة"
+          icon={<LogOut className="w-4 h-4" />}
+          titleVariant="warning"
+          onClose={() => setOpen(false)}
+        >
+          <div className="mb-6 p-4 bg-(--color-primary)/5 border border-(--color-primary)/10 shadow-sm rounded-2xl text-right flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-(--app-muted-foreground)">سيتم تسجيل الضابط كخارج الوحدة وتوثيق السبب في السجل المهني.</p>
+              <h4 className="text-sm font-extrabold text-(--color-primary) mt-0.5">{officer.rankLabel || officer.rank} / {officer.fullName}</h4>
+            </div>
+            {officer.militaryId && (
+              <div className="px-3 py-1.5 bg-(--app-surface-container) border border-(--app-border) rounded-xl shadow-sm text-xs font-bold text-(--app-muted-foreground)">
+                الرقم العسكري: {officer.militaryId}
+              </div>
+            )}
           </div>
           
           <form onSubmit={handleSubmit} className="space-y-5">

@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, Upload, Trash2, AlertCircle, FileLock2, Eye, RefreshCw, AlertTriangle } from "lucide-react";
+import { FileText, Upload, Trash2, AlertCircle, FileLock2, Eye, AlertTriangle } from "lucide-react";
 import { PdfViewerModal } from "./PdfViewerModal";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { ModalActions } from "@/components/ui/modal-actions";
@@ -180,12 +180,12 @@ export function OfficerDocuments({ officerId, file121Url, file121UpdatedAt, file
                 </p>
                 {issueDate && (
                   <p className="text-xs font-bold text-blue-600 dark:text-blue-400">
-                    تاريخ تحرير الملف: {issueDate}
+                    تاريخ تحرير الملف: <span className="font-mono">{issueDate}</span>
                   </p>
                 )}
                 {updatedAt && (
-                  <p className="text-xs text-(--app-muted-foreground) font-mono text-right">
-                    تاريخ الرفع: {new Date(updatedAt).toLocaleDateString("ar-EG")}
+                  <p className="text-xs text-(--app-muted-foreground) text-right">
+                    تاريخ الرفع: <span className="font-mono">{new Date(updatedAt).toLocaleDateString("ar-EG")}</span>
                   </p>
                 )}
               </div>
@@ -223,7 +223,9 @@ export function OfficerDocuments({ officerId, file121Url, file121UpdatedAt, file
       {/* DELETE CONFIRMATION MODAL */}
       {isDeleteModalOpen && (
         <ModalShell
-          title={<span className="text-base font-semibold text-(--app-error)">تأكيد حذف الملف</span>}
+          title="تأكيد حذف الملف"
+          icon={<Trash2 className="w-4 h-4" />}
+          titleVariant="danger"
           onClose={() => setIsDeleteModalOpen(false)}
         >
           <div className="p-6">
@@ -238,14 +240,14 @@ export function OfficerDocuments({ officerId, file121Url, file121UpdatedAt, file
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className="btn-modal-destructive"
+                className="btn-destructive"
               >
                 {deleting ? "جاري الحذف..." : "نعم، احذف المستند"}
               </button>
               <button
                 onClick={() => setIsDeleteModalOpen(false)}
                 disabled={deleting}
-                className="btn-modal-secondary"
+                className="btn-secondary"
               >
                 إلغاء
               </button>
@@ -257,7 +259,9 @@ export function OfficerDocuments({ officerId, file121Url, file121UpdatedAt, file
       {/* WARNING MODAL BEFORE FILE SELECTION ON UPDATE */}
       {isWarnBeforeSelectModalOpen && (
         <ModalShell
-          title={<span className="text-base font-semibold text-(--color-primary)">تنبيه استبدال وتحديث الملف</span>}
+          title="تنبيه استبدال وتحديث الملف"
+          icon={<AlertTriangle className="w-4 h-4" />}
+          titleVariant="warning"
           onClose={() => setIsWarnBeforeSelectModalOpen(false)}
         >
           <div className="p-6">
@@ -274,14 +278,14 @@ export function OfficerDocuments({ officerId, file121Url, file121UpdatedAt, file
             <ModalActions>
               <button
                 onClick={handleProceedToFileSelect}
-                className="btn-modal-primary flex items-center gap-2"
+                className="btn-primary flex items-center gap-2"
               >
                 <Upload className="h-4 w-4" />
                 المتابعة واختيار الملف الجديد
               </button>
               <button
                 onClick={() => setIsWarnBeforeSelectModalOpen(false)}
-                className="btn-modal-secondary"
+                className="btn-secondary"
               >
                 إلغاء
               </button>

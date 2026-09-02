@@ -84,12 +84,14 @@ export function PositionHistory({ officerId, initialData }: PositionHistoryProps
       header: "من",
       accessor: "startDate",
       cellAlign: "center",
+      isNumeric: true,
       render: (value) => value ? new Date(value as string).toLocaleDateString("ar-EG") : "-",
     },
     {
       header: "إلى",
       accessor: "endDate",
       cellAlign: "center",
+      isNumeric: true,
       render: (value) => value ? new Date(value as string).toLocaleDateString("ar-EG") : "-",
     },
     {

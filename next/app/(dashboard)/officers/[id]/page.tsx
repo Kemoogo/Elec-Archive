@@ -23,13 +23,13 @@ import { OfficerPhotoUpload } from "@/components/officers/OfficerPhotoUpload";
 import { LeaveRecordTab } from "@/components/officers/tabs/LeaveRecordTab";
 import { CareerTimeline } from "@/components/officers/CareerTimeline";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { PageHeader } from "@/components/layout/ModernPageHeader";
 import Link from "next/link";
 import { ChevronLeft, User, Shield, Calendar, Phone, CreditCard, IdCard, History, LucideIcon, Hash, Tag, Swords, GraduationCap, Award, Activity, BookOpen, Users } from "lucide-react";
 
 import { OfficerDetailTabs } from "@/components/officers/OfficerDetailTabs";
 import { PositionHistory } from "@/components/officers/PositionHistory";
 import { SectionWrapper } from "@/components/ui/section-wrapper";
+import { MonoBadge } from "@/components/ui/mono-badge";
 
 
 interface InfoItemProps {
@@ -159,13 +159,19 @@ export default async function OfficerDetailPage({
                 </h1>
               </div>
 
-              <div className="flex flex-wrap gap-4 pt-2">
-                <div className="flex items-center gap-2 px-5 py-2.5 bg-(--app-surface-container) border border-(--app-border) rounded-xl shadow-sm">
-                  <span className="text-sm font-bold font-mono text-(--app-muted-foreground)">العسكري: {detail.militaryId}</span>
-                </div>
-                <div className="flex items-center gap-2 px-5 py-2.5 bg-(--app-surface-container) border border-(--app-border) rounded-xl shadow-sm">
-                  <span className="text-sm font-bold font-mono text-(--app-muted-foreground)">الأقدمية: {detail.seniorityNumber}</span>
-                </div>
+              <div className="flex flex-wrap gap-3 pt-2">
+                <MonoBadge
+                  label="الرقم العسكري"
+                  value={detail.militaryId}
+                  icon={<CreditCard className="w-4 h-4" />}
+                  size="lg"
+                />
+                <MonoBadge
+                  label="رقم الأقدمية"
+                  value={detail.seniorityNumber}
+                  icon={<Hash className="w-4 h-4" />}
+                  size="lg"
+                />
               </div>
             </div>
           </div>
@@ -176,25 +182,25 @@ export default async function OfficerDetailPage({
           <InfoItem icon={Hash} label="رقم الأقدمية" value={detail.seniorityNumber} mono />
           <InfoItem icon={IdCard} label="الرقم القومى" value={detail.nationalId || "---"} mono />
           <InfoItem icon={Phone} label="رقم الهاتف" value={detail.phone || "---"} mono />
-          <InfoItem icon={User} label="العمر" value={age ? `${age} عام` : "---"} />
-          <InfoItem icon={History} label="تاريخ الميلاد" value={detail.birthDate ? new Date(detail.birthDate).toLocaleDateString("ar-EG") : "---"} />
+          <InfoItem icon={User} label="العمر" value={age ? `${age} عام` : "---"} mono />
+          <InfoItem icon={History} label="تاريخ الميلاد" value={detail.birthDate ? new Date(detail.birthDate).toLocaleDateString("ar-EG") : "---"} mono />
           <InfoItem
             icon={Shield}
             label="الحالة الحالية"
             value={officer.isInUnit ? "قوة الوحدة" : "خارج الوحدة"}
           />
-          <InfoItem icon={Tag} label="الدفعة" value={detail.batch || "---"} />
+          <InfoItem icon={Tag} label="الدفعة" value={detail.batch || "---"} mono />
           <InfoItem icon={GraduationCap} label="الكلية / المعهد" value={detail.faculty || "---"} />
-          <InfoItem icon={Award} label="تاريخ التخرج" value={detail.graduationDate ? new Date(detail.graduationDate).toLocaleDateString("ar-EG") : "---"} />
+          <InfoItem icon={Award} label="تاريخ التخرج" value={detail.graduationDate ? new Date(detail.graduationDate).toLocaleDateString("ar-EG") : "---"} mono />
           <InfoItem icon={User} label="التصنيف" value={detail.typeLabel || "---"} />
           <InfoItem icon={Swords} label="السلاح" value={detail.weaponLabel || "---"} />
           <InfoItem icon={Activity} label="فصيلة الدم" value={detail.bloodType || "---"} mono />
           <InfoItem icon={BookOpen} label="الديانة" value={detail.religion || "---"} />
           <InfoItem icon={Users} label="الحالة الاجتماعية" value={detail.maritalStatus || "---"} />
-          <InfoItem icon={Calendar} label="تاريخ الانضمام للوحدة" value={currentJoinDate.toLocaleDateString("ar-EG")} />
+          <InfoItem icon={Calendar} label="تاريخ الانضمام للوحدة" value={currentJoinDate.toLocaleDateString("ar-EG")} mono />
 
           {isRejoined && originalJoinDate && (
-            <InfoItem icon={History} label="تاريخ أول انضمام" value={originalJoinDate.toLocaleDateString("ar-EG")} />
+            <InfoItem icon={History} label="تاريخ أول انضمام" value={originalJoinDate.toLocaleDateString("ar-EG")} mono />
           )}
         </div>
       </div>

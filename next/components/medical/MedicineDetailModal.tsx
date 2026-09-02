@@ -83,12 +83,8 @@ export function MedicineDetailModal({ medicineId, onClose }: MedicineDetailModal
 
   return (
     <ModalShell
-      title={
-        <div className="flex items-center gap-2">
-          <Package className="w-5 h-5 text-(--color-primary)" />
-          <span className="text-base font-semibold text-(--color-primary)">تفاصيل الدواء</span>
-        </div>
-      }
+      title="تفاصيل الدواء"
+      icon={<Package className="w-4 h-4" />}
       onClose={onClose}
       overlayClassName="bg-black/40"
       panelClassName="max-h-[85vh] max-w-2xl border-(--app-border) shadow-depth-xl"
@@ -109,7 +105,7 @@ export function MedicineDetailModal({ medicineId, onClose }: MedicineDetailModal
             onClick={onClose}
             className="btn-secondary px-6"
           >
-            إغلاق
+            إلغاء
           </button>
         </ModalActions>
       }
@@ -126,13 +122,13 @@ export function MedicineDetailModal({ medicineId, onClose }: MedicineDetailModal
         ) : medicine && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 rounded-2xl bg-(--app-surface-container) border border-(--app-border)">
+              <div className="p-4 rounded-2xl bg-(--color-primary)/5 border border-(--color-primary)/10 shadow-sm">
                 <div className="text-xs font-bold text-(--app-muted-foreground) mb-1">اسم الدواء</div>
                 <div className="text-lg font-black text-(--color-primary)">
                   {medicine.name} {medicine.concentration ? `(${medicine.concentration})` : ""}
                 </div>
               </div>
-              <div className="p-4 rounded-2xl bg-(--app-surface-container) border border-(--app-border)">
+              <div className="p-4 rounded-2xl bg-(--color-primary)/5 border border-(--color-primary)/10 shadow-sm">
                 <div className="text-xs font-bold text-(--app-muted-foreground) mb-1">إجمالي الكمية</div>
                 <div className="text-lg font-black text-(--color-primary)">
                   {medicine.totalQuantity} <span className="text-sm font-bold text-(--app-muted-foreground)">{medicine.unit}</span>

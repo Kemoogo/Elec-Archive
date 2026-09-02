@@ -375,8 +375,7 @@ export async function parseOfficer121PdfAction(formData: FormData) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (global as any).DOMMatrix = class DOMMatrix {
         a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        constructor(init?: any) {}
+        constructor(_init?: unknown) {}
       };
     }
 

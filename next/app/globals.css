@@ -219,39 +219,57 @@
 }
 
 .animate-fade-in-up {
-    animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: fadeInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-@keyframes premiumTabEnter {
-    from {
+@keyframes tabEnter {
+    0% {
         opacity: 0;
-        transform: translate3d(8px, 12px, 0) scale(0.985);
-        filter: blur(4px);
+        transform: translateY(-20px);
     }
-    to {
+    100% {
         opacity: 1;
-        transform: translate3d(0, 0, 0) scale(1);
-        filter: blur(0);
+        transform: translateY(0);
+    }
+}
+
+@keyframes modalEnter {
+    0% {
+        opacity: 0;
+        transform: scale(0.97) translateY(-10px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
     }
 }
 
 @keyframes simpleFadeIn {
-    from {
+    0% {
         opacity: 0;
     }
-    to {
+    100% {
         opacity: 1;
     }
 }
 
+.animate-tab-enter,
 .animate-tab-premium {
-    animation: premiumTabEnter 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    will-change: transform, opacity, filter;
+    animation: tabEnter 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+    will-change: transform, opacity;
+}
+
+.animate-modal-enter {
+    animation: modalEnter 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    will-change: transform, opacity;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .animate-tab-premium {
-        animation: simpleFadeIn 0.25s ease-out forwards;
+    .animate-tab-enter,
+    .animate-tab-premium,
+    .animate-modal-enter,
+    .animate-fade-in-up {
+        animation: simpleFadeIn 0.2s ease-out forwards;
         will-change: opacity;
     }
 }
@@ -384,6 +402,7 @@ table,
 .btn-primary {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
     border-radius: 0.75rem;
@@ -392,22 +411,27 @@ table,
     color: var(--app-white);
     background: var(--color-primary);
     box-shadow: var(--app-shadow-md);
-    transition: all 0.15s ease;
+    transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
     cursor: pointer;
     outline: none;
     border: none;
+}
+.btn-primary:focus {
+    outline: none;
 }
 .btn-primary:hover {
     background: var(--color-primary-hover);
     box-shadow: var(--app-shadow-lg);
 }
-.btn-primary:active {
-    transform: scale(0.95);
+.btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .btn-secondary {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
     border-radius: 0.75rem;
@@ -415,18 +439,27 @@ table,
     font-weight: 700;
     color: var(--color-primary);
     background: var(--app-surface-container);
-    transition: all 0.2s ease;
+    transition: background-color 0.15s ease, color 0.15s ease;
     cursor: pointer;
     border: none;
     outline: none;
 }
+.btn-secondary:focus {
+    outline: none;
+}
 .btn-secondary:hover {
     background: var(--app-border);
+    color: var(--color-primary);
+}
+.btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .btn-destructive {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
     border-radius: 0.75rem;
@@ -434,100 +467,18 @@ table,
     font-weight: 700;
     color: var(--app-white);
     background: var(--app-error);
-    transition: all 0.15s ease;
+    transition: background-color 0.15s ease, color 0.15s ease;
     cursor: pointer;
     border: none;
+    outline: none;
+}
+.btn-destructive:focus {
+    outline: none;
 }
 .btn-destructive:hover {
-    background: color-mix(in srgb, var(--app-error) 90%, white);
-}
-
-/* --- Modal Specific Action Buttons --- */
-.btn-modal-primary {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.625rem 1.25rem;
-    border-radius: 0.75rem;
-    font-size: 0.875rem;
-    font-weight: 700;
-    color: #ffffff;
-    background: var(--color-primary);
-    box-shadow: 0 4px 12px -2px rgba(30, 60, 114, 0.25);
-    transition: all 0.15s ease-out;
-    cursor: pointer;
-    border: none;
-    outline: none;
-}
-.btn-modal-primary:hover:not(:disabled) {
-    background: var(--color-primary-hover);
-    box-shadow: 0 6px 16px -2px rgba(30, 60, 114, 0.35);
-    transform: translateY(-1px);
-}
-.btn-modal-primary:active:not(:disabled) {
-    transform: scale(0.97);
-}
-.btn-modal-primary:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    box-shadow: none;
-}
-
-.btn-modal-secondary {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.625rem 1.25rem;
-    border-radius: 0.75rem;
-    font-size: 0.875rem;
-    font-weight: 700;
-    color: var(--app-foreground);
-    background: var(--app-surface-container);
-    border: 1px solid var(--app-border);
-    transition: all 0.15s ease-out;
-    cursor: pointer;
-    outline: none;
-}
-.btn-modal-secondary:hover:not(:disabled) {
-    background: var(--app-surface-container-low);
-    border-color: color-mix(in srgb, var(--app-border) 80%, var(--color-primary));
-}
-.btn-modal-secondary:active:not(:disabled) {
-    transform: scale(0.97);
-}
-.btn-modal-secondary:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.btn-modal-destructive {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.625rem 1.25rem;
-    border-radius: 0.75rem;
-    font-size: 0.875rem;
-    font-weight: 700;
-    color: #ffffff;
-    background: var(--app-error);
-    box-shadow: 0 4px 12px -2px rgba(239, 68, 68, 0.25);
-    transition: all 0.15s ease-out;
-    cursor: pointer;
-    border: none;
-    outline: none;
-}
-.btn-modal-destructive:hover:not(:disabled) {
     background: color-mix(in srgb, var(--app-error) 90%, black);
-    box-shadow: 0 6px 16px -2px rgba(239, 68, 68, 0.35);
-    transform: translateY(-1px);
 }
-.btn-modal-destructive:active:not(:disabled) {
-    transform: scale(0.97);
-}
-.btn-modal-destructive:disabled {
+.btn-destructive:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }

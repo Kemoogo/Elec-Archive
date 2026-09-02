@@ -402,7 +402,7 @@ export default async function MedicalDashboardPage({
           </div>
         </div>
       ) : (
-        <div className="animate-in slide-in-from-bottom-4 duration-500">
+        <div className="animate-tab-enter">
           <FolderTabs tabs={tabs} initialTab={tab || "visits"} />
         </div>
       )}

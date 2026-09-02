@@ -105,7 +105,7 @@ function RestockModal({
       <button
         type="submit"
         form="restock-form"
-        className="btn-modal-primary"
+        className="btn-primary"
         disabled={loading}
       >
         {loading ? "جاري الحفظ..." : "حفظ التوريد"}
@@ -113,7 +113,7 @@ function RestockModal({
       <button
         type="button"
         onClick={onClose}
-        className="btn-modal-secondary"
+        className="btn-secondary"
         disabled={loading}
       >
         إلغاء
@@ -123,11 +123,8 @@ function RestockModal({
 
   return (
     <ModalShell
-      title={
-        <span className="text-base font-semibold text-(--color-primary)">
-          توريد {medicineName}
-        </span>
-      }
+      title={`توريد ${medicineName}`}
+      icon={<PackagePlus className="w-4 h-4" />}
       onClose={onClose}
       overlayClassName="bg-black/40"
       panelClassName="max-h-[85vh] max-w-sm border-(--app-border) shadow-depth-xl"

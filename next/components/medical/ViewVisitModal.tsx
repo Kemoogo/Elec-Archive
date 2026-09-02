@@ -105,11 +105,8 @@ export function ViewVisitModal({ visitId, onClose }: ViewVisitModalProps) {
 
   return (
     <ModalShell
-      title={
-        <span className="text-base font-semibold text-(--color-primary)">
-          تفاصيل الزيارة الطبية
-        </span>
-      }
+      title="تفاصيل الزيارة الطبية"
+      icon={<Activity className="w-4 h-4" />}
       onClose={onClose}
       overlayClassName="bg-black/40"
       panelClassName="max-h-[85vh] max-w-lg border-(--app-border) shadow-depth-xl"
@@ -231,9 +228,9 @@ export function ViewVisitModal({ visitId, onClose }: ViewVisitModalProps) {
             <button
               type="button"
               onClick={onClose}
-              className="btn-primary !px-8"
+              className="btn-secondary !px-8"
             >
-              إغلاق
+              إلغاء
             </button>
           </div>
         </div>

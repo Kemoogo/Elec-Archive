@@ -106,7 +106,8 @@ export function StudentForm({ mode, initialData, onSuccess }: StudentFormProps) 
          </button>
         {isOpen && (
           <ModalShell
-            title="إضافة طالب جديد"
+            title={mode === "create" ? "إضافة طالب جديد" : "تعديل بيانات الطالب"}
+            icon={<GraduationCap className="w-4 h-4" />}
             panelClassName="max-w-[480px]"
             onClose={() => setIsOpen(false)}
             footer={

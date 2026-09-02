@@ -1,3 +1,6 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import mongoose from "mongoose";
 import { redirect } from "next/navigation";
 import { authenticate } from "@/lib/auth/middleware";
@@ -7,14 +10,11 @@ import {
   Leave,
   Mission,
   DailyRollcall,
-  PositionAssignment,
   AuditLog,
   Officer,
   type IRollcallEntry,
   type ILeave,
   type MissionStatus,
-  type PositionType,
-  type PositionStatus
 } from "@/lib/db/models";
 import { ArkanHarbClient } from "@/components/arkan-harb/ArkanHarbClient";
 import { CommanderSummary } from "@/components/arkan-harb/CommanderSummary";
@@ -36,6 +36,7 @@ interface PopulatedOfficer {
   fullName: string;
   rank: string;
   militaryId?: string;
+  seniorityNumber?: string;
   isArkanHarb?: boolean;
 }
 interface PopulatedMission {
@@ -47,20 +48,6 @@ interface PopulatedMission {
   startDate: Date;
   endDate?: Date | null;
   status: MissionStatus;
-  createdBy: { toString(): string };
-  createdAt: Date;
-}
-interface PopulatedPosition {
-  _id: { toString(): string };
-  officerId: PopulatedOfficer | { toString(): string };
-  substituteForOfficerId?: PopulatedOfficer | { toString(): string };
-  positionTitle: string;
-  positionType: PositionType;
-  startDate: Date;
-  endDate?: Date | null;
-  orderNumber?: string;
-  status: PositionStatus;
-  notes?: string;
   createdBy: { toString(): string };
   createdAt: Date;
 }
@@ -108,14 +95,12 @@ export default async function ArkanHarbPage({
   const [
     activeLeavesCount,
     activeMissionsCount,
-    activePositionsCount,
     todayRollcall,
     recentActivities,
     totalOfficers
   ] = await Promise.all([
     Leave.countDocuments({ startDate: { $lte: new Date() }, endDate: { $gte: new Date() }, status: "approved" }),
     Mission.countDocuments({ status: "active" }),
-    PositionAssignment.countDocuments({ status: "active" }),
     DailyRollcall.findOne({ date: { $gte: today, $lt: tomorrow } }).lean(),
     AuditLog.find({ module: "arkan_harb" }).populate("userId", "username fullName").sort({ createdAt: -1 }).limit(5).lean(),
     Officer.countDocuments({ employmentStatus: "active" })
@@ -137,7 +122,7 @@ export default async function ArkanHarbPage({
         />
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <DashboardCard 
           title="الحاضرين اليوم" 
           count={rollcallSubmitted ? attendeesCount : null} 
@@ -147,7 +132,6 @@ export default async function ArkanHarbPage({
         />
         <DashboardCard title="إجازات اليوم" count={activeLeavesCount} icon="📜" subtitle="ضباط في إجازة حالياً" color="yellow" />
         <DashboardCard title="مأموريات نشطة" count={activeMissionsCount} icon="🛡️" subtitle="مهام خارجية جارية" color="green" />
-        <DashboardCard title="الوظائف المشغولة" count={activePositionsCount} icon="💼" subtitle="تعيينات وظيفية سارية" color="purple" />
       </div>
 
       <SectionWrapper>
@@ -187,15 +171,28 @@ export default async function ArkanHarbPage({
 
   const selectedRollcall = await DailyRollcall.findOne({ date: { $gte: qDate, $lt: nDay } }).lean();
   const { RANK_LABELS } = await import("@/lib/db/models/Officer");
-  const activeOfficersList = await Officer.find({ employmentStatus: "active" }).sort({ rank: 1, fullName: 1 }).lean();
+  const { calculateDailyRollcallEntries, detectRollcallConflicts } = await import("@/lib/arkan-harb/rollcall-engine");
   
-  const roster = activeOfficersList.map((o) => ({
-    id: o._id.toString(),
-    militaryId: o.militaryId,
-    fullName: o.fullName,
-    rank: o.rank,
-    rankLabel: `${RANK_LABELS[o.rank as keyof typeof RANK_LABELS] ?? o.rank}${o.isArkanHarb ? " أ ح" : ""}`,
-  }));
+  const suggestedEntries = await calculateDailyRollcallEntries(qDate);
+  const conflictAlerts = await detectRollcallConflicts(qDate);
+
+  const rosterMap = new Map(suggestedEntries.map(s => [s.officerId.toString(), s]));
+
+  const activeOfficersList = await Officer.find({ employmentStatus: "active" })
+    .collation({ locale: "en", numericOrdering: true })
+    .sort({ seniorityNumber: 1 })
+    .lean();
+  const roster = activeOfficersList.map((o) => {
+    const sug = rosterMap.get(o._id.toString());
+    return {
+      id: o._id.toString(),
+      militaryId: o.militaryId,
+      fullName: o.fullName,
+      rank: o.rank,
+      rankLabel: `${RANK_LABELS[o.rank as keyof typeof RANK_LABELS] ?? o.rank}${o.isArkanHarb ? " أ ح" : ""}`,
+      suggestedStatus: sug?.status || "present",
+    };
+  });
 
   const rollcallContent = selectedRollcall && selectedRollcall.status === "submitted" ? (
     <RollcallSummary
@@ -211,23 +208,53 @@ export default async function ArkanHarbPage({
           rankLabel: e.rank,
           status: e.status,
           note: e.note,
+          customReason: e.customReason,
+          attachedDestination: e.attachedDestination,
         })),
         submittedAt: selectedRollcall.submittedAt?.toISOString() ?? "",
         viewedByCommander: selectedRollcall.viewedByCommander,
       }}
       isCommander={user.role === "commander" || user.role === "admin"}
+      isAdmin={user.role === "admin" || canEdit}
     />
   ) : (
-    <RollcallSheet
-      date={rollcallDate}
-      roster={roster}
-      existingEntries={selectedRollcall?.entries.map((e: IRollcallEntry) => ({ officerId: e.officerId.toString(), status: e.status, note: e.note })) ?? []}
-      isDraft={selectedRollcall?.status === "draft"}
-    />
+    <div className="space-y-4">
+      {conflictAlerts.length > 0 && (
+        <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-2 text-xs font-bold text-amber-900">
+          <div className="flex items-center gap-2 text-sm font-black text-amber-700">
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+            <span>تنبيهات وتضاربات التمام اليومي ({conflictAlerts.length})</span>
+          </div>
+          <ul className="list-disc list-inside space-y-1 text-amber-800">
+            {conflictAlerts.map((a, idx) => (
+              <li key={idx}>{a.message}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <RollcallSheet
+        date={rollcallDate}
+        roster={roster}
+        existingEntries={selectedRollcall?.entries.map((e: IRollcallEntry) => ({ officerId: e.officerId.toString(), status: e.status, note: e.note })) ?? []}
+        isDraft={selectedRollcall?.status === "draft"}
+      />
+    </div>
   );
 
   // 3. Fetch Leaves Data
-  const officersShort = activeOfficersList.map(o => ({ id: o._id.toString(), fullName: o.fullName, militaryId: o.militaryId, rank: o.rank ?? "" }));
+  const officersShort = activeOfficersList.map(o => {
+    const r = RANK_LABELS[o.rank as keyof typeof RANK_LABELS] ?? o.rank ?? "";
+    const label = r ? `${r}${o.isArkanHarb ? " أ ح" : ""} / ${o.fullName}` : o.fullName;
+    return {
+      id: o._id.toString(),
+      name: o.fullName,
+      fullName: o.fullName,
+      militaryId: o.militaryId,
+      seniorityNumber: o.seniorityNumber,
+      rank: r,
+      officerLabel: label,
+    };
+  });
   const leavesData = await Leave.find().sort({ startDate: -1 }).limit(50).lean();
   const officerMap = new Map(officersShort.map(o => [o.id, o]));
   const formattedLeaves = (leavesData as unknown as (ILeave & { _id: { toString(): string }; officerId: { toString(): string } })[]).map((l) => {
@@ -236,6 +263,7 @@ export default async function ArkanHarbPage({
       id: l._id.toString(),
       officerId: l.officerId.toString(),
       officerName: off ? off.fullName : "غير معروف",
+      officerLabel: off ? off.officerLabel : "غير معروف",
       officerMilitaryId: off ? off.militaryId : "",
       category: l.category,
       categoryLabel: l.category === "leave" ? "إجازة رسمية" : "غياب / انقطاع",
@@ -279,11 +307,13 @@ export default async function ArkanHarbPage({
   const formattedMissions = (missionsItems as PopulatedMission[]).map(m => {
     const officer = m.officerId as PopulatedOfficer;
     const rLabel = officer?.rank ? `${RANK_LABELS[officer.rank as keyof typeof RANK_LABELS] ?? officer.rank}${officer.isArkanHarb ? " أ ح" : ""}` : "";
+    const offLabel = rLabel ? `${rLabel} / ${officer?.fullName || ""}` : (officer?.fullName || "ضابط غير معروف");
     return {
       id: m._id.toString(),
-      officerId: officer?._id?.toString() || (m.officerId as { toString(): string }).toString() || "",
+      officerId: officer?._id ? officer._id.toString() : (m.officerId ? String(m.officerId) : ""),
       officerName: officer?.fullName || "ضابط غير معروف",
       officerRankLabel: rLabel,
+      officerLabel: offLabel,
       officerMilitaryId: officer?.militaryId || "",
       title: m.title,
       description: m.description,
@@ -291,44 +321,152 @@ export default async function ArkanHarbPage({
       startDate: m.startDate,
       endDate: m.endDate,
       status: m.status,
-      createdBy: m.createdBy.toString(),
+      statusReason: (m as unknown as { statusReason?: string }).statusReason || undefined,
+      resultSummary: (m as unknown as { resultSummary?: string }).resultSummary || undefined,
+      linkedFaxId: (m as unknown as { linkedFaxId?: string }).linkedFaxId || undefined,
+      createdBy: m.createdBy ? String(m.createdBy) : "",
       createdAt: m.createdAt,
     };
   });
-  const missionsContent = <MissionsClient initialMissions={formattedMissions} total={missionsTotal} page={mPage} limit={mLimit} officerFilter={mOfficer} statusFilter={mStatus} canEdit={canEdit} hideHeader={true} />;
+  const missionsContent = <MissionsClient initialMissions={formattedMissions} total={missionsTotal} page={mPage} limit={mLimit} officerFilter={mOfficer} statusFilter={mStatus} canEdit={canEdit} isAdmin={user.role === "admin"} hideHeader={true} officers={officersShort} />;
 
-  // 5. Fetch Positions Data
-  const [positionsItems, positionsTotal] = await Promise.all([
-    PositionAssignment.find(mQuery).sort({ startDate: -1 }).skip((mPage - 1) * mLimit).limit(mLimit).populate("officerId", "fullName rank militaryId isArkanHarb").populate("substituteForOfficerId", "fullName rank militaryId isArkanHarb").lean(),
-    PositionAssignment.countDocuments(mQuery)
+  // 5. Fetch Positions, Branches & Departments Data
+  const { Branch } = await import("@/lib/db/models/Branch");
+  const { Department } = await import("@/lib/db/models/Department");
+  const { PositionAssignment } = await import("@/lib/db/models/PositionAssignment");
+
+  const [dbBranches, dbDepartments, positionsList] = await Promise.all([
+    Branch.find({ isActive: { $ne: false } }).sort({ order: 1, name: 1 }).lean(),
+    Department.find({ isActive: { $ne: false } }).sort({ order: 1, name: 1 }).lean(),
+    PositionAssignment.find({})
+      .populate("primaryOfficerId", "fullName rank militaryId seniorityNumber isArkanHarb")
+      .populate("substituteOfficerIds", "fullName rank militaryId seniorityNumber isArkanHarb")
+      .populate("assignmentHistory.officerId", "fullName rank militaryId seniorityNumber isArkanHarb")
+      .lean(),
   ]);
-  const formattedPositions = (positionsItems as PopulatedPosition[]).map(p => {
-    const officer = p.officerId as PopulatedOfficer;
-    const substitute = p.substituteForOfficerId as PopulatedOfficer | undefined;
-    const rLabel = officer?.rank ? `${RANK_LABELS[officer.rank as keyof typeof RANK_LABELS] ?? officer.rank}${officer.isArkanHarb ? " أ ح" : ""}` : "";
-    const subLabel = substitute?.rank ? `${RANK_LABELS[substitute.rank as keyof typeof RANK_LABELS] ?? substitute.rank}${substitute.isArkanHarb ? " أ ح" : ""}` : "";
+
+  // Construct department order map exactly mirroring the Branches & Departments table
+  const deptOrderMap = new Map<string, number>();
+  const allDepartmentNames: string[] = [];
+
+  dbBranches.forEach((b: { _id?: unknown; name: string }, bIdx: number) => {
+    const branchScore = (bIdx + 1) * 1000;
+    deptOrderMap.set(b.name, branchScore);
+    if (!allDepartmentNames.includes(b.name)) {
+      allDepartmentNames.push(b.name);
+    }
+
+    // Find child departments
+    const childDeps = dbDepartments.filter((d: { branchId?: unknown }) => {
+      const bId = typeof d.branchId === "object" && d.branchId !== null && "_id" in d.branchId
+        ? String((d.branchId as { _id: unknown })._id)
+        : String(d.branchId);
+      return b._id && bId === String(b._id);
+    });
+
+    childDeps.forEach((d: { name: string }, dIdx: number) => {
+      const depScore = branchScore + (dIdx + 1);
+      deptOrderMap.set(d.name, depScore);
+      deptOrderMap.set(`${b.name} / ${d.name}`, depScore);
+      if (!allDepartmentNames.includes(d.name)) {
+        allDepartmentNames.push(d.name);
+      }
+    });
+  });
+
+  // Any other standalone departments
+  dbDepartments.forEach((d: { name: string }, dIdx: number) => {
+    if (!deptOrderMap.has(d.name)) {
+      deptOrderMap.set(d.name, 90000 + dIdx);
+      if (!allDepartmentNames.includes(d.name)) {
+        allDepartmentNames.push(d.name);
+      }
+    }
+  });
+
+  // Sort positions list by department hierarchy order
+  const sortedPositionsList = [...positionsList].sort((a, b) => {
+    const orderA = deptOrderMap.get(a.department) ?? 99999;
+    const orderB = deptOrderMap.get(b.department) ?? 99999;
+    if (orderA !== orderB) return orderA - orderB;
+    return (a.positionTitle || "").localeCompare(b.positionTitle || "", "ar");
+  });
+
+  const formattedPositions = sortedPositionsList.map((p) => {
+    const primary = p.primaryOfficerId && typeof p.primaryOfficerId === "object" && "fullName" in p.primaryOfficerId
+      ? {
+          id: (p.primaryOfficerId as unknown as PopulatedOfficer)._id.toString(),
+          fullName: (p.primaryOfficerId as unknown as PopulatedOfficer).fullName,
+          rank: (p.primaryOfficerId as unknown as PopulatedOfficer).rank,
+          militaryId: (p.primaryOfficerId as unknown as PopulatedOfficer).militaryId,
+          seniorityNumber: (p.primaryOfficerId as unknown as PopulatedOfficer).seniorityNumber,
+          isArkanHarb: (p.primaryOfficerId as unknown as PopulatedOfficer).isArkanHarb,
+        }
+      : null;
+
+    const subs = (p.substituteOfficerIds || []).map((sub: unknown) => {
+      if (typeof sub === "object" && sub && "fullName" in sub) {
+        const s = sub as unknown as PopulatedOfficer;
+        return {
+          id: s._id.toString(),
+          fullName: s.fullName,
+          rank: s.rank,
+          militaryId: s.militaryId,
+          seniorityNumber: s.seniorityNumber,
+          isArkanHarb: s.isArkanHarb,
+        };
+      }
+      return { id: String(sub), fullName: String(sub), rank: "" };
+    });
+
+    const history = (p.assignmentHistory || []).map((h: { _id?: { toString(): string }; officerId?: unknown; role?: string; startDate?: Date | string; endDate?: Date | string | null; orderNumber?: string; notes?: string }) => {
+      let offData: { id: string; fullName: string; rank: string; militaryId?: string; seniorityNumber?: string; isArkanHarb?: boolean } | string | null = null;
+      if (h.officerId && typeof h.officerId === "object" && "_id" in h.officerId) {
+        const offObj = h.officerId as PopulatedOfficer;
+        offData = {
+          id: offObj._id.toString(),
+          fullName: offObj.fullName,
+          rank: offObj.rank,
+          militaryId: offObj.militaryId,
+          seniorityNumber: offObj.seniorityNumber,
+          isArkanHarb: offObj.isArkanHarb,
+        };
+      } else if (h.officerId) {
+        offData = String(h.officerId);
+      }
+
+      return {
+        _id: h._id ? h._id.toString() : undefined,
+        officerId: offData,
+        role: h.role,
+        startDate: h.startDate ? (h.startDate instanceof Date ? h.startDate.toISOString() : String(h.startDate)) : "",
+        endDate: h.endDate ? (h.endDate instanceof Date ? h.endDate.toISOString() : String(h.endDate)) : null,
+        orderNumber: h.orderNumber || "",
+        notes: h.notes || "",
+      };
+    });
+
     return {
       id: p._id.toString(),
-      officerId: officer?._id?.toString() || (p.officerId as { toString(): string }).toString() || "",
-      officerName: officer?.fullName || "ضابط غير معروف",
-      officerRankLabel: rLabel,
-      officerMilitaryId: officer?.militaryId || "",
       positionTitle: p.positionTitle,
-      positionType: p.positionType,
-      substituteForOfficerId: substitute?._id?.toString() || "",
-      substituteForOfficerName: substitute?.fullName || "",
-      substituteRankLabel: subLabel,
-      substituteMilitaryId: substitute?.militaryId || "",
-      startDate: p.startDate,
-      endDate: p.endDate,
-      orderNumber: p.orderNumber,
-      status: p.status,
-      notes: p.notes,
-      createdBy: p.createdBy.toString(),
-      createdAt: p.createdAt,
+      department: p.department || "القيادة",
+      primaryOfficer: primary,
+      substituteOfficers: subs,
+      hasNoSubstitute: Boolean(p.hasNoSubstitute),
+      assignmentHistory: history,
+      orderNumber: p.orderNumber || "",
+      notes: p.notes || "",
     };
   });
-  const positionsContent = <PositionsClient initialPositions={formattedPositions} officers={officersShort.map(o => ({ ...o, name: o.fullName, rank: "" }))} total={positionsTotal} page={mPage} limit={mLimit} officerFilter={mOfficer} statusFilter={mStatus} canEdit={canEdit} hideHeader={true} />;
+
+  const positionsContent = (
+    <PositionsClient
+      initialPositions={formattedPositions}
+      departments={allDepartmentNames}
+      officers={officersShort}
+      canEdit={canEdit}
+    />
+  );
 
   return (
     <ArkanHarbClient 
@@ -337,7 +475,7 @@ export default async function ArkanHarbPage({
       leavesContent={leavesContent}
       missionsContent={missionsContent}
       positionsContent={positionsContent}
-      officers={officersShort.map(o => ({ id: o.id, name: o.fullName, fullName: o.fullName, militaryId: o.militaryId, rank: o.rank }))}
+      officers={officersShort.map(o => ({ id: o.id, name: o.fullName, fullName: o.fullName, militaryId: o.militaryId, rank: o.rank, officerLabel: o.officerLabel }))}
       canEdit={canEdit}
     />
   );

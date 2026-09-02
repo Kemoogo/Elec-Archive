@@ -1,134 +1,449 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { PositionAssignmentTable, type Position } from "./PositionAssignmentTable";
-import { PositionAssignmentForm } from "./PositionAssignmentForm";
-import { Plus, Shield, ChevronDown } from "lucide-react";
-import { PageHeader, PrimaryHeaderBtn } from "@/components/layout/ModernPageHeader";
+import React, { useState, useCallback, useMemo } from "react";
+import { PositionAssignmentTable, extractOfficerId, type PositionRowData, type OfficerInfo } from "./PositionAssignmentTable";
+import { PositionDetailModal } from "./PositionDetailModal";
+import { PositionPlacementModal } from "./PositionPlacementModal";
+import { PositionViewModal } from "./PositionViewModal";
+import { PositionHistoryModal } from "./PositionHistoryModal";
+import { OfficerPositionsModal } from "./OfficerPositionsModal";
+import { PositionsHistoryArchiveModal } from "./PositionsHistoryArchiveModal";
+import { UnassignAllModal } from "./UnassignAllModal";
+import { DeletePositionModal } from "./DeletePositionModal";
+import { useToast } from "@/components/ui/toast";
+import { extractApiError } from "@/lib/utils";
+import { 
+  AlertTriangle, 
+  Info, 
+  Eye, 
+  EyeOff, 
+  ShieldAlert,
+  Trash2
+} from "lucide-react";
 
-interface OfficerOption {
-  id: string;
-  name: string;
-  rank: string;
-  militaryId: string;
-}
+import { useSearchParams } from "next/navigation";
 
 interface PositionsClientProps {
-  initialPositions: Position[];
-  officers: OfficerOption[];
-  total: number;
-  page: number;
-  limit: number;
-  officerFilter: string;
-  statusFilter: string;
+  initialPositions: PositionRowData[];
+  departments: string[];
+  officers: OfficerInfo[];
   canEdit: boolean;
-  hideHeader?: boolean;
 }
 
 export function PositionsClient({
   initialPositions,
+  departments,
   officers,
-  total,
-  page,
-  limit,
-  officerFilter,
-  statusFilter,
   canEdit,
-  hideHeader = false,
 }: PositionsClientProps) {
-  const router = useRouter();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
+  const { showToast } = useToast();
+  const searchParams = useSearchParams();
+  const urlSearch = searchParams.get("search") || "";
+  const viewMode = (searchParams.get("view") as "by-position" | "by-officer") || "by-position";
 
-  const updateFilters = (newFilters: Record<string, string | number>) => {
-    const params = new URLSearchParams(window.location.search);
-    
-    Object.entries(newFilters).forEach(([key, value]) => {
-      if (value) params.set(key, value.toString());
-      else params.delete(key);
+  const [positions, setPositions] = useState<PositionRowData[]>(initialPositions);
+  const [prevInitialPositions, setPrevInitialPositions] = useState(initialPositions);
+  if (prevInitialPositions !== initialPositions) {
+    setPrevInitialPositions(initialPositions);
+    setPositions(initialPositions);
+  }
+
+  const [filterType, setFilterType] = useState<"all" | "vacant-primary" | "vacant-substitute" | "unassigned-officers">("all");
+  const [hideSubstituteAlert, setHideSubstituteAlert] = useState(false);
+
+  const [prevViewMode, setPrevViewMode] = useState(viewMode);
+  if (prevViewMode !== viewMode) {
+    setPrevViewMode(viewMode);
+    setFilterType("all");
+  }
+
+  // Modals state
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [viewingPosition, setViewingPosition] = useState<PositionRowData | null>(null);
+  const [editingPosition, setEditingPosition] = useState<PositionRowData | null>(null);
+  const [placementPosition, setPlacementPosition] = useState<PositionRowData | null>(null);
+  const [historyPosition, setHistoryPosition] = useState<PositionRowData | null>(null);
+  const [selectedOfficer, setSelectedOfficer] = useState<OfficerInfo | null>(null);
+  const [isArchiveOpen, setIsArchiveOpen] = useState(false);
+  const [isUnassignAllOpen, setIsUnassignAllOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<PositionRowData | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [_loading, setLoading] = useState(false);
+
+  const refreshData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/arkan-harb/positions");
+      const result = await res.json();
+      if (result.success && result.data?.items) {
+        setPositions(result.data.items);
+      }
+    } catch {
+      showToast("فشل في تحديث بيانات الوظائف", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [showToast]);
+
+  // Sync when window gains focus
+  React.useEffect(() => {
+    const handleFocus = () => {
+      refreshData();
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [refreshData]);
+
+  // Listen to main ArkanHarb header action events
+  React.useEffect(() => {
+    const handleOpenCreate = () => setIsCreateOpen(true);
+    const handleOpenArchive = () => setIsArchiveOpen(true);
+    const handleOpenUnassign = () => setIsUnassignAllOpen(true);
+
+    window.addEventListener("open-create-position-modal", handleOpenCreate);
+    window.addEventListener("open-archive-modal", handleOpenArchive);
+    window.addEventListener("open-unassign-all-modal", handleOpenUnassign);
+
+    return () => {
+      window.removeEventListener("open-create-position-modal", handleOpenCreate);
+      window.removeEventListener("open-archive-modal", handleOpenArchive);
+      window.removeEventListener("open-unassign-all-modal", handleOpenUnassign);
+    };
+  }, []);
+
+  async function handleDeleteConfirm() {
+    if (!deleteConfirm) return;
+    try {
+      setDeleting(true);
+      const res = await fetch(`/api/arkan-harb/positions/${deleteConfirm.id}`, {
+        method: "DELETE",
+      });
+      const result = await res.json();
+      if (!res.ok) {
+        showToast(extractApiError(result, "فشل حذف الوظيفة"), "error");
+        return;
+      }
+      showToast("تم حذف الوظيفة بنجاح", "success");
+      setDeleteConfirm(null);
+      refreshData();
+    } catch {
+      showToast("حدث خطأ أثناء محاولة الحذف", "error");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  // Calculate vacancy metrics
+  const vacantPrimaryPositions = useMemo(() => {
+    return positions.filter((p) => !extractOfficerId(p.primaryOfficer));
+  }, [positions]);
+
+  const vacantSubstitutePositions = useMemo(() => {
+    return positions.filter(
+      (p) =>
+        !p.hasNoSubstitute &&
+        (!p.substituteOfficers ||
+          p.substituteOfficers.filter((s) => extractOfficerId(s) !== "").length === 0)
+    );
+  }, [positions]);
+
+  const unassignedOfficers = useMemo(() => {
+    return officers.filter((off) => {
+      const isPrimary = positions.some((p) => {
+        const pId = extractOfficerId(p.primaryOfficer);
+        return Boolean(pId && pId === off.id);
+      });
+      const isSub = positions.some((p) =>
+        (p.substituteOfficers || []).some((s) => {
+          const sId = extractOfficerId(s);
+          return Boolean(sId && sId === off.id);
+        })
+      );
+      return !isPrimary && !isSub;
     });
+  }, [officers, positions]);
 
-    if (!newFilters.page) params.set("page", "1"); // Reset to page 1 on filter change
-    
-    router.push(`?${params.toString()}`);
-  };
+  // Filter positions and officers based on search and active vacancy filters
+  const filteredPositions = useMemo(() => {
+    return positions.filter((p) => {
+      const q = urlSearch.toLowerCase().trim();
+      const matchSearch =
+        !q ||
+        p.positionTitle.toLowerCase().includes(q) ||
+        p.department.toLowerCase().includes(q) ||
+        (p.primaryOfficer &&
+          (p.primaryOfficer.fullName.toLowerCase().includes(q) ||
+            (p.primaryOfficer.militaryId && p.primaryOfficer.militaryId.includes(q)))) ||
+        (p.substituteOfficers &&
+          p.substituteOfficers.some(
+            (s) => s.fullName.toLowerCase().includes(q) || (s.militaryId && s.militaryId.includes(q))
+          ));
 
-  const handleCreate = () => {
-    setSelectedPosition(null);
-    setIsModalOpen(true);
-  };
+      if (!matchSearch) return false;
 
-  const handleEdit = (position: Position) => {
-    setSelectedPosition(position);
-    setIsModalOpen(true);
-  };
+      if (filterType === "vacant-primary") return !extractOfficerId(p.primaryOfficer);
+      if (filterType === "vacant-substitute") {
+        return (
+          !p.hasNoSubstitute &&
+          (!p.substituteOfficers ||
+            p.substituteOfficers.filter((s) => extractOfficerId(s) !== "").length === 0)
+        );
+      }
 
-  const handleSave = () => {
-    setIsModalOpen(false);
-    router.refresh();
-  };
+      return true;
+    });
+  }, [positions, urlSearch, filterType]);
+
+  const filteredOfficers = useMemo(() => {
+    return officers.filter((off) => {
+      const q = urlSearch.toLowerCase().trim();
+      const matchSearch =
+        !q ||
+        off.fullName.toLowerCase().includes(q) ||
+        (off.militaryId && off.militaryId.includes(q)) ||
+        off.rank.toLowerCase().includes(q);
+
+      if (!matchSearch) return false;
+
+      if (filterType === "unassigned-officers") {
+        return unassignedOfficers.some((u) => u.id === off.id);
+      }
+
+      return true;
+    });
+  }, [officers, urlSearch, filterType, unassignedOfficers]);
 
   return (
     <div className="space-y-6">
-      {!hideHeader && (
-        <PageHeader
-          title="التنظيم الإداري والوظائف"
-          icon={<Shield className="w-6 h-6" />}
-          backHref="/arkan-harb"
-          backLabel="أركان الحرب"
-          showSearch
-          searchQuery={officerFilter}
-          onSearchChange={(query) => updateFilters({ officerId: query, page: 1 })}
-          searchPlaceholder="بحث بمعرف الضابط..."
-          action={
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <select
-                  value={statusFilter}
-                  onChange={(e) => updateFilters({ status: e.target.value, page: 1 })}
-                  className="px-3.5 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-xs font-bold text-(--app-foreground) focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none cursor-pointer pr-3 pl-8 shadow-xs"
+      {/* Dynamic Contextual Alert Badges Bar */}
+      <div className="bg-(--app-surface) border border-(--app-border) rounded-2xl p-3 px-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span className="text-xs font-bold text-(--app-muted-foreground)">
+            {viewMode === "by-position" ? "حالة الشواغر والتسكين:" : "حالة تسكين ضباط الوحدة:"}
+          </span>
+          {viewMode === "by-position" ? (
+            <>
+              {/* Vacant Primary Alert Badge */}
+              {vacantPrimaryPositions.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setFilterType((prev) => (prev === "vacant-primary" ? "all" : "vacant-primary"))}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    filterType === "vacant-primary"
+                      ? "bg-amber-500 text-white shadow-md"
+                      : "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30 hover:bg-amber-500/20"
+                  }`}
+                  title="اضغط للفلترة وعرض الوظائف الشاغرة"
                 >
-                  <option value="">كل الحالات</option>
-                  <option value="active">نشطة</option>
-                  <option value="historical">سابقة</option>
-                </select>
-                <ChevronDown className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-(--app-muted-foreground) pointer-events-none" />
-              </div>
-              {canEdit && (
-                <PrimaryHeaderBtn
-                  label="إضافة تعيين"
-                  icon={<Plus className="w-4 h-4" />}
-                  onClick={handleCreate}
-                />
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{vacantPrimaryPositions.length} وظيفة شاغرة (بدون أساسي)</span>
+                </button>
+              ) : null}
+
+              {/* Vacant Substitute Alert Badge with Eye Toggle */}
+              {vacantSubstitutePositions.length > 0 ? (
+                !hideSubstituteAlert ? (
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setFilterType((prev) => (prev === "vacant-substitute" ? "all" : "vacant-substitute"))}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        filterType === "vacant-substitute"
+                          ? "bg-blue-600 text-white shadow-md"
+                          : "bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border) hover:border-(--color-primary)/40"
+                      }`}
+                      title="اضغط للفلترة وعرض الوظائف التي ليس لها ضابط بديل"
+                    >
+                      <Info className="w-3.5 h-3.5 shrink-0" />
+                      <span>{vacantSubstitutePositions.length} وظيفة بدون بديل</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setHideSubstituteAlert(true)}
+                      className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-(--app-surface-container) transition-colors cursor-pointer"
+                      title="إخفاء تنبيه الوظائف بدون بديل"
+                    >
+                      <EyeOff className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setHideSubstituteAlert(false)}
+                    className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-slate-400 hover:text-slate-600 rounded-xl hover:bg-(--app-surface-container) transition-colors cursor-pointer"
+                    title="إظهار تنبيه الوظائف بدون بديل"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>إظهار تنبيه البدلاء</span>
+                  </button>
+                )
+              ) : null}
+
+              {vacantPrimaryPositions.length === 0 && vacantSubstitutePositions.length === 0 && (
+                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                  ✓ جميع الوظائف مسكنة ومكتملة
+                </span>
               )}
-            </div>
-          }
+            </>
+          ) : (
+            /* By Officer Mode Alert Badge */
+            unassignedOfficers.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setFilterType((prev) => (prev === "unassigned-officers" ? "all" : "unassigned-officers"))}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  filterType === "unassigned-officers"
+                    ? "bg-amber-500 text-white shadow-md"
+                    : "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30 hover:bg-amber-500/20"
+                }`}
+                title="اضغط للفلترة وعرض الضباط غير المسكنين"
+              >
+                <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
+                <span>{unassignedOfficers.length} ضابط غير مسكن على وظيفة</span>
+              </button>
+            ) : (
+              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                ✓ جميع ضباط الوحدة مسكنون على وظائف
+              </span>
+            )
+          )}
+
+          {/* Reset Filter Button if active */}
+          {filterType !== "all" && (
+            <button
+              type="button"
+              onClick={() => setFilterType("all")}
+              className="text-xs font-bold text-blue-600 hover:underline mr-2 cursor-pointer"
+            >
+              إلغاء الفلتر النشط
+            </button>
+          )}
+        </div>
+
+        {/* Left side in RTL (أقصى اليسار): Unassign All button */}
+        {canEdit && (
+          <button
+            type="button"
+            onClick={() => setIsUnassignAllOpen(true)}
+            className="btn-destructive px-3.5 py-1.5 font-bold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95 transition-all shrink-0"
+            title="تفريغ كافة التسكينات لجميع الوظائف"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>إلغاء التكليف للجميع</span>
+          </button>
+        )}
+      </div>
+
+      {/* Main Table */}
+      <PositionAssignmentTable
+        viewMode={viewMode}
+        positions={filteredPositions}
+        officers={filteredOfficers}
+        canEdit={canEdit}
+        onViewPosition={(pos) => setViewingPosition(pos)}
+        onEditPosition={(pos) => setEditingPosition(pos)}
+        onAssignPosition={(pos) => setPlacementPosition(pos)}
+        onViewHistory={(pos) => setHistoryPosition(pos)}
+        onDeletePosition={(pos) => setDeleteConfirm(pos)}
+        onSelectOfficer={(off) => setSelectedOfficer(off)}
+      />
+
+      {/* 1. View Position Details Preview Modal */}
+      {viewingPosition && (
+        <PositionViewModal
+          isOpen={Boolean(viewingPosition)}
+          position={viewingPosition}
+          canEdit={canEdit}
+          onClose={() => setViewingPosition(null)}
+          onEditPosition={(pos) => setEditingPosition(pos as PositionRowData)}
+          onPlacementPosition={(pos) => setPlacementPosition(pos as PositionRowData)}
+          onViewHistory={(pos) => setHistoryPosition(pos as PositionRowData)}
+          onDeletePosition={(pos) => setDeleteConfirm(pos as PositionRowData)}
+          onSelectOfficer={(off) => setSelectedOfficer(off as OfficerInfo)}
         />
       )}
 
-      <PositionAssignmentTable
-        positions={initialPositions}
-        officers={officers}
-        total={total}
-        page={page}
-        limit={limit}
-        officerFilter={officerFilter}
-        statusFilter={statusFilter}
-        onPageChange={(p) => updateFilters({ page: p })}
-        onLimitChange={(l) => updateFilters({ limit: l, page: 1 })}
-        onOfficerFilterChange={(o) => updateFilters({ officerId: o, page: 1 })}
-        onStatusFilterChange={(s) => updateFilters({ status: s, page: 1 })}
-        onEditPosition={handleEdit}
-      />
+      {/* 2. Position History Modal */}
+      {historyPosition && (
+        <PositionHistoryModal
+          isOpen={Boolean(historyPosition)}
+          position={historyPosition}
+          onClose={() => setHistoryPosition(null)}
+        />
+      )}
 
-      <PositionAssignmentForm
-        position={selectedPosition}
-        officers={officers}
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={handleSave}
-      />
+      {/* 3. Create Position Definition Modal */}
+      {isCreateOpen && (
+        <PositionDetailModal
+          isOpen={isCreateOpen}
+          position={null}
+          departments={departments}
+          onClose={() => setIsCreateOpen(false)}
+          onSuccess={refreshData}
+        />
+      )}
+
+      {/* 4. Edit Position Definition Modal */}
+      {editingPosition && (
+        <PositionDetailModal
+          isOpen={Boolean(editingPosition)}
+          position={editingPosition}
+          departments={departments}
+          onClose={() => setEditingPosition(null)}
+          onSuccess={refreshData}
+        />
+      )}
+
+      {/* 5. Officer Placement Modal for Position */}
+      {placementPosition && (
+        <PositionPlacementModal
+          isOpen={Boolean(placementPosition)}
+          position={placementPosition}
+          officers={officers}
+          onClose={() => setPlacementPosition(null)}
+          onSuccess={refreshData}
+        />
+      )}
+
+      {/* Officer Assigned Positions Modal */}
+      {selectedOfficer && (
+        <OfficerPositionsModal
+          isOpen={Boolean(selectedOfficer)}
+          officer={selectedOfficer}
+          allPositions={positions}
+          canEdit={canEdit}
+          onClose={() => setSelectedOfficer(null)}
+          onSuccess={refreshData}
+        />
+      )}
+
+      {/* Historical Archive Modal */}
+      {isArchiveOpen && (
+        <PositionsHistoryArchiveModal
+          isOpen={isArchiveOpen}
+          onClose={() => setIsArchiveOpen(false)}
+        />
+      )}
+
+      {/* Unassign All Modal */}
+      {isUnassignAllOpen && (
+        <UnassignAllModal
+          isOpen={isUnassignAllOpen}
+          onClose={() => setIsUnassignAllOpen(false)}
+          onSuccess={refreshData}
+        />
+      )}
+
+      {/* Double-Check Delete Position Modal */}
+      {deleteConfirm && (
+        <DeletePositionModal
+          isOpen={Boolean(deleteConfirm)}
+          position={deleteConfirm}
+          loading={deleting}
+          onClose={() => setDeleteConfirm(null)}
+          onConfirm={handleDeleteConfirm}
+        />
+      )}
     </div>
   );
 }

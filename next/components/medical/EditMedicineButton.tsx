@@ -131,7 +131,7 @@ function EditMedicineModal({
       <button
         type="submit"
         form="edit-medicine-form"
-        className="btn-modal-primary"
+        className="btn-primary"
         disabled={loading || deleteLoading}
       >
         <Save className="w-4 h-4" />
@@ -141,7 +141,7 @@ function EditMedicineModal({
       <button
         type="button"
         onClick={handleDelete}
-        className="btn-action-danger !p-2 !rounded-xl"
+        className="btn-destructive"
         disabled={loading || deleteLoading}
       >
         <Trash2 className="w-4 h-4" />
@@ -151,7 +151,7 @@ function EditMedicineModal({
       <button
         type="button"
         onClick={onClose}
-        className="btn-modal-secondary"
+        className="btn-secondary"
         disabled={loading || deleteLoading}
       >
         إلغاء
@@ -161,11 +161,8 @@ function EditMedicineModal({
 
   return (
     <ModalShell
-      title={
-        <span className="text-base font-semibold text-(--color-primary)">
-          تعديل بيانات: {medicine.name}
-        </span>
-      }
+      title={`تعديل بيانات: ${medicine.name}`}
+      icon={<Settings2 className="w-4 h-4" />}
       onClose={onClose}
       overlayClassName="bg-black/40"
       panelClassName="max-h-[85vh] max-w-md border-(--app-border) shadow-depth-xl"

@@ -131,10 +131,21 @@ async function seed() {
     }
   }
 
+  interface SeededOfficerItem {
+    _id: unknown;
+    militaryId: string;
+    fullName: string;
+    rank: string;
+  }
+
+  interface SeededStudentItem {
+    _id: unknown;
+  }
+
   // 2. Seed Officers
   console.log(`- Seeding Officers...`);
   const existingOfficersCount = await Officer.countDocuments();
-  let seededOfficers: any[] = [];
+  let seededOfficers: SeededOfficerItem[] = [];
   if (existingOfficersCount < COUNT_OFFICERS) {
     const officers = [];
     const usedMilitary = new Set<string>();
@@ -180,16 +191,16 @@ async function seed() {
         isArkanHarb: i % 8 === 0,
       });
     }
-    seededOfficers = await Officer.insertMany(officers);
+    seededOfficers = (await Officer.insertMany(officers)) as unknown as SeededOfficerItem[];
     console.log(`  ✅ Inserted ${officers.length} Officers`);
   } else {
-    seededOfficers = await Officer.find();
+    seededOfficers = (await Officer.find()) as unknown as SeededOfficerItem[];
   }
 
   // 3. Seed Students
   console.log(`- Seeding Students...`);
   const existingStudentsCount = await Student.countDocuments();
-  let seededStudents: any[] = [];
+  let seededStudents: SeededStudentItem[] = [];
   if (existingStudentsCount < COUNT_STUDENTS) {
     const students = [];
     for (let i = 0; i < COUNT_STUDENTS; i++) {
@@ -200,10 +211,10 @@ async function seed() {
         status: i % 15 === 0 ? "graduated" : "active",
       });
     }
-    seededStudents = await Student.insertMany(students);
+    seededStudents = (await Student.insertMany(students)) as unknown as SeededStudentItem[];
     console.log(`  ✅ Inserted ${students.length} Students`);
   } else {
-    seededStudents = await Student.find();
+    seededStudents = (await Student.find()) as unknown as SeededStudentItem[];
   }
 
   // 4. Seed Faxes

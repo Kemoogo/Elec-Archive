@@ -10,6 +10,8 @@ interface ModalShellProps {
   children: React.ReactNode;
   footer?: React.ReactNode;
   title?: React.ReactNode;
+  icon?: React.ReactNode;
+  titleVariant?: "default" | "danger" | "warning" | "info";
   onClose?: () => void;
   closeOnOverlayClick?: boolean;
   hideCloseButton?: boolean;
@@ -24,10 +26,14 @@ interface ModalShellProps {
 const FOCUSABLE_SELECTOR =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+const emptySubscribe = () => () => {};
+
 export function ModalShell({
   children,
   footer,
   title,
+  icon,
+  titleVariant = "default",
   onClose,
   closeOnOverlayClick = true,
   hideCloseButton = false,
@@ -38,7 +44,11 @@ export function ModalShell({
   bodyClassName,
   footerClassName,
 }: ModalShellProps) {
-  const [mounted, setMounted] = React.useState(false);
+  const mounted = React.useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
   const panelRef = React.useRef<HTMLDivElement>(null);
   const previousActiveElementRef = React.useRef<HTMLElement | null>(null);
   const onCloseRef = React.useRef(onClose);
@@ -49,7 +59,6 @@ export function ModalShell({
   }, [onClose]);
 
   React.useEffect(() => {
-    setMounted(true);
     previousActiveElementRef.current = document.activeElement as HTMLElement;
 
     // Lock body scroll while modal is active
@@ -157,22 +166,45 @@ export function ModalShell({
         ref={panelRef}
         tabIndex={-1}
         className={cn(
-          "flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-(--app-border) bg-(--app-surface) shadow-2xl transition-transform transform-gpu animate-tab-premium outline-none",
+          "flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-(--app-border) bg-(--app-surface) shadow-2xl transition-transform transform-gpu animate-modal-enter outline-none",
           panelClassName
         )}
         dir={dir}
         onClick={(event) => event.stopPropagation()}
       >
-        {(title || !hideCloseButton) && (
+        {(title || icon || !hideCloseButton) && (
           <div
             className={cn(
               "flex shrink-0 items-center justify-between border-b border-(--app-border) px-6 py-4 bg-(--app-surface-container-low)",
               headerClassName
             )}
           >
-            <div className="min-w-0">
+            <div className="flex items-center gap-2.5 min-w-0">
+              {icon && (
+                <div
+                  className={cn(
+                    "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border",
+                    titleVariant === "danger"
+                      ? "bg-red-500/10 border-red-500/20 text-red-600"
+                      : titleVariant === "warning"
+                      ? "bg-amber-500/10 border-amber-500/20 text-amber-600"
+                      : "bg-(--color-primary)/10 border-(--color-primary)/20 text-(--color-primary)"
+                  )}
+                >
+                  {icon}
+                </div>
+              )}
               {title ? (
-                <h2 className="truncate text-base sm:text-lg font-extrabold text-(--app-foreground)">
+                <h2
+                  className={cn(
+                    "truncate text-base font-extrabold tracking-tight",
+                    titleVariant === "danger"
+                      ? "text-red-600 dark:text-red-400"
+                      : titleVariant === "warning"
+                      ? "text-amber-600 dark:text-amber-400"
+                      : "text-(--color-primary)"
+                  )}
+                >
                   {title}
                 </h2>
               ) : null}
@@ -182,7 +214,7 @@ export function ModalShell({
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => onCloseRef.current?.()}
-                  className="p-2 text-(--app-muted-foreground) hover:text-(--app-foreground) hover:bg-(--app-surface-container) border border-transparent hover:border-(--app-border) rounded-xl transition-all duration-150 active:scale-90 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                  className="p-2 text-(--app-muted-foreground) hover:text-(--color-primary) hover:bg-(--app-surface-container) border border-transparent hover:border-(--app-border) rounded-xl transition-all duration-150 active:scale-90 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/30 shrink-0"
                   title="إغلاق (Esc)"
                   type="button"
                 >
@@ -213,3 +245,135 @@ export function ModalShell({
 
   return createPortal(modalContent, document.body);
 }
+
+/* -----------------------------------------------------------------------
+   Unified Sub-Components for Modal Internal Sections & Badges
+   Ensures 100% Centralized Styling across all project Modals
+----------------------------------------------------------------------- */
+
+export interface ModalHeaderCardProps {
+  title: React.ReactNode;
+  subtitle?: React.ReactNode;
+  icon?: React.ReactNode;
+  badge?: React.ReactNode;
+  className?: string;
+}
+
+/** Standardized top summary card inside a modal */
+export function ModalHeaderCard({
+  title,
+  subtitle,
+  icon,
+  badge,
+  className,
+}: ModalHeaderCardProps) {
+  return (
+    <div
+      className={cn(
+        "p-4 bg-(--color-primary)/5 border border-(--color-primary)/10 shadow-sm rounded-2xl flex items-center justify-between text-right",
+        className
+      )}
+    >
+      <div className="flex items-center gap-3">
+        {icon && (
+          <div className="w-11 h-11 rounded-xl bg-(--color-primary)/10 border border-(--color-primary)/20 flex items-center justify-center text-(--color-primary) shrink-0">
+            {icon}
+          </div>
+        )}
+        <div>
+          {typeof title === "string" ? (
+            <h4 className="text-base font-extrabold text-(--color-primary)">{title}</h4>
+          ) : (
+            title
+          )}
+          {subtitle && (
+            <div className="text-xs text-(--app-muted-foreground) font-bold mt-0.5">{subtitle}</div>
+          )}
+        </div>
+      </div>
+      {badge && <div className="text-left">{badge}</div>}
+    </div>
+  );
+}
+
+export interface ModalSectionProps {
+  children: React.ReactNode;
+  className?: string;
+  variant?: "card" | "recessed" | "danger" | "info";
+  title?: React.ReactNode;
+  badge?: React.ReactNode;
+}
+
+/** Standardized section / card container inside a modal */
+export function ModalSection({
+  children,
+  className,
+  variant = "card",
+  title,
+  badge,
+}: ModalSectionProps) {
+  const variantClasses = {
+    card: "bg-(--color-primary)/5 border border-(--color-primary)/10 shadow-sm",
+    recessed: "bg-(--app-surface-container) border border-(--app-border)",
+    danger: "bg-red-500/10 border border-red-500/30",
+    info: "bg-blue-500/10 border border-blue-500/20",
+  };
+
+  return (
+    <div
+      className={cn(
+        "p-4 rounded-2xl space-y-2 text-right transition-all",
+        variantClasses[variant],
+        className
+      )}
+    >
+      {(title || badge) && (
+        <div className="flex items-center justify-between">
+          {title ? (
+            typeof title === "string" ? (
+              <h5 className="text-xs font-black text-(--color-primary) flex items-center gap-1.5">
+                {title}
+              </h5>
+            ) : (
+              title
+            )
+          ) : (
+            <div />
+          )}
+          {badge}
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
+export interface ModalBadgeProps {
+  children: React.ReactNode;
+  icon?: React.ReactNode;
+  className?: string;
+  onClick?: () => void;
+}
+
+/** Standardized badge / chip inside modal cards */
+export function ModalBadge({
+  children,
+  icon,
+  className,
+  onClick,
+}: ModalBadgeProps) {
+  return (
+    <div
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center gap-1.5 px-3 py-1.5 bg-(--app-surface-container) border border-(--app-border) rounded-xl shadow-sm text-xs font-bold text-(--app-muted-foreground)",
+        onClick && "hover:underline hover:text-(--app-info) cursor-pointer transition-colors",
+        className
+      )}
+    >
+      {icon}
+      <span>{children}</span>
+    </div>
+  );
+}
+

@@ -9,6 +9,7 @@ import { ModalShell } from "@/components/ui/modal-shell";
 import { DateField } from "@/components/ui/date-field";
 import { FormLabel, FormSelect, FormInput, FormTextarea } from "@/components/ui/form-fields";
 import { extractApiError } from "@/lib/utils";
+import { Award } from "lucide-react";
 
 const RANK_OPTIONS = [
   { value: "second_lieutenant", label: "ملازم" },
@@ -27,6 +28,7 @@ export interface OfficerPromoteModalProps {
     fullName: string;
     rank: string;
     rankLabel?: string;
+    militaryId?: string;
   };
   trigger?: React.ReactNode;
 }
@@ -87,14 +89,21 @@ export function OfficerPromoteModal({ officer, trigger }: OfficerPromoteModalPro
         {trigger}
       </div>
       {open && (
-        <ModalShell title="تسجيل ترقية" onClose={() => setOpen(false)}>
-          <div className="mb-4 bg-(--app-warning)/10 border border-(--app-warning)/20 p-4 rounded-2xl text-right">
-            <p className="text-sm font-bold text-(--app-warning)">
-              تسجيل ترقية جديدة للضابط وتحديث الرتبة الحالية.
-            </p>
-            <p className="text-sm text-(--app-warning) mt-1">
-              {officer.rankLabel || officer.rank} / {officer.fullName}
-            </p>
+        <ModalShell
+          title="تسجيل ترقية"
+          icon={<Award className="w-4 h-4" />}
+          onClose={() => setOpen(false)}
+        >
+          <div className="mb-4 p-4 bg-(--color-primary)/5 border border-(--color-primary)/10 shadow-sm rounded-2xl text-right flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-(--app-muted-foreground)">تسجيل ترقية وتحديث رتبة الضابط</p>
+              <h4 className="text-sm font-extrabold text-(--color-primary) mt-0.5">{officer.rankLabel || officer.rank} / {officer.fullName}</h4>
+            </div>
+            {officer.militaryId && (
+              <div className="px-3 py-1.5 bg-(--app-surface-container) border border-(--app-border) rounded-xl shadow-sm text-xs font-bold text-(--app-muted-foreground)">
+                الرقم العسكري: {officer.militaryId}
+              </div>
+            )}
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">

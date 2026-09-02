@@ -4,6 +4,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { Officer } from "@/lib/db/models/Officer";
 import { handleApiError } from "@/lib/utils/api-error";
 import { canEditOfficers } from "@/lib/officers/access";
+import { logAuditEvent } from "@/lib/auth/audit";
 import { join } from "path";
 import { writeFile, unlink, mkdir } from "fs/promises";
 import { existsSync } from "fs";
@@ -70,6 +71,15 @@ export async function POST(
     const relativeUrl = `/uploads/officers/photos/${fileName}`;
     if (officer) {
       await Officer.findByIdAndUpdate(id, { $set: { photoUrl: relativeUrl } });
+
+      await logAuditEvent({
+        userId: auth.user!.id,
+        userName: auth.user!.username,
+        action: "UPDATE",
+        module: "officers",
+        targetId: officer._id.toString(),
+        description: `تم رفع وتحديث الصورة الشخصية للضابط: ${officer.fullName} (${officer.militaryId})`,
+      });
     }
 
     return NextResponse.json({
@@ -105,6 +115,15 @@ export async function DELETE(
     }
 
     await Officer.findByIdAndUpdate(id, { $unset: { photoUrl: "" } });
+
+    await logAuditEvent({
+      userId: auth.user!.id,
+      userName: auth.user!.username,
+      action: "DELETE",
+      module: "officers",
+      targetId: officer._id.toString(),
+      description: `تم حذف الصورة الشخصية للضابط: ${officer.fullName} (${officer.militaryId})`,
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

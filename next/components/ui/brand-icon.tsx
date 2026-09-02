@@ -24,7 +24,7 @@ export function BrandIcon({
   className,
   showGlow = false,
   showStatusDot = true,
-  variant = "gradient",
+  variant: _variant = "gradient",
   ...props
 }: BrandIconProps) {
   const rawId = useId();
@@ -50,6 +50,7 @@ export function BrandIcon({
         viewBox="0 0 64 64"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
+        suppressHydrationWarning
         className={cn(
           "relative z-10 transition-all duration-500 ease-out group-hover:scale-105 drop-shadow-[0_4px_12px_rgba(37,99,235,0.35)]",
           sizeMap[size],

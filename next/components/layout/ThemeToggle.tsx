@@ -45,11 +45,11 @@ export function ThemeToggle() {
 
       {/* Premium animated icon */}
       <span
-        className={`relative z-10 transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
-          animating ? "rotate-[360deg] scale-110" : "rotate-0 scale-100"
+        className={`relative z-10 ${
+          animating ? "animate-[spin_0.5s_cubic-bezier(0.34,1.56,0.64,1)] scale-110" : "scale-100 transition-transform duration-200"
         }`}
       >
-        <IconComponent className="w-[18px] h-[18px] text-white/80 group-hover:text-white transition-all duration-300" />
+        <IconComponent className="w-[18px] h-[18px] text-white/80 group-hover:text-white transition-colors duration-200" />
       </span>
 
       {/* Premium tooltip using --app-radius-sm */}

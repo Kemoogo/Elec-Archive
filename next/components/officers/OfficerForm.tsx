@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   UserPlus,
+  User,
   Save,
   AlertCircle,
   Search,
@@ -146,7 +147,7 @@ export function OfficerForm(props: OfficerFormProps) {
   const returnReason = returnReasonState[0];
   const setReturnReason = returnReasonState[1];
 
-  const [form, setForm] = useState({
+  const getCleanEmptyForm = () => ({
     militaryId: initial?.militaryId ?? "",
     seniorityNumber: initial?.seniorityNumber ?? "",
     fullName: initial?.fullName ?? "",
@@ -168,6 +169,8 @@ export function OfficerForm(props: OfficerFormProps) {
     file121IssueDate: initial?.file121IssueDate ?? "",
     isArkanHarb: initial?.isArkanHarb ?? false,
   });
+
+  const [form, setForm] = useState(getCleanEmptyForm());
 
   const [file121, setFile121] = useState<File | null>(null);
   const [uploadingFile, setUploadingFile] = useState(false);
@@ -211,11 +214,11 @@ export function OfficerForm(props: OfficerFormProps) {
         setFile121(null);
         setParsedFileName("");
         setExtractedFieldsCount(0);
-        setForm((prev) => ({
-          ...prev,
+        setForm({
+          ...getCleanEmptyForm(),
           seniorityNumber: seniorityInput.trim(),
           militaryId: "",
-        }));
+        });
         setStep("form");
       } else if (data.data?.existingId) {
         setExistingOfficer(data.data);
@@ -495,6 +498,13 @@ export function OfficerForm(props: OfficerFormProps) {
       setSeniorityInput("");
       setExistingOfficer(null);
       setFieldErrors({});
+      setError("");
+      setReturnDate("");
+      setReturnReason("rejoining");
+      setFile121(null);
+      setParsedFileName("");
+      setExtractedFieldsCount(0);
+      setForm(getCleanEmptyForm());
       router.refresh();
     } catch {
       setError("حدث خطأ في الاتصال");
@@ -515,37 +525,33 @@ export function OfficerForm(props: OfficerFormProps) {
     setFile121(null);
     setParsedFileName("");
     setExtractedFieldsCount(0);
-    setForm({
-      militaryId: initial?.militaryId ?? "",
-      seniorityNumber: initial?.seniorityNumber ?? "",
-      fullName: initial?.fullName ?? "",
-      rank: initial?.rank ?? "second_lieutenant",
-      batch: initial?.batch ?? "",
-      type: initial?.type ?? "",
-      weapon: initial?.weapon ?? "",
-      phone: initial?.phone ?? "",
-      nationalId: initial?.nationalId ?? "",
-      joinDate: initial?.joinDate ? initial.joinDate.split("T")[0] : new Date().toISOString().split("T")[0],
-      birthDate: initial?.birthDate ? (typeof initial.birthDate === "string" ? initial.birthDate.split("T")[0] : "") : "",
-      graduationDate: initial?.graduationDate ? (typeof initial.graduationDate === "string" ? initial.graduationDate.split("T")[0] : "") : "",
-      bloodType: initial?.bloodType ?? "",
-      religion: initial?.religion ?? "",
-      maritalStatus: initial?.maritalStatus ?? "",
-      faculty: initial?.faculty ?? "",
-      isInUnit: initial?.isInUnit ?? true,
-      file121Url: initial?.file121Url ?? "",
-      file121IssueDate: initial?.file121IssueDate ?? "",
-      isArkanHarb: initial?.isArkanHarb ?? false,
-    });
+    setForm(getCleanEmptyForm());
+  };
+
+  const handleOpenModal = () => {
+    if (!isEdit) {
+      setStep("mode_select");
+      setSeniorityInput("");
+      setExistingOfficer(null);
+      setError("");
+      setFieldErrors({});
+      setReturnDate("");
+      setReturnReason("rejoining");
+      setFile121(null);
+      setParsedFileName("");
+      setExtractedFieldsCount(0);
+      setForm(getCleanEmptyForm());
+    }
+    setOpen(true);
   };
 
   if (!open) {
     if (trigger) {
-      return <div onClick={() => setOpen(true)} className="inline-block cursor-pointer">{trigger}</div>;
+      return <div onClick={handleOpenModal} className="inline-block cursor-pointer">{trigger}</div>;
     }
     return (
       <button
-        onClick={() => setOpen(true)}
+        onClick={handleOpenModal}
         className="btn-primary"
       >
         <>
@@ -569,7 +575,7 @@ export function OfficerForm(props: OfficerFormProps) {
   const modalFooter =
     !isEdit && step === "mode_select" ? (
       <ModalActions className="sm:items-stretch">
-        <button type="button" onClick={resetAndClose} className="btn-modal-secondary">
+        <button type="button" onClick={resetAndClose} className="btn-secondary">
           إلغاء
         </button>
       </ModalActions>
@@ -579,36 +585,36 @@ export function OfficerForm(props: OfficerFormProps) {
           type="button"
           onClick={handleSeniorityCheck}
           disabled={loading || !seniorityInput.trim()}
-          className="btn-modal-primary"
+          className="btn-primary"
         >
           {loading ? "جاري التحقق..." : <><Search className="w-4 h-4" /> تحقق ومتابعة</>}
         </button>
         <button
           type="button"
           onClick={() => setStep("mode_select")}
-          className="btn-modal-secondary"
+          className="btn-secondary"
         >
           <ArrowRight className="w-4 h-4" /> رجوع
         </button>
-        <button type="button" onClick={resetAndClose} className="btn-modal-secondary">
+        <button type="button" onClick={resetAndClose} className="btn-secondary">
           إلغاء
         </button>
       </ModalActions>
     ) : !isEdit && step === "returning" && existingOfficer ? (
       <ModalActions className="sm:items-stretch">
-        <button type="button" onClick={handleReturningProceed} disabled={!returnDate} className="btn-modal-primary">
+        <button type="button" onClick={handleReturningProceed} disabled={!returnDate} className="btn-primary">
           <ArrowRight className="w-4 h-4" /> تحميل البيانات والمتابعة
         </button>
-        <button type="button" onClick={resetAndClose} className="btn-modal-secondary">
+        <button type="button" onClick={resetAndClose} className="btn-secondary">
           إلغاء
         </button>
       </ModalActions>
     ) : (
       <ModalActions className="sm:items-stretch">
-        <button type="submit" form={officerFormId} disabled={loading || uploadingFile} className="btn-modal-primary">
+        <button type="submit" form={officerFormId} disabled={loading || uploadingFile} className="btn-primary">
           {loading || uploadingFile ? "جاري الحفظ..." : <><Save className="w-4 h-4" /> حفظ</>}
         </button>
-        <button type="button" onClick={resetAndClose} className="btn-modal-secondary">
+        <button type="button" onClick={resetAndClose} className="btn-secondary">
           إلغاء
         </button>
       </ModalActions>
@@ -616,7 +622,8 @@ export function OfficerForm(props: OfficerFormProps) {
 
   return (
     <ModalShell
-      title={<span className="text-base font-semibold text-(--color-primary)">{modalTitle}</span>}
+      title={modalTitle}
+      icon={<User className="w-4 h-4" />}
       onClose={resetAndClose}
       overlayClassName="bg-black/40"
       panelClassName="max-h-[85vh] max-w-xl border-(--app-border) shadow-depth-xl"

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState, useCallback, useSyncExternalStore } from "react";
 import {
   Home,
   FileText,
@@ -43,14 +43,16 @@ const iconMap: Record<string, typeof Home> = {
   "/audit-log": History,
 };
 
+const emptySubscribe = () => () => {};
+
 export function NavLinks({ items }: { items: NavItem[] }) {
   const pathname = usePathname();
   const { resolvedTheme: _resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
 
   const [indicator, setIndicator] = useState({ left: 0, width: 0, opacity: 0 });
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);

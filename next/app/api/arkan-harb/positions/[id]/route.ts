@@ -4,17 +4,11 @@ import { authenticate } from "@/lib/auth/middleware";
 import { canEditModule } from "@/lib/auth/authorization";
 import { logAuditEvent } from "@/lib/auth/audit";
 import { errors } from "@/lib/auth/errors";
-import { PositionAssignment, type PositionStatus } from "@/lib/db/models/PositionAssignment";
-import { Officer, RANK_LABELS, type OfficerRank } from "@/lib/db/models/Officer";
+import { PositionAssignment } from "@/lib/db/models/PositionAssignment";
 import { handleApiError } from "@/lib/utils/api-error";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
 import { updatePositionAssignmentSchema } from "@/lib/validations/arkan-harb";
-
-/** Valid lifecycle transitions for position status */
-const VALID_STATUS_TRANSITIONS: Record<PositionStatus, PositionStatus[]> = {
-  active: ["ended"],
-  ended: [], // ended is terminal - no outbound edges
-};
+import { mergeHistoryIntervals } from "@/lib/utils/history-merge";
 
 export async function PATCH(
   request: Request,
@@ -43,13 +37,11 @@ export async function PATCH(
   await connectToDatabase();
 
   try {
-    // 4. Find existing position assignment
     const position = await PositionAssignment.findById(id);
     if (!position) {
-      return NextResponse.json({ success: false, error: "التعيين الوظيفي غير موجود" }, { status: 404 });
+      return NextResponse.json({ success: false, error: "الوظيفة غير موجودة" }, { status: 404 });
     }
 
-    // 5. Parse + Validate body
     const body: unknown = await request.json();
     const parsed = updatePositionAssignmentSchema.safeParse(body);
     if (!parsed.success) {
@@ -60,85 +52,141 @@ export async function PATCH(
     }
 
     const data = parsed.data;
+    const now = new Date();
 
-    // 6. Check for conflicting primary positions
-    if (data.positionType === "primary" && data.status === "active") {
-      // Check if officer already has an active primary assignment
-      const existingOfficerPrimary = await PositionAssignment.findOne({
-        officerId: data.officerId || position.officerId,
-        positionType: "primary",
-        status: "active",
-        _id: { $ne: id }, // Exclude current document
-      });
-
-      if (existingOfficerPrimary) {
-        return NextResponse.json(
-          { success: false, error: "الضابط لديه تعيين أساسي نشط بالفعل" },
-          { status: 409 },
-        );
-      }
-
-      // Check if another officer has an active primary assignment for the same position title
-      const existingTitlePrimary = await PositionAssignment.findOne({
-        positionTitle: data.positionTitle || position.positionTitle,
-        positionType: "primary",
-        status: "active",
-        officerId: { $ne: data.officerId || position.officerId }, // Not the same officer
-        _id: { $ne: id }, // Exclude current document
-      });
-
-      if (existingTitlePrimary) {
-        return NextResponse.json(
-          { success: false, error: "هذه الوظيفة مشغولة بالفعل بصفة أساسية من قبل ضابط آخر" },
-          { status: 409 },
-        );
-      }
-    }
-
-    // 7. Validate status transition if status is being changed
-    if (data.status && data.status !== position.status) {
-      const allowedNext = VALID_STATUS_TRANSITIONS[position.status as PositionStatus];
-      if (!allowedNext || !allowedNext.includes(data.status as PositionStatus)) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: `لا يمكن تحويل الحالة من "${position.status}" إلى "${data.status}"`,
-          },
-          { status: 400 },
-        );
-      }
-    }
-
-    // 8. Apply updates
-    if (data.officerId !== undefined) position.officerId = data.officerId;
     if (data.positionTitle !== undefined) position.positionTitle = data.positionTitle;
-    if (data.positionType !== undefined) position.positionType = data.positionType;
-    if (data.substituteForOfficerId !== undefined) 
-      position.substituteForOfficerId = data.substituteForOfficerId || undefined;
-    if (data.startDate !== undefined) position.startDate = new Date(data.startDate);
-    if (data.endDate !== undefined) position.endDate = data.endDate ? new Date(data.endDate) : undefined;
+    if (data.department !== undefined) position.department = data.department;
     if (data.orderNumber !== undefined) position.orderNumber = data.orderNumber;
     if (data.notes !== undefined) position.notes = data.notes;
-    if (data.status !== undefined) position.status = data.status;
-    position.updatedBy = auth.user!.id;
 
+    if (data.hasNoSubstitute !== undefined) {
+      position.set("hasNoSubstitute", Boolean(data.hasNoSubstitute));
+      position.markModified("hasNoSubstitute");
+      if (position.hasNoSubstitute) {
+        // If position is marked as having no substitute, close any open substitute history
+        const currentSubIds = (position.substituteOfficerIds || []).map((s: { toString(): string }) => s.toString());
+        currentSubIds.forEach((currId: string) => {
+          const openSubEntry = position.assignmentHistory.find(
+            (h: { role: string; officerId: { toString(): string }; endDate?: Date | null }) =>
+              h.role === "substitute" && h.officerId.toString() === currId && !h.endDate
+          );
+          if (openSubEntry) {
+            openSubEntry.endDate = now;
+          }
+        });
+        position.substituteOfficerIds = [];
+      }
+    }
+
+    // Handle Primary Officer changes & Continuous History
+    if (data.primaryOfficerId !== undefined) {
+      const currentPrimaryStr = position.primaryOfficerId ? position.primaryOfficerId.toString() : "";
+      const newPrimaryStr = data.primaryOfficerId && data.primaryOfficerId.trim() !== "" ? data.primaryOfficerId.trim() : "";
+
+      if (currentPrimaryStr !== newPrimaryStr) {
+        // If old primary exists, close history entry
+        if (currentPrimaryStr) {
+          const openPrimaryEntry = position.assignmentHistory.find(
+            (h: { role: string; officerId: { toString(): string }; endDate?: Date | null }) =>
+              h.role === "primary" && h.officerId.toString() === currentPrimaryStr && !h.endDate
+          );
+          if (openPrimaryEntry) {
+            openPrimaryEntry.endDate = now;
+          }
+        }
+
+        // If new primary set, add history entry if not already open
+        if (newPrimaryStr) {
+          const existingOpenEntry = position.assignmentHistory.find(
+            (h: { role: string; officerId: { toString(): string }; endDate?: Date | null }) =>
+              h.role === "primary" && h.officerId.toString() === newPrimaryStr && !h.endDate
+          );
+          if (!existingOpenEntry) {
+            position.assignmentHistory.push({
+              officerId: newPrimaryStr,
+              role: "primary",
+              startDate: now,
+              endDate: null,
+            });
+          }
+          position.primaryOfficerId = newPrimaryStr;
+          position.primaryStartDate = now;
+        } else {
+          position.primaryOfficerId = null;
+          position.primaryStartDate = null;
+        }
+      }
+    }
+
+    // Handle Substitute Officers changes & Continuous History
+    if (!position.hasNoSubstitute && data.substituteOfficerIds !== undefined) {
+      const newSubIds = (data.substituteOfficerIds || []).filter((s) => s && s.trim() !== "");
+      const currentSubIds = (position.substituteOfficerIds || []).map((s: { toString(): string }) => s.toString());
+
+      // Find removed substitutes -> close their history
+      currentSubIds.forEach((currId: string) => {
+        if (!newSubIds.includes(currId)) {
+          const openSubEntry = position.assignmentHistory.find(
+            (h: { role: string; officerId: { toString(): string }; endDate?: Date | null }) =>
+              h.role === "substitute" && h.officerId.toString() === currId && !h.endDate
+          );
+          if (openSubEntry) {
+            openSubEntry.endDate = now;
+          }
+        }
+      });
+
+      // Find added substitutes -> add open history
+      newSubIds.forEach((newId) => {
+        if (!currentSubIds.includes(newId)) {
+          const existingOpenEntry = position.assignmentHistory.find(
+            (h: { role: string; officerId: { toString(): string }; endDate?: Date | null }) =>
+              h.role === "substitute" && h.officerId.toString() === newId && !h.endDate
+          );
+          if (!existingOpenEntry) {
+            position.assignmentHistory.push({
+              officerId: newId,
+              role: "substitute",
+              startDate: now,
+              endDate: null,
+            });
+          }
+        }
+      });
+
+      position.substituteOfficerIds = newSubIds;
+    }
+
+    // Merge overlapping or contiguous history intervals for the same officer and role
+    if (position.assignmentHistory && position.assignmentHistory.length > 1) {
+      const rawEntries = position.assignmentHistory.map((h: { _id?: unknown; officerId: unknown; role: "primary" | "substitute"; startDate: Date; endDate?: Date | null; notes?: string }) => ({
+        _id: h._id,
+        officerId: h.officerId,
+        role: h.role,
+        startDate: h.startDate,
+        endDate: h.endDate,
+        notes: h.notes,
+      }));
+      const mergedEntries = mergeHistoryIntervals(rawEntries);
+      position.assignmentHistory = mergedEntries as unknown as typeof position.assignmentHistory;
+    }
+
+    position.updatedBy = auth.user!.id;
     await position.save();
 
-    // 9. Audit
     await logAuditEvent({
       userId: auth.user!.id,
       userName: auth.user!.fullName,
       action: "UPDATE",
       module: "arkan_harb",
       targetId: id,
-      description: `تم تحديث التعيين الوظيفي: ${position.positionTitle}`,
+      description: `تم تحديث بيانات وتسكين وظيفة: ${position.positionTitle}`,
       ipAddress: ip,
     });
 
-    // 10. Response
     return NextResponse.json({ success: true, data: { id } });
   } catch (error) {
-    return handleApiError(error, "حدث خطأ أثناء تحديث التعيين الوظيفي");
+    return handleApiError(error, "حدث خطأ أثناء تحديث الوظيفة");
   }
 }
 
@@ -169,20 +217,12 @@ export async function DELETE(
   await connectToDatabase();
 
   try {
-    // 4. Find existing position assignment
     const position = await PositionAssignment.findById(id);
     if (!position) {
-      return NextResponse.json({ success: false, error: "التعيين الوظيفي غير موجود" }, { status: 404 });
+      return NextResponse.json({ success: false, error: "الوظيفة غير موجودة" }, { status: 404 });
     }
 
-    // 5. Delete position assignment
     await PositionAssignment.findByIdAndDelete(id);
-
-    // 6. Audit
-    const officer = await Officer.findById(position.officerId).select("rank fullName").lean();
-    const officerDisplayName = officer 
-      ? `${RANK_LABELS[officer.rank as OfficerRank]} / ${officer.fullName}` 
-      : position.officerId;
 
     await logAuditEvent({
       userId: auth.user!.id,
@@ -190,13 +230,12 @@ export async function DELETE(
       action: "DELETE",
       module: "arkan_harb",
       targetId: id,
-      description: `تم حذف التعيين الوظيفي: ${position.positionTitle} للضابط: ${officerDisplayName}`,
+      description: `تم حذف وظيفة: ${position.positionTitle} من الهيكل`,
       ipAddress: ip,
     });
 
-    // 7. Response
     return NextResponse.json({ success: true, data: { id } });
   } catch (error) {
-    return handleApiError(error, "حدث خطأ أثناء حذف التعيين الوظيفي");
+    return handleApiError(error, "حدث خطأ أثناء حذف الوظيفة");
   }
 }

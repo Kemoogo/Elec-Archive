@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Menu, X, FileText, Shield, Settings, Swords, GraduationCap, BookOpen, Stethoscope, ClipboardList, ScrollText, History, User, LogOut } from "lucide-react";
+import { Menu, X, FileText, Shield, Settings, Swords, GraduationCap, BookOpen, Stethoscope, ClipboardList, ScrollText, History, LogOut } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ThemeToggle } from "./ThemeToggle";

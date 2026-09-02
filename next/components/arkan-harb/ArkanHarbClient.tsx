@@ -4,12 +4,11 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { FolderTabs, type TabItem } from "@/components/ui/folder-tabs";
-import { ClipboardList, ScrollText, FileText, Shield, LayoutDashboard, Plus, ChevronDown } from "lucide-react";
-import { PageHeader, PrimaryHeaderBtn } from "@/components/layout/ModernPageHeader";
+import { ClipboardList, ScrollText, FileText, Shield, LayoutDashboard, Plus, ChevronDown, Briefcase, History, Filter } from "lucide-react";
+import { PageHeader, PrimaryHeaderBtn, SecondaryHeaderBtn } from "@/components/layout/ModernPageHeader";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { LeaveAddModal } from "@/components/officers/LeaveAddModal";
 import { MissionForm } from "./MissionForm";
-import { PositionAssignmentForm } from "./PositionAssignmentForm";
 
 interface OfficerOption {
   id: string;
@@ -17,6 +16,7 @@ interface OfficerOption {
   fullName: string;
   militaryId: string;
   rank: string;
+  officerLabel?: string;
 }
 
 interface ArkanHarbClientProps {
@@ -34,7 +34,7 @@ const TAB_NAMES: Record<string, string> = {
   rollcall: "التمام اليومي",
   leaves: "سجل الإجازات",
   missions: "المأموريات",
-  positions: "التنظيم الإداري والوظائف",
+  positions: "الوظائف",
 };
 
 const TAB_DESCRIPTIONS: Record<string, string> = {
@@ -42,7 +42,7 @@ const TAB_DESCRIPTIONS: Record<string, string> = {
   rollcall: "سجل كشف التمام اليومي الرسمي للضباط وإقرار الحضور والغياب",
   leaves: "سجل متابعة وإدارة إجازات وانقطاعات القوة بالوحدة",
   missions: "سجل وتتبع المأموريات الخارجية والمهام الرسمية المكلف بها الضباط",
-  positions: "سجل إدارة الهيكل الوظيفي والتعيينات والمسؤوليات القيادية والنيابية",
+  positions: "التنظيم الإداري وتسكين الضباط على الهيكل الوظيفي ومتابعة السجل التاريخي والشواغر",
 };
 
 export function ArkanHarbClient({
@@ -58,20 +58,23 @@ export function ArkanHarbClient({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const activeTab = searchParams.get("tab") || "dashboard";
-  const currentTabName = TAB_NAMES[activeTab] || TAB_NAMES.dashboard;
-  const currentDescription = TAB_DESCRIPTIONS[activeTab] || TAB_DESCRIPTIONS.dashboard;
 
   const [isMissionModalOpen, setIsMissionModalOpen] = useState(false);
-  const [isPositionModalOpen, setIsPositionModalOpen] = useState(false);
 
   const updateParams = (newParams: Record<string, string>) => {
     const params = new URLSearchParams(searchParams.toString());
-    Object.entries(newParams).forEach(([k, v]) => {
-      if (v) params.set(k, v);
-      else params.delete(k);
+    Object.entries(newParams).forEach(([key, value]) => {
+      if (value) {
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
     });
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
+
+  const currentTabName = TAB_NAMES[activeTab] || TAB_NAMES.dashboard;
+  const currentDescription = TAB_DESCRIPTIONS[activeTab] || TAB_DESCRIPTIONS.dashboard;
 
   const tabs: TabItem[] = [
     {
@@ -101,7 +104,7 @@ export function ArkanHarbClient({
     {
       id: "positions",
       label: "الوظائف",
-      icon: <Shield className="w-4 h-4" />,
+      icon: <Briefcase className="w-4 h-4" />,
       content: positionsContent,
     },
   ];
@@ -126,6 +129,7 @@ export function ArkanHarbClient({
               <option value="scheduled">مجدولة</option>
               <option value="active">نشطة</option>
               <option value="completed">مكتملة</option>
+              <option value="postponed">مؤجلة</option>
               <option value="cancelled">ملغاة</option>
             </select>
             <ChevronDown className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-(--app-muted-foreground) pointer-events-none" />
@@ -142,26 +146,36 @@ export function ArkanHarbClient({
     }
 
     if (activeTab === "positions") {
-      const status = searchParams.get("status") || "";
+      const positionsView = searchParams.get("view") || "by-position";
       return (
         <div className="flex items-center gap-2">
-          <div className="relative">
-            <select
-              value={status}
-              onChange={(e) => updateParams({ status: e.target.value, page: "1" })}
-              className="px-3.5 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-xs font-bold text-(--app-foreground) focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none cursor-pointer pr-3 pl-8 shadow-xs"
-            >
-              <option value="">كل الحالات</option>
-              <option value="active">نشطة</option>
-              <option value="historical">سابقة</option>
-            </select>
-            <ChevronDown className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-(--app-muted-foreground) pointer-events-none" />
-          </div>
+          {/* 1. الأرشيف (أيقونة فقط مطابق للبحث) */}
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent("open-archive-modal"))}
+            className="p-2 rounded-xl text-sm font-bold transition-all active:scale-95 focus:outline-none cursor-pointer bg-(--app-surface-container-low) text-(--color-primary) hover:bg-(--app-surface-container)"
+            title="تقرير الأرشيف والتاريخ"
+          >
+            <History className="w-5 h-5" />
+          </button>
+
+          {/* 2. مفتاح النمط toggle مثل مفتاح ضباط الوحدة وكل الضباط */}
+          <SecondaryHeaderBtn
+            label={positionsView === "by-officer" ? "عرض حسب الضابط" : "عرض حسب الوظيفة"}
+            icon={<Filter className="w-4 h-4" />}
+            onClick={() =>
+              updateParams({
+                view: positionsView === "by-officer" ? "by-position" : "by-officer",
+              })
+            }
+          />
+
+          {/* 3. مفتاح الإضافة */}
           {canEdit && (
             <PrimaryHeaderBtn
-              label="إضافة تعيين"
+              label="إضافة وظيفة"
               icon={<Plus className="w-4 h-4" />}
-              onClick={() => setIsPositionModalOpen(true)}
+              onClick={() => window.dispatchEvent(new CustomEvent("open-create-position-modal"))}
             />
           )}
         </div>
@@ -185,7 +199,7 @@ export function ArkanHarbClient({
   useEffect(() => {
     const timer = setTimeout(() => {
       if (localSearch !== urlSearchQuery) {
-        if (activeTab === "leaves") {
+        if (activeTab === "leaves" || activeTab === "positions") {
           updateParams({ search: localSearch });
         } else {
           updateParams({ officerId: localSearch, page: "1" });
@@ -215,12 +229,23 @@ export function ArkanHarbClient({
         showSearch={showSearch}
         searchQuery={localSearch}
         onSearchChange={setLocalSearch}
-        searchPlaceholder={activeTab === "leaves" ? "بحث باسم الضابط أو السبب..." : "بحث بمعرف الضابط..."}
+        searchPlaceholder={
+          activeTab === "leaves"
+            ? "بحث باسم الضابط أو السبب..."
+            : activeTab === "positions"
+            ? "بحث في الوظائف أو الفروع أو أسماء ورتب الضباط..."
+            : "بحث بمعرف الضابط..."
+        }
         action={renderHeaderActions()}
       />
       
       <div className="mt-8">
-        <FolderTabs tabs={tabs} initialTab="dashboard" />
+        <FolderTabs
+          tabs={tabs}
+          value={activeTab}
+          onValueChange={(tab) => updateParams({ tab })}
+          initialTab="dashboard"
+        />
       </div>
 
       {canEdit && (
@@ -232,16 +257,6 @@ export function ArkanHarbClient({
             onClose={() => setIsMissionModalOpen(false)}
             onSave={() => {
               setIsMissionModalOpen(false);
-              router.refresh();
-            }}
-          />
-          <PositionAssignmentForm
-            position={null}
-            officers={officers}
-            isOpen={isPositionModalOpen}
-            onClose={() => setIsPositionModalOpen(false)}
-            onSave={() => {
-              setIsPositionModalOpen(false);
               router.refresh();
             }}
           />

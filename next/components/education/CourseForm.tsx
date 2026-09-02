@@ -101,6 +101,7 @@ export function CourseForm({ mode, initialData, onSuccess }: CourseFormProps) {
         {isOpen && (
           <ModalShell
             title="إضافة دورة جديدة"
+            icon={<BookOpen className="w-4 h-4" />}
             panelClassName="max-w-[480px]"
             onClose={() => {
               setIsOpen(false);

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { useToast } from "@/components/ui/toast";
+import { AlertTriangle } from "lucide-react";
 
 interface SerializedStudent {
   _id: string;
@@ -156,6 +157,8 @@ export function StudentProfile({ student, canEdit }: StudentProfileProps) {
       {showDeleteConfirm && (
         <ModalShell
           title="تأكيد الإيقاف"
+          icon={<AlertTriangle className="w-4 h-4" />}
+          titleVariant="danger"
           panelClassName="max-w-96"
           onClose={() => setShowDeleteConfirm(false)}
           footer={

@@ -4,6 +4,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { Officer } from "@/lib/db/models/Officer";
 import { handleApiError } from "@/lib/utils/api-error";
 import { canEditOfficers } from "@/lib/officers/access";
+import { logAuditEvent } from "@/lib/auth/audit";
 import { join } from "path";
 import { writeFile, unlink, mkdir } from "fs/promises";
 import { existsSync } from "fs";
@@ -86,6 +87,15 @@ export async function POST(
       }
 
       await officer.save();
+
+      await logAuditEvent({
+        userId: auth.user!.id,
+        userName: auth.user!.username,
+        action: "UPDATE",
+        module: "officers",
+        targetId: officer._id.toString(),
+        description: `تم رفع وتحديث ملف 121 للضابط: ${officer.fullName} (${officer.militaryId})`,
+      });
     }
 
     return NextResponse.json({
@@ -126,7 +136,17 @@ export async function DELETE(
 
     officer.file121Url = undefined;
     officer.file121UpdatedAt = undefined;
+    officer.file121IssueDate = undefined;
     await officer.save();
+
+    await logAuditEvent({
+      userId: auth.user!.id,
+      userName: auth.user!.username,
+      action: "DELETE",
+      module: "officers",
+      targetId: officer._id.toString(),
+      description: `تم حذف ملف 121 للضابط: ${officer.fullName} (${officer.militaryId})`,
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

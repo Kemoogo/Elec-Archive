@@ -28,6 +28,7 @@ export interface ILeave extends Document {
   type: LeaveType;
   startDate: Date;
   endDate: Date;
+  actualReturnDate?: Date;
   reason?: string;
   status: LeaveStatus;
   createdBy: Types.ObjectId;
@@ -51,6 +52,7 @@ const LeaveSchema = new Schema<ILeave>(
     },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
+    actualReturnDate: { type: Date },
     reason: { type: String, trim: true },
     status: {
       type: String,

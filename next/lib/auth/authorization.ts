@@ -5,8 +5,8 @@ import { AuthUser, ModulePermissions, PermissionLevel } from "./types";
  * Admin always has full access.
  */
 export function canViewModule(user: AuthUser, module: keyof ModulePermissions): boolean {
-  if (user.role === "admin") return true;
-  return user.permissions[module] === "view" || user.permissions[module] === "edit";
+  if (user?.role === "admin") return true;
+  return user?.permissions?.[module] === "view" || user?.permissions?.[module] === "edit";
 }
 
 /**
@@ -14,8 +14,8 @@ export function canViewModule(user: AuthUser, module: keyof ModulePermissions): 
  * Admin always has full access.
  */
 export function canEditModule(user: AuthUser, module: keyof ModulePermissions): boolean {
-  if (user.role === "admin") return true;
-  return user.permissions[module] === "edit";
+  if (user?.role === "admin") return true;
+  return user?.permissions?.[module] === "edit";
 }
 
 /**
@@ -27,9 +27,9 @@ export function requireModuleAccess(
   module: keyof ModulePermissions,
   requiredLevel: PermissionLevel
 ): boolean {
-  if (user.role === "admin" || requiredLevel === "none") return true;
+  if (user?.role === "admin" || requiredLevel === "none") return true;
   
-  const userLevel = user.permissions[module];
+  const userLevel = user?.permissions?.[module];
   if (requiredLevel === "edit") {
     return userLevel === "edit";
   }

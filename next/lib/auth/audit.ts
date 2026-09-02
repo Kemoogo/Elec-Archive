@@ -23,7 +23,7 @@ export async function logAuditEvent(params: AuditLogParams): Promise<void> {
       module: params.module,
       targetId: params.targetId,
       description: params.description,
-      ipAddress: params.ipAddress ?? "",
+      ipAddress: params.ipAddress || "127.0.0.1",
     });
   } catch (error) {
     console.error("Audit log failed:", error);

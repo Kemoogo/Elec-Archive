@@ -18,80 +18,70 @@ export {
   type PositionStatus 
 };
 
-export interface IPositionAssignment extends Document {
+export interface IPositionHistoryEntry {
+  _id?: Types.ObjectId;
   officerId: Types.ObjectId;
-  positionTitle: string;
-  positionType: PositionType;
-  substituteForOfficerId?: Types.ObjectId;
+  role: PositionType;
   startDate: Date;
-  endDate?: Date;
+  endDate?: Date | null;
+  notes?: string;
+}
+
+export interface IPositionAssignment extends Document {
+  positionTitle: string;
+  department: string;
+  primaryOfficerId?: Types.ObjectId | null;
+  primaryStartDate?: Date | null;
+  substituteOfficerIds: Types.ObjectId[];
+  substituteStartDates?: { officerId: Types.ObjectId; startDate: Date }[];
+  assignmentHistory: IPositionHistoryEntry[];
+  hasNoSubstitute?: boolean;
   orderNumber?: string;
   notes?: string;
-  status: PositionStatus;
   createdBy: Types.ObjectId;
   updatedBy: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
 
-const PositionAssignmentSchema = new Schema<IPositionAssignment>(
+const PositionHistoryEntrySchema = new Schema<IPositionHistoryEntry>(
   {
     officerId: { type: Schema.Types.ObjectId, ref: "Officer", required: true },
-    positionTitle: { type: String, required: true, trim: true },
-    positionType: {
-      type: String,
-      required: true,
-      enum: POSITION_TYPES,
-    },
-    substituteForOfficerId: {
-      type: Schema.Types.ObjectId,
-      ref: "Officer",
-    },
+    role: { type: String, enum: POSITION_TYPES, required: true },
     startDate: { type: Date, required: true },
-    endDate: { type: Date },
+    endDate: { type: Date, default: null },
+    notes: { type: String, trim: true },
+  },
+  { _id: true, timestamps: false }
+);
+
+const PositionAssignmentSchema = new Schema<IPositionAssignment>(
+  {
+    positionTitle: { type: String, required: true, trim: true },
+    department: { type: String, required: true, trim: true, default: "القيادة" },
+    primaryOfficerId: { type: Schema.Types.ObjectId, ref: "Officer", default: null },
+    primaryStartDate: { type: Date, default: null },
+    substituteOfficerIds: [{ type: Schema.Types.ObjectId, ref: "Officer" }],
+    substituteStartDates: [
+      {
+        officerId: { type: Schema.Types.ObjectId, ref: "Officer" },
+        startDate: { type: Date, default: Date.now },
+      },
+    ],
+    assignmentHistory: [PositionHistoryEntrySchema],
+    hasNoSubstitute: { type: Boolean, default: false },
     orderNumber: { type: String, trim: true },
     notes: { type: String, trim: true },
-    status: {
-      type: String,
-      required: true,
-      enum: POSITION_STATUSES,
-      default: "active",
-    },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
     updatedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
-PositionAssignmentSchema.pre("validate", function () {
-  // 1. endDate must be >= startDate
-  if (this.endDate && this.endDate < this.startDate) {
-    this.invalidate(
-      "endDate",
-      "تاريخ الانتهاء يجب أن يكون بعد أو يساوي تاريخ البداية",
-    );
-  }
-
-  // 2. substituteForOfficerId is forbidden when positionType === "primary"
-  if (this.positionType === "primary" && this.substituteForOfficerId) {
-    this.invalidate(
-      "substituteForOfficerId",
-      "لا يمكن تحديد ضابط بديل عنه في تعيين أساسي",
-    );
-  }
-
-  // 3. substituteForOfficerId is required when positionType === "substitute"
-  if (this.positionType === "substitute" && !this.substituteForOfficerId) {
-    this.invalidate(
-      "substituteForOfficerId",
-      "يجب تحديد الضابط الأصلي في التعيين البديل",
-    );
-  }
-});
-
-PositionAssignmentSchema.index({ officerId: 1, startDate: -1 });
-PositionAssignmentSchema.index({ status: 1 });
-PositionAssignmentSchema.index({ substituteForOfficerId: 1 });
+PositionAssignmentSchema.index({ department: 1, positionTitle: 1 });
+PositionAssignmentSchema.index({ primaryOfficerId: 1 });
+PositionAssignmentSchema.index({ substituteOfficerIds: 1 });
+PositionAssignmentSchema.index({ "assignmentHistory.officerId": 1 });
 
 export const PositionAssignment =
   models.PositionAssignment ??

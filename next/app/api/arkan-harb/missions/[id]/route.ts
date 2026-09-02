@@ -9,10 +9,13 @@ import { handleApiError } from "@/lib/utils/api-error";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
 import { updateMissionSchema } from "@/lib/validations/arkan-harb";
 
-/** Valid lifecycle transitions — terminal states (completed, cancelled) have no outbound edges */
+/** Valid lifecycle transitions */
 const VALID_TRANSITIONS: Record<string, MissionStatus[]> = {
-  scheduled: ["active", "cancelled"],
-  active: ["completed", "cancelled"],
+  scheduled: ["active", "completed", "cancelled", "postponed"],
+  active: ["completed", "cancelled", "postponed"],
+  postponed: ["scheduled", "active", "completed", "cancelled"],
+  completed: ["active", "scheduled", "cancelled", "postponed"],
+  cancelled: ["scheduled", "active", "completed", "postponed"],
 };
 
 export async function PATCH(
@@ -80,9 +83,33 @@ export async function PATCH(
     if (data.destination !== undefined) mission.destination = data.destination;
     if (data.startDate !== undefined) mission.startDate = new Date(data.startDate);
     if (data.endDate !== undefined) mission.endDate = data.endDate ? new Date(data.endDate) : undefined;
-    if (data.status !== undefined) mission.status = data.status;
-    mission.updatedBy = mission.updatedBy; // preserve reference; set via schema type
-    // updatedAt handled automatically by timestamps
+    if (data.status !== undefined) {
+      mission.status = data.status;
+      if (data.status === "completed" && !mission.completedAt) {
+        mission.completedAt = new Date();
+      }
+    } else if (data.startDate !== undefined || data.endDate !== undefined) {
+      if (mission.status === "scheduled" || mission.status === "active") {
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const start = mission.startDate;
+        const startDay = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+        const end = mission.endDate;
+        const endDay = end ? new Date(end.getFullYear(), end.getMonth(), end.getDate()) : null;
+
+        if (endDay && today > endDay) {
+          mission.status = "completed";
+          if (!mission.completedAt) mission.completedAt = new Date();
+        } else if (today >= startDay && (!endDay || today <= endDay)) {
+          mission.status = "active";
+        } else {
+          mission.status = "scheduled";
+        }
+      }
+    }
+    if (data.statusReason !== undefined) mission.statusReason = data.statusReason;
+    if (data.resultSummary !== undefined) mission.resultSummary = data.resultSummary;
+    if (data.linkedFaxId !== undefined) mission.linkedFaxId = data.linkedFaxId;
 
     await mission.save();
 
@@ -101,5 +128,56 @@ export async function PATCH(
     return NextResponse.json({ success: true, data: { id } });
   } catch (error) {
     return handleApiError(error, "حدث خطأ أثناء تحديث المأمورية");
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+
+  // 1. Auth
+  const auth = await authenticate();
+  if (!auth.success) {
+    return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
+  }
+
+  // 2. Only Admin can delete
+  if (auth.user!.role !== "admin") {
+    return NextResponse.json(
+      { success: false, error: "صلاحية الحذف مقتصرة على مدير النظام فقط" },
+      { status: 403 },
+    );
+  }
+
+  // 3. Rate limit
+  const ip = request.headers.get("x-forwarded-for") ?? "";
+  const rl = checkApiRateLimit(auth.user!.id, ip, "write");
+  if (!rl.allowed) {
+    return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
+  }
+
+  await connectToDatabase();
+
+  try {
+    const mission = await Mission.findByIdAndDelete(id);
+    if (!mission) {
+      return NextResponse.json({ success: false, error: "المأمورية غير موجودة" }, { status: 404 });
+    }
+
+    await logAuditEvent({
+      userId: auth.user!.id,
+      userName: auth.user!.fullName,
+      action: "DELETE",
+      module: "arkan_harb",
+      targetId: id,
+      description: `تم حذف المأمورية: ${mission.title}`,
+      ipAddress: ip,
+    });
+
+    return NextResponse.json({ success: true, message: "تم حذف المأمورية بنجاح" });
+  } catch (error) {
+    return handleApiError(error, "حدث خطأ أثناء حذف المأمورية");
   }
 }

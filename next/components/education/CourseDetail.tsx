@@ -8,6 +8,7 @@ import { ModalActions } from "@/components/ui/modal-actions";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { useToast } from "@/components/ui/toast";
 import { extractApiError } from "@/lib/utils";
+import { Trash2 } from "lucide-react";
 
 interface CourseDetailProps {
   course: {
@@ -209,6 +210,8 @@ export function CourseDetail({ course, canEdit }: CourseDetailProps) {
       {showDeleteConfirm && (
         <ModalShell
           title="تأكيد الحذف"
+          icon={<Trash2 className="w-4 h-4" />}
+          titleVariant="danger"
           panelClassName="max-w-96"
           onClose={() => {
             setShowDeleteConfirm(false);

@@ -16,7 +16,7 @@ const passwordSchema = z
 
 const roleSchema = z.enum(["admin", "commander", "employee", "viewer"]);
 
-const departmentSchema = z.enum(["fax", "officers", "medical", "students", "education", "arkan_harb"]);
+const departmentSchema = z.string().min(1, "الفرع / القسم مطلوب").max(100);
 
 const permissionLevelSchema = z.enum(["none", "view", "edit"]);
 

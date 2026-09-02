@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { PrimaryHeaderBtn } from "@/components/layout/ModernPageHeader";
-import { Plus, Trash2, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, AlertTriangle, Stethoscope } from "lucide-react";
 import { FormField, FormLabel, FormInput, FormSelect, FormTextarea } from "@/components/ui/form-fields";
 import { useToast } from "@/components/ui/toast";
 import { extractApiError } from "@/lib/utils";
@@ -240,7 +240,7 @@ export function NewVisitModal({ onClose }: { onClose: () => void }) {
       <button
         type="submit"
         form="visit-form"
-        className="btn-modal-primary"
+        className="btn-primary"
         disabled={loading}
       >
         حفظ وخروج
@@ -248,7 +248,7 @@ export function NewVisitModal({ onClose }: { onClose: () => void }) {
       <button
         type="button"
         onClick={(e) => handleSubmit(e as unknown as React.FormEvent, false)}
-        className="btn-modal-secondary"
+        className="btn-secondary"
         disabled={loading}
       >
         حفظ
@@ -256,7 +256,7 @@ export function NewVisitModal({ onClose }: { onClose: () => void }) {
       <button
         type="button"
         onClick={onClose}
-        className="btn-modal-secondary"
+        className="btn-secondary"
         disabled={loading}
       >
         إلغاء
@@ -266,11 +266,8 @@ export function NewVisitModal({ onClose }: { onClose: () => void }) {
 
   return (
     <ModalShell
-      title={
-        <span className="text-base font-semibold text-(--color-primary)">
-          تسجيل زيارة طبية جديدة
-        </span>
-      }
+      title="تسجيل زيارة طبية جديدة"
+      icon={<Stethoscope className="w-4 h-4" />}
       onClose={onClose}
       overlayClassName="bg-black/40"
       panelClassName="max-h-[85vh] max-w-2xl border-(--app-border) shadow-depth-xl"

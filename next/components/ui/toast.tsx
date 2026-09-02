@@ -12,7 +12,7 @@ interface ToastContextType {
   showToast: (message: string, type?: "success" | "error" | "info") => void;
 }
 
-const ToastContext = createContext<ToastContextType>({ showToast: () => { } });
+const ToastContext = createContext<ToastContextType>({ showToast: () => {} });
 
 export function useToast() {
   return useContext(ToastContext);
@@ -44,20 +44,22 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <div
             key={toast.id}
             onClick={() => dismiss(toast.id)}
-            className={`relative cursor-pointer rounded-lg px-4 py-3 pr-10 text-sm shadow-lg transition-all ${toast.type === "success"
-              ? "bg-(--app-success)/20 text-(--app-success)"
-              : toast.type === "error"
-                ? "bg-(--app-error)/20 text-(--app-error)"
-                : "bg-(--app-surface) text-foreground"
-              }`}
+            className={`relative cursor-pointer rounded-xl px-4 py-3 pr-10 text-sm font-bold shadow-xl transition-all ${
+              toast.type === "success"
+                ? "bg-emerald-600 text-white border border-emerald-700"
+                : toast.type === "error"
+                ? "bg-red-600 text-white border border-red-700"
+                : "bg-(--color-primary) text-white border border-(--color-primary-hover)"
+            }`}
           >
             {toast.message}
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 dismiss(toast.id);
               }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-lg leading-none opacity-60 hover:opacity-100"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-lg leading-none opacity-80 hover:opacity-100 cursor-pointer text-white"
             >
               ×
             </button>

@@ -77,3 +77,53 @@ export function compareSeniority(a?: string | null, b?: string | null): number {
     // 4. مقارنة اللاحقة (Suffix)
     return pa.suffix - pb.suffix;
 }
+
+import { RANK_WEIGHTS, type OfficerRank } from "@/lib/db/models/Officer.shared";
+
+export interface OfficerSortable {
+    seniorityNumber?: string | null;
+    rank?: string | null;
+    fullName?: string | null;
+    id?: string | null;
+    _id?: unknown;
+}
+
+/**
+ * مقارنة شاملة للضباط مطابقة لترتيب سجل وجدول الضباط
+ * 1. رقم الأقدمية العسكري (compareSeniority)
+ * 2. التدرج في الرتبة العسكرية (RANK_WEIGHTS)
+ * 3. الترتيب الأبجدي للاسم باللغة العربية
+ */
+export function compareOfficers(
+    a?: OfficerSortable | null,
+    b?: OfficerSortable | null,
+    officerLookupMap?: Map<string, OfficerSortable>
+): number {
+    if (!a && !b) return 0;
+    if (!a) return 1;
+    if (!b) return -1;
+
+    const idA = a.id || (a._id ? String(a._id) : "");
+    const idB = b.id || (b._id ? String(b._id) : "");
+
+    const fullA = (officerLookupMap && idA ? officerLookupMap.get(idA) : null) || a;
+    const fullB = (officerLookupMap && idB ? officerLookupMap.get(idB) : null) || b;
+
+    const senA = fullA.seniorityNumber || "";
+    const senB = fullB.seniorityNumber || "";
+
+    if (senA || senB) {
+        const cmp = compareSeniority(senA, senB);
+        if (cmp !== 0) return cmp;
+    }
+
+    const rankA = fullA.rank || "";
+    const rankB = fullB.rank || "";
+    const weightA = RANK_WEIGHTS[rankA as OfficerRank] ?? 99;
+    const weightB = RANK_WEIGHTS[rankB as OfficerRank] ?? 99;
+    if (weightA !== weightB) return weightA - weightB;
+
+    const nameA = fullA.fullName || "";
+    const nameB = fullB.fullName || "";
+    return nameA.localeCompare(nameB, "ar");
+}

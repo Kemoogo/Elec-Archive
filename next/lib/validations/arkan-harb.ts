@@ -4,53 +4,26 @@ import { OFFICER_RANKS_Z } from "./officers";
 export const POSITION_TYPES_Z = ["primary", "substitute"] as const;
 export const POSITION_STATUSES_Z = ["active", "ended"] as const;
 
-// Base shape without cross-field refinements — used for .partial() in update schemas
-const positionAssignmentBaseShape = {
-  officerId: z.string().min(1, "معرف الضابط مطلوب"),
+export const createPositionAssignmentSchema = z.object({
   positionTitle: z.string().min(1, "المسمى الوظيفي مطلوب").trim(),
-  positionType: z.enum(POSITION_TYPES_Z, { message: "النوع غير صالح" }),
-  substituteForOfficerId: z.string().optional().or(z.literal("")),
-  startDate: z
-    .string()
-    .min(1, "تاريخ البداية مطلوب")
-    .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح"),
-  endDate: z
-    .string()
-    .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح")
-    .optional()
-    .or(z.literal("")),
+  department: z.string().min(1, "الفرع / القسم مطلوب").trim().default("القيادة"),
+  primaryOfficerId: z.string().trim().optional().nullable().or(z.literal("")),
+  substituteOfficerIds: z.array(z.string().trim()).optional().default([]),
+  hasNoSubstitute: z.boolean().optional().default(false),
   orderNumber: z.string().trim().optional(),
   notes: z.string().trim().optional(),
-  status: z.enum(POSITION_STATUSES_Z).default("active"),
-};
-
-export const createPositionAssignmentSchema = z.object(positionAssignmentBaseShape).superRefine((data, ctx) => {
-  if (data.endDate && data.startDate && new Date(data.endDate) < new Date(data.startDate)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "تاريخ الانتهاء يجب أن يكون بعد أو يساوي تاريخ البداية",
-      path: ["endDate"],
-    });
-  }
-  if (data.positionType === "primary" && data.substituteForOfficerId) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "لا يمكن تحديد ضابط بديل عنه في تعيين أساسي",
-      path: ["substituteForOfficerId"],
-    });
-  }
-  if (data.positionType === "substitute" && !data.substituteForOfficerId) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "يجب تحديد الضابط الأصلي في التعيين البديل",
-      path: ["substituteForOfficerId"],
-    });
-  }
 });
 
 export const updatePositionAssignmentSchema = z
-  .object(positionAssignmentBaseShape)
-  .partial()
+  .object({
+    positionTitle: z.string().min(1, "المسمى الوظيفي مطلوب").trim().optional(),
+    department: z.string().min(1, "الفرع / القسم مطلوب").trim().optional(),
+    primaryOfficerId: z.string().trim().optional().nullable().or(z.literal("")),
+    substituteOfficerIds: z.array(z.string().trim()).optional(),
+    hasNoSubstitute: z.boolean().optional(),
+    orderNumber: z.string().trim().optional(),
+    notes: z.string().trim().optional(),
+  })
   .refine((data) => Object.keys(data).length > 0, {
     message: "يجب تحديد حقل واحد على الأقل",
   });
@@ -85,7 +58,7 @@ export const updatePromotionSchema = z
     message: "يجب تحديد حقل واحد على الأقل",
   });
 
-export const MISSION_STATUSES_Z = ["scheduled", "active", "completed", "cancelled"] as const;
+export const MISSION_STATUSES_Z = ["scheduled", "active", "completed", "cancelled", "postponed"] as const;
 
 // Base shape for mission — without superRefine
 const missionBaseShape = {
@@ -103,6 +76,9 @@ const missionBaseShape = {
     .optional()
     .or(z.literal("")),
   status: z.enum(MISSION_STATUSES_Z).default("scheduled"),
+  statusReason: z.string().trim().optional(),
+  resultSummary: z.string().trim().optional(),
+  linkedFaxId: z.string().trim().optional(),
 };
 
 export const createMissionSchema = z.object(missionBaseShape).superRefine((data, ctx) => {

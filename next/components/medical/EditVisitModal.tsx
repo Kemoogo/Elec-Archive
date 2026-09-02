@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { ModalActions } from "@/components/ui/modal-actions";
-import { Trash2 } from "lucide-react";
+import { Trash2, Edit } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { FormField, FormInput, FormTextarea, FormSelect } from "@/components/ui/form-fields";
 import { extractApiError } from "@/lib/utils";
@@ -189,7 +189,7 @@ export function EditVisitModal({ visitId, onClose }: EditVisitModalProps) {
       <button
         type="submit"
         form="edit-visit-form"
-        className="btn-modal-primary"
+        className="btn-primary"
         disabled={saving}
       >
         {saving ? "جاري الحفظ..." : "حفظ التعديلات"}
@@ -197,7 +197,7 @@ export function EditVisitModal({ visitId, onClose }: EditVisitModalProps) {
       <button
         type="button"
         onClick={onClose}
-        className="btn-modal-secondary"
+        className="btn-secondary"
         disabled={saving}
       >
         إلغاء
@@ -207,11 +207,8 @@ export function EditVisitModal({ visitId, onClose }: EditVisitModalProps) {
 
   return (
     <ModalShell
-      title={
-        <span className="text-base font-semibold text-(--color-primary)">
-          تعديل زيارة طبية: {patientName || "تحميل..."} {patientId ? `(رقم: ${patientId})` : ""}
-        </span>
-      }
+      title={`تعديل زيارة طبية: ${patientName || "تحميل..."} ${patientId ? `(رقم: ${patientId})` : ""}`}
+      icon={<Edit className="w-4 h-4" />}
       onClose={onClose}
       overlayClassName="bg-black/40"
       panelClassName="max-h-[85vh] max-w-2xl border-(--app-border) shadow-depth-xl"

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Cairo } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/toast";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
@@ -13,6 +14,9 @@ const cairo = Cairo({
   weight: ["400", "500", "600", "700", "800", "900"],
   variable: "--font-cairo",
   display: "swap",
+  preload: false,
+  fallback: ["Cairo", "Segoe UI", "Tahoma", "Arial", "sans-serif"],
+  adjustFontFallback: false,
 });
 
 export const metadata: Metadata = {
@@ -29,7 +33,9 @@ export default function RootLayout({
     <html lang="ar" dir="rtl" className={`h-full antialiased ${cairo.variable}`} data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <meta name="color-scheme" content="light dark" />
-        <script
+        <Script
+          id="theme-initializer"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               try {
@@ -44,7 +50,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${cairo.className} min-h-full flex flex-col bg-background text-foreground antialiased selection:bg-blue-500/20 selection:text-blue-600 dark:selection:text-blue-400`}>
+      <body suppressHydrationWarning className={`${cairo.className} min-h-full flex flex-col bg-background text-foreground antialiased selection:bg-blue-500/20 selection:text-blue-600 dark:selection:text-blue-400`}>
         <ThemeProvider>
           <ToastProvider>
             <DbConnectionTracker />

@@ -107,7 +107,7 @@ const TabsTrigger = React.forwardRef<
         variant === "folder" && [
           isActive
             ? "px-5 py-2.5 sm:px-6 sm:py-3 rounded-t-xl bg-(--app-surface) text-(--color-primary) border-t border-x border-(--app-border) border-b-0 font-black -mb-[1px] z-20 shadow-xs"
-            : "px-4 py-2 my-0.5 rounded-lg border border-transparent text-(--app-muted-foreground) hover:text-(--app-foreground) hover:bg-(--app-surface)/60 transition-all duration-150"
+            : "px-4 py-2 my-0.5 rounded-lg border border-transparent text-(--app-muted-foreground) hover:text-(--color-primary) hover:bg-(--app-surface)/80 transition-all duration-150"
         ],
 
         /* Pills Variant */
@@ -115,7 +115,7 @@ const TabsTrigger = React.forwardRef<
           "px-4 py-2 rounded-xl transition-all",
           isActive
             ? "bg-(--app-surface) text-(--color-primary) shadow-sm font-black border border-(--app-border)/40"
-            : "text-(--app-muted-foreground) hover:text-(--app-foreground) hover:bg-(--app-surface)/60"
+            : "text-(--app-muted-foreground) hover:text-(--color-primary) hover:bg-(--app-surface)/80"
         ],
 
         /* Underlined Variant */
@@ -123,7 +123,7 @@ const TabsTrigger = React.forwardRef<
           "px-4 py-3 rounded-none border-b-2 transition-all",
           isActive
             ? "border-(--color-primary) text-(--color-primary) font-black"
-            : "border-transparent text-(--app-muted-foreground) hover:text-(--app-foreground) hover:border-(--app-border)"
+            : "border-transparent text-(--app-muted-foreground) hover:text-(--color-primary) hover:border-(--color-primary)/40"
         ],
 
         /* Cards Variant */
@@ -131,7 +131,7 @@ const TabsTrigger = React.forwardRef<
           "px-5 py-3 rounded-2xl border transition-all",
           isActive
             ? "bg-(--app-surface) text-(--color-primary) border-blue-500/40 shadow-md font-black"
-            : "bg-(--app-surface-container) text-(--app-muted-foreground) border-(--app-border) hover:bg-(--app-surface)"
+            : "bg-(--app-surface-container) text-(--app-muted-foreground) border-(--app-border) hover:text-(--color-primary) hover:bg-(--app-surface)"
         ],
 
         className
@@ -188,7 +188,7 @@ const TabsContent = React.forwardRef<
       {...props}
     >
       {isActive && (
-        <div className="p-5 sm:p-6 md:p-8 animate-tab-premium">
+        <div key={value} className="p-5 sm:p-6 md:p-8 animate-tab-enter">
           {children}
         </div>
       )}

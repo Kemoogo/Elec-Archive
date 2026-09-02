@@ -62,9 +62,23 @@ export async function GET(request: Request) {
 
     const total = await User.countDocuments(filter);
 
+    const ROLE_ORDER: Record<string, number> = {
+      admin: 1,
+      commander: 2,
+      employee: 3,
+      viewer: 4,
+    };
+
+    const sortedUsers = [...users].sort((a, b) => {
+      const orderA = ROLE_ORDER[a.role] ?? 99;
+      const orderB = ROLE_ORDER[b.role] ?? 99;
+      if (orderA !== orderB) return orderA - orderB;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
     return NextResponse.json({
       success: true,
-      users: users.map((u) => ({
+      users: sortedUsers.map((u) => ({
         id: u._id.toString(),
         username: u.username,
         fullName: u.fullName,
