@@ -2,10 +2,10 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { User, Calendar, History, Briefcase, Shield } from "lucide-react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { User, Calendar, History, Briefcase, Filter } from "lucide-react";
 import { FolderTabs } from "@/components/ui/folder-tabs";
-import { ModernPageHeader as PageHeader } from "@/components/layout/ModernPageHeader";
+import { ModernPageHeader as PageHeader, SecondaryHeaderBtn } from "@/components/layout/ModernPageHeader";
 
 interface OfficerDetailTabsProps {
   officerLabel: string;
@@ -17,11 +17,30 @@ interface OfficerDetailTabsProps {
   initialTab?: string;
 }
 
-const TAB_DESCRIPTIONS: Record<string, string> = {
-  basic: "بيانات السجل العام والمعلومات الأساسية وتفاصيل الخدمة للضابط",
-  leaves: "سجل متابعة وتتبع الإجازات الرسمية والانقطاعات الحالية والسابقة",
-  career: "السجل المهني، الترقيات، التنقلات والمشاركات والمهام العسكرية",
-  job: "تاريخ وتفاصيل التعيينات والمسؤوليات والوظائف التخصصية والقيادية",
+const TAB_META: Record<
+  string,
+  { name: string; description: string; icon: React.ReactNode }
+> = {
+  basic: {
+    name: "البيانات الأساسية",
+    description: "بيانات السجل العام والمعلومات الأساسية وتفاصيل الخدمة للضابط",
+    icon: <User className="w-6 h-6" />,
+  },
+  leaves: {
+    name: "سجل الإجازات",
+    description: "سجل متابعة وتتبع الإجازات الرسمية والانقطاعات الحالية والسابقة",
+    icon: <Calendar className="w-6 h-6" />,
+  },
+  career: {
+    name: "السجل المهني",
+    description: "السجل المهني، الترقيات، التنقلات والمشاركات والمهام العسكرية",
+    icon: <History className="w-6 h-6" />,
+  },
+  job: {
+    name: "السجل الوظيفي",
+    description: "تاريخ وتفاصيل التعيينات والمسؤوليات والوظائف التخصصية والقيادية",
+    icon: <Briefcase className="w-6 h-6" />,
+  },
 };
 
 export function OfficerDetailTabs({
@@ -33,9 +52,48 @@ export function OfficerDetailTabs({
   actions,
   initialTab = "basic",
 }: OfficerDetailTabsProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const activeTab = searchParams.get("tab") || initialTab || "basic";
-  const currentDescription = TAB_DESCRIPTIONS[activeTab] || TAB_DESCRIPTIONS.basic;
+  const urlTab = searchParams.get("tab") || initialTab || "basic";
+
+  const [prevUrlTab, setPrevUrlTab] = React.useState(urlTab);
+  const [activeTab, setActiveTab] = React.useState(urlTab);
+
+  if (urlTab !== prevUrlTab) {
+    setPrevUrlTab(urlTab);
+    setActiveTab(urlTab);
+  }
+
+  const jobView = searchParams.get("view") || "active";
+  const currentMeta = TAB_META[activeTab] || TAB_META.basic;
+
+  const currentDescription =
+    activeTab === "job"
+      ? jobView === "all"
+        ? "عرض وتفاصيل كافة التكليفات والمسؤوليات والوظائف السابقة والجارية للضابط"
+        : "عرض ومتابعة الوظائف والمسؤوليات القيادية والتخصصية المكلف بها الضابط حالياً"
+      : currentMeta.description;
+
+  const handleToggleJobView = () => {
+    const params = new URLSearchParams(searchParams.toString());
+    const nextView = jobView === "all" ? "active" : "all";
+    params.set("view", nextView);
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+
+  let headerActions: React.ReactNode = undefined;
+  if (activeTab === "basic") {
+    headerActions = actions;
+  } else if (activeTab === "job") {
+    headerActions = (
+      <SecondaryHeaderBtn
+        label={jobView === "all" ? "كافة الوظائف" : "الوظائف الجارية"}
+        icon={<Filter className="w-4 h-4" />}
+        onClick={handleToggleJobView}
+      />
+    );
+  }
 
   const tabs = [
     {
@@ -67,7 +125,7 @@ export function OfficerDetailTabs({
   return (
     <div className="space-y-6">
       <PageHeader
-        icon={<Shield className="w-6 h-6" />}
+        icon={currentMeta.icon}
         title={
           <span className="flex items-center gap-2 flex-wrap">
             <Link
@@ -78,13 +136,20 @@ export function OfficerDetailTabs({
             </Link>
             <span className="text-(--app-muted-foreground)/50 font-semibold">-</span>
             <span>{officerLabel}</span>
+            <span className="text-(--app-muted-foreground)/50 font-semibold">-</span>
+            <span className="text-(--color-primary)">{currentMeta.name}</span>
           </span>
         }
         description={currentDescription}
-        actions={actions}
+        actions={headerActions}
       />
 
-      <FolderTabs tabs={tabs} initialTab={initialTab} />
+      <FolderTabs
+        tabs={tabs}
+        initialTab={initialTab}
+        value={activeTab}
+        onValueChange={(newTab) => setActiveTab(newTab)}
+      />
     </div>
   );
 }

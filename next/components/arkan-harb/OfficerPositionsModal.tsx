@@ -369,12 +369,24 @@ function OfficerPositionsModalContent({
       panelClassName="max-w-2xl border-(--app-border) shadow-depth-xl"
       bodyClassName="p-5 space-y-4 no-scrollbar"
       footer={
-        <ModalActions
-          submitText="حفظ التغييرات"
-          submitLoading={loading}
-          onCancel={onClose}
-          onConfirm={handleSaveAll}
-        />
+        canEdit ? (
+          <ModalActions
+            submitText="حفظ التغييرات"
+            submitLoading={loading}
+            onCancel={onClose}
+            onConfirm={handleSaveAll}
+          />
+        ) : (
+          <div className="flex items-center justify-end w-full">
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn-secondary text-xs"
+            >
+              إغلاق
+            </button>
+          </div>
+        )
       }
     >
       {/* Officer Summary Card */}

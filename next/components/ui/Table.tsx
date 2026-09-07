@@ -95,6 +95,17 @@ export default function MainTable<T extends object>({
     const headerDepth = getHeaderDepth(columns);
     const headerRows = buildHeaderRows(columns, headerDepth);
 
+    const getAccessorValue = (row: Record<string, unknown>, accessor?: string): unknown => {
+        if (!accessor) return undefined;
+        if (!accessor.includes('.')) return row[accessor];
+        return accessor.split('.').reduce<unknown>((acc, part) => {
+            if (acc && typeof acc === 'object') {
+                return (acc as Record<string, unknown>)[part];
+            }
+            return undefined;
+        }, row);
+    };
+
     const getValue = (value: unknown, emptyValue = "-"): unknown => {
         if (value === null || value === undefined || value === '') {
             return emptyValue;
@@ -163,7 +174,7 @@ export default function MainTable<T extends object>({
                                         return (
                                             <th
                                                 key={colIndex}
-                                                className={`${headerPadding} ${col.headerClassName || ""} ${colIndex > 0 ? "border-l border-white/15 dark:border-white/10" : ""}`}
+                                                className={`${headerPadding} ${col.headerClassName || ""}`}
                                                 colSpan={colspan}
                                                 rowSpan={rowspan}
                                                 style={{
@@ -196,7 +207,8 @@ export default function MainTable<T extends object>({
                                     {columns.map((col, colIndex) => {
                                         if (col.children && col.children.length > 0) {
                                             return col.children.map((child, childIndex) => {
-                                                const value = child.accessor ? getValue(rowWithMeta[child.accessor], child.emptyValue) : null;
+                                                const rawChildVal = child.accessor ? getAccessorValue(rowWithMeta, child.accessor) : null;
+                                                const value = child.accessor ? getValue(rawChildVal, child.emptyValue) : null;
                                                 const whiteSpace = typeof value === "string" && value.includes("\n") ? "pre-line" : "nowrap";
                                                 const cellAlignClass = getAlignClass(getCellAlign(child));
                                                 return (
@@ -213,7 +225,8 @@ export default function MainTable<T extends object>({
                                                 );
                                             });
                                         }
-                                        const value = col.accessor ? getValue(rowWithMeta[col.accessor], col.emptyValue) : null;
+                                        const rawColVal = col.accessor ? getAccessorValue(rowWithMeta, col.accessor) : null;
+                                        const value = col.accessor ? getValue(rawColVal, col.emptyValue) : null;
                                         const whiteSpace = typeof value === "string" && value.includes("\n") ? "pre-line" : "nowrap";
                                         const cellAlignClass = getAlignClass(getCellAlign(col));
                                         return (

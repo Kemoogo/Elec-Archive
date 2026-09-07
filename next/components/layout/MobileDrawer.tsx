@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Menu, X, FileText, Shield, Settings, Swords, GraduationCap, BookOpen, Stethoscope, ClipboardList, ScrollText, History, LogOut } from "lucide-react";
+import { Menu, X, FileText, Shield, Settings, Swords, GraduationCap, BookOpen, Stethoscope, ClipboardList, ScrollText, History, LogOut, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ThemeToggle } from "./ThemeToggle";
@@ -176,9 +176,17 @@ export function MobileDrawer({ navItems, user }: MobileDrawerProps) {
           })}
         </div>
 
-        {/* Drawer Footer — ThemeToggle + Logout */}
-        <div className="p-4 border-t border-(--app-border) space-y-3">
-          <div className="flex items-center justify-between px-1">
+        {/* Drawer Footer — Profile + ThemeToggle + Logout */}
+        <div className="p-4 border-t border-(--app-border) space-y-2">
+          <Link
+            href="/profile"
+            onClick={() => setOpen(false)}
+            className="flex w-full items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold text-(--app-foreground) hover:bg-(--app-surface-container) transition-colors"
+          >
+            <User className="w-4 h-4 text-(--color-primary)" />
+            <span>الملف الشخصي وكلمة المرور</span>
+          </Link>
+          <div className="flex items-center justify-between px-1 pt-1">
             <ThemeToggle />
           </div>
           <button

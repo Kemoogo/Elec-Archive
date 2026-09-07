@@ -5,7 +5,6 @@ import { Branch } from "@/lib/db/models/Branch";
 import { Department } from "@/lib/db/models/Department";
 import { updateBranchSchema } from "@/validations/department";
 import { logAuditEvent } from "@/lib/auth/audit";
-import { canEditModule } from "@/lib/auth/authorization";
 
 export async function PATCH(
   req: Request,
@@ -17,7 +16,7 @@ export async function PATCH(
   }
 
   const user = auth.user!;
-  const isAllowed = user.role === "admin" || user.role === "commander" || canEditModule(user, "arkan_harb");
+  const isAllowed = user.role === "admin";
   if (!isAllowed) {
     return NextResponse.json({ success: false, error: "غير مصرح لك بتعديل هذا الفرع" }, { status: 403 });
   }
@@ -72,7 +71,7 @@ export async function DELETE(
   }
 
   const user = auth.user!;
-  const isAllowed = user.role === "admin" || user.role === "commander" || canEditModule(user, "arkan_harb");
+  const isAllowed = user.role === "admin";
   if (!isAllowed) {
     return NextResponse.json({ success: false, error: "غير مصرح لك بحذف هذا الفرع" }, { status: 403 });
   }

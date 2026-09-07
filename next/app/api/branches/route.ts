@@ -4,7 +4,6 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { Branch } from "@/lib/db/models/Branch";
 import { createBranchSchema } from "@/validations/department";
 import { logAuditEvent } from "@/lib/auth/audit";
-import { canEditModule } from "@/lib/auth/authorization";
 
 export async function GET() {
   const auth = await authenticate();
@@ -28,7 +27,7 @@ export async function POST(req: Request) {
   }
 
   const user = auth.user!;
-  const isAllowed = user.role === "admin" || user.role === "commander" || canEditModule(user, "arkan_harb");
+  const isAllowed = user.role === "admin";
   if (!isAllowed) {
     return NextResponse.json({ success: false, error: "غير مصرح لك بإضافة فرع جديد" }, { status: 403 });
   }

@@ -72,7 +72,11 @@ const Footer = () => {
         <div className="text-sm font-medium opacity-90 text-center md:text-left">
           {info.isLoggedIn && (
             <div>
-              تطوير {info.rankLabel} /{" "}
+              تطوير{" "}
+              <span className="font-bold text-white pb-0.5">
+                {info.rankLabel}
+              </span>{" "}
+              /{" "}
               <span className="font-bold text-white pb-0.5">
                 {info.developerName}
               </span>

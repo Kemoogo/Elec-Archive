@@ -67,7 +67,7 @@ export function MedicineTable({ medicines, now, emptyTitle, emptyDescription }: 
       accessor: "expiryDate",
       isNumeric: true,
       cellAlign: "center",
-      render: (val) => new Date(val as string).toLocaleDateString("ar-EG"),
+      render: (val) => <span className="font-mono">{new Date(val as string).toLocaleDateString("ar-EG")}</span>,
     },
     {
       header: "الحد الأدنى",

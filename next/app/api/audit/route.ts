@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
   }
 
-  if (auth.user!.role !== "admin" && auth.user!.role !== "commander") {
+  if (auth.user!.role !== "admin") {
     return NextResponse.json({ success: false, error: "غير مصرح" }, { status: 403 });
   }
 

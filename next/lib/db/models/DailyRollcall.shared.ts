@@ -62,6 +62,10 @@ export interface IRollcallEntry {
   relatedLeaveId?: Types.ObjectId | string;
   relatedMissionId?: Types.ObjectId | string;
   relatedAssignmentId?: Types.ObjectId | string;
+  isLocked?: boolean;
+  lockReason?: string;
+  sourceId?: string;
+  sourceType?: "leave" | "mission";
 }
 
 export interface RollcallBreakdown {

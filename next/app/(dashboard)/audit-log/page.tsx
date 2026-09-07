@@ -9,7 +9,7 @@ export default async function AuditLogPage() {
     redirect("/login");
   }
 
-  if (auth.user!.role !== "admin" && auth.user!.role !== "commander") {
+  if (auth.user!.role !== "admin") {
     redirect("/");
   }
 

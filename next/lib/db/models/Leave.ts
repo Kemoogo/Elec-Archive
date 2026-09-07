@@ -22,13 +22,36 @@ export {
   type LeaveStatus 
 };
 
+export interface ILeaveExtension {
+  newEndDate: Date;
+  reason?: string;
+  requestedAt: Date;
+  status: "pending" | "approved" | "rejected";
+  commanderNotes?: string;
+  decidedAt?: Date;
+}
+
+export interface ICommanderDecision {
+  status: "approved" | "rejected" | "other_orders";
+  notes?: string;
+  decidedAt?: Date;
+  decidedBy?: Types.ObjectId;
+}
+
 export interface ILeave extends Document {
   officerId: Types.ObjectId;
   category: LeaveCategory;
   type: LeaveType;
   startDate: Date;
   endDate: Date;
+  lastReturnDate?: Date;
+  presenceDurationDays?: number;
+  actingOfficerId?: Types.ObjectId;
+  isActingOfficerPresentConfirmed?: boolean;
+  commanderDecision?: ICommanderDecision;
+  extensionRequests?: ILeaveExtension[];
   actualReturnDate?: Date;
+  isReturnConfirmed?: boolean;
   reason?: string;
   status: LeaveStatus;
   createdBy: Types.ObjectId;
@@ -44,21 +67,44 @@ const LeaveSchema = new Schema<ILeave>(
       type: String,
       required: true,
       enum: LEAVE_CATEGORIES,
+      default: "leave",
     },
     type: {
       type: String,
       required: true,
       enum: LEAVE_TYPES,
+      default: "field",
     },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
+    lastReturnDate: { type: Date },
+    presenceDurationDays: { type: Number, default: 0 },
+    actingOfficerId: { type: Schema.Types.ObjectId, ref: "Officer" },
+    isActingOfficerPresentConfirmed: { type: Boolean, default: false },
+    commanderDecision: {
+      status: { type: String, enum: ["approved", "rejected", "other_orders"] },
+      notes: { type: String, trim: true },
+      decidedAt: { type: Date },
+      decidedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    },
+    extensionRequests: [
+      {
+        newEndDate: { type: Date, required: true },
+        reason: { type: String, trim: true },
+        requestedAt: { type: Date, default: Date.now },
+        status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
+        commanderNotes: { type: String, trim: true },
+        decidedAt: { type: Date },
+      },
+    ],
     actualReturnDate: { type: Date },
+    isReturnConfirmed: { type: Boolean, default: false },
     reason: { type: String, trim: true },
     status: {
       type: String,
       required: true,
       enum: LEAVE_STATUSES,
-      default: "draft",
+      default: "pending_commander",
     },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
     updatedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },

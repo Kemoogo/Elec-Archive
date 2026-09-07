@@ -2,7 +2,7 @@ import { Types } from "mongoose";
 import type { IOfficer } from "@/lib/db/models/Officer";
 import { RANK_LABELS, EMPLOYMENT_LABELS, OFFICER_TYPE_LABELS, OFFICER_WEAPON_LABELS } from "@/lib/db/models/Officer";
 import { MISSION_STATUS_LABELS, MISSION_STATUS_COLORS } from "@/lib/db/models/Mission.shared";
-import { POSITION_STATUS_LABELS, POSITION_STATUS_COLORS } from "@/lib/db/models/PositionAssignment.shared";
+import { POSITION_STATUS_LABELS, POSITION_TYPE_LABELS } from "@/lib/db/models/PositionAssignment.shared";
 import { MOVEMENT_LABELS } from "@/lib/db/models/ServiceHistory.shared";
 import type { PositionType, PositionStatus } from "@/lib/db/models/PositionAssignment.shared";
 
@@ -85,14 +85,30 @@ export type OfficerLean = IOfficer & {
   _id: Types.ObjectId;
 };
 
-export interface SerializedPosition {
+export interface SerializedPositionInterval {
   id: string;
-  positionTitle: string;
-  positionType: PositionType;
+  role: PositionType;
+  roleLabel: string;
   startDate: string;
   endDate: string | null;
   status: PositionStatus;
+  statusLabel: string;
+  notes?: string;
 }
+
+export interface SerializedPositionGroup {
+  id: string;
+  positionTitle: string;
+  department: string;
+  role: PositionType | "both";
+  roleLabel: string;
+  recordsCount: number;
+  status: PositionStatus;
+  statusLabel: string;
+  intervals: SerializedPositionInterval[];
+}
+
+export type SerializedPosition = SerializedPositionGroup;
 
 export interface SerializedLeave {
   id: string;
@@ -198,39 +214,111 @@ export function serializeOfficerDetail(officer: OfficerLean): OfficerDetailData 
   };
 }
 
+function safeIso(val: unknown, fallback: Date = new Date()): string {
+  if (!val) return fallback.toISOString();
+  const d = new Date(val as string | number | Date);
+  return isNaN(d.getTime()) ? fallback.toISOString() : d.toISOString();
+}
+
+function safeTime(val: unknown, fallback: number = Date.now()): number {
+  if (!val) return fallback;
+  const d = new Date(val as string | number | Date);
+  return isNaN(d.getTime()) ? fallback : d.getTime();
+}
+
+function matchOfficerId(rawOfficerId: unknown, targetOfficerId?: string): boolean {
+  if (!targetOfficerId) return true;
+  if (!rawOfficerId) return false;
+  if (typeof rawOfficerId === "object") {
+    const obj = rawOfficerId as { _id?: unknown; id?: unknown };
+    const str = String(obj._id || obj.id || "");
+    return str === targetOfficerId;
+  }
+  return String(rawOfficerId) === targetOfficerId;
+}
+
 export function serializePositions(
   positions: (IPositionAssignment & { _id: Types.ObjectId })[],
   officerId?: string
-): SerializedPosition[] {
-  const result: SerializedPosition[] = [];
+): SerializedPositionGroup[] {
+  if (!Array.isArray(positions)) return [];
+  const result: SerializedPositionGroup[] = [];
 
   for (const pa of positions) {
-    if (pa.assignmentHistory && pa.assignmentHistory.length > 0) {
+    if (!pa) continue;
+    const rawIntervals: SerializedPositionInterval[] = [];
+    const paId = pa._id ? pa._id.toString() : String(Math.random());
+
+    if (pa.assignmentHistory && Array.isArray(pa.assignmentHistory) && pa.assignmentHistory.length > 0) {
       for (const h of pa.assignmentHistory) {
-        if (!officerId || h.officerId.toString() === officerId) {
-          result.push({
-            id: pa._id.toString(),
-            positionTitle: pa.positionTitle,
-            positionType: h.role,
-            startDate: new Date(h.startDate).toISOString(),
-            endDate: h.endDate ? new Date(h.endDate).toISOString() : null,
-            status: h.endDate ? "ended" : "active",
+        if (!h) continue;
+        if (matchOfficerId(h.officerId, officerId)) {
+          const isAct = !h.endDate;
+          const statusKey: PositionStatus = isAct ? "active" : "ended";
+          const hId = h._id ? h._id.toString() : `${paId}-${safeIso(h.startDate)}`;
+          rawIntervals.push({
+            id: hId,
+            role: h.role || "primary",
+            roleLabel: POSITION_TYPE_LABELS[h.role] || (h.role === "primary" ? "ضابط أساسي" : "ضابط بديل"),
+            startDate: safeIso(h.startDate),
+            endDate: h.endDate ? safeIso(h.endDate) : null,
+            status: statusKey,
+            statusLabel: POSITION_STATUS_LABELS[statusKey] || (isAct ? "تكليف سارٍ" : "منتهٍ"),
+            notes: h.notes || undefined,
           });
         }
       }
-    } else {
-      const isPrimary = officerId && pa.primaryOfficerId?.toString() === officerId;
-      const isSub = officerId && pa.substituteOfficerIds?.some((s) => s.toString() === officerId);
-      if (!officerId || isPrimary || isSub) {
-        result.push({
-          id: pa._id.toString(),
-          positionTitle: pa.positionTitle,
-          positionType: isPrimary ? "primary" : "substitute",
-          startDate: (pa.primaryStartDate || pa.createdAt || new Date()).toISOString(),
+    }
+
+    // Fallback if no history entries were recorded yet
+    if (rawIntervals.length === 0 && officerId) {
+      const isPrimary = pa.primaryOfficerId && pa.primaryOfficerId.toString() === officerId;
+      const isSub =
+        Array.isArray(pa.substituteOfficerIds) &&
+        pa.substituteOfficerIds.some((s) => s && s.toString() === officerId);
+      if (isPrimary || isSub) {
+        const roleKey: PositionType = isPrimary ? "primary" : "substitute";
+        rawIntervals.push({
+          id: paId,
+          role: roleKey,
+          roleLabel: POSITION_TYPE_LABELS[roleKey] || (isPrimary ? "ضابط أساسي" : "ضابط بديل"),
+          startDate: safeIso(pa.primaryStartDate || pa.createdAt),
           endDate: null,
           status: "active",
+          statusLabel: "تكليف سارٍ",
+          notes: pa.notes || undefined,
         });
       }
+    }
+
+    if (rawIntervals.length > 0) {
+      rawIntervals.sort((a, b) => safeTime(b.startDate) - safeTime(a.startDate));
+
+      const hasPrimary = rawIntervals.some((i) => i.role === "primary");
+      const hasSub = rawIntervals.some((i) => i.role === "substitute");
+      const combinedRole: PositionType | "both" =
+        hasPrimary && hasSub ? "both" : hasPrimary ? "primary" : "substitute";
+      const combinedRoleLabel =
+        combinedRole === "both"
+          ? "أساسي / بديل"
+          : combinedRole === "primary"
+          ? "ضابط أساسي"
+          : "ضابط بديل";
+
+      const isActive = rawIntervals.some((i) => i.status === "active");
+      const statusKey: PositionStatus = isActive ? "active" : "ended";
+
+      result.push({
+        id: paId,
+        positionTitle: pa.positionTitle || "وظيفة بدون مسمى",
+        department: pa.department || "القيادة",
+        role: combinedRole,
+        roleLabel: combinedRoleLabel,
+        recordsCount: rawIntervals.length,
+        status: statusKey,
+        statusLabel: isActive ? "تكليف سارٍ" : "تكليف سابق (منتهٍ)",
+        intervals: rawIntervals,
+      });
     }
   }
 
@@ -242,8 +330,8 @@ export function serializeLeaves(leaves: (ILeave & { _id: Types.ObjectId })[]): S
     id: l._id.toString(),
     type: l.type,
     category: l.category,
-    startDate: l.startDate.toISOString(),
-    endDate: l.endDate.toISOString(),
+    startDate: safeIso(l.startDate),
+    endDate: safeIso(l.endDate),
     status: l.status,
   }));
 }
@@ -252,26 +340,25 @@ export function buildCareerTimeline(
   officer: OfficerLean,
   promotions: (IPromotion & { _id: Types.ObjectId })[],
   missions: (IMission & { _id: Types.ObjectId })[],
-  positions: (IPositionAssignment & { _id: Types.ObjectId })[],
   movements: (IServiceHistory & { _id: Types.ObjectId })[]
 ): SerializedTimelineEvent[] {
   const isArkanHarb = officer.isArkanHarb;
-  const currentJoinDate = new Date(officer.joinDate).getTime();
+  const currentJoinDate = safeTime(officer.joinDate);
 
   // Separate join movements to avoid duplicates and handle rejoined status
   const nonJoinMovements = movements.filter((m) => m.action !== "join");
   const joinMovements = movements
     .filter((m) => m.action === "join")
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    .sort((a, b) => safeTime(a.date) - safeTime(b.date));
 
   const joinEvents: SerializedTimelineEvent[] = joinMovements.map((m, idx) => {
     const isFirstJoin = idx === 0;
-    const isCurrentJoin = new Date(m.date).getTime() === currentJoinDate;
+    const isCurrentJoin = safeTime(m.date) === currentJoinDate;
 
     return {
       id: m._id.toString(),
       type: "join",
-      date: new Date(m.date).getTime(),
+      date: safeTime(m.date),
       title: isFirstJoin ? "أول انضمام للخدمة" : "إعادة انضمام للخدمة",
       description: isCurrentJoin
         ? `تم الانضمام برتبة ${RANK_LABELS[officer.rank] || officer.rank}${isArkanHarb ? " أ ح" : ""}`
@@ -296,7 +383,7 @@ export function buildCareerTimeline(
     ...promotions.map((p) => ({
       id: p._id.toString(),
       type: "promotion" as SerializedTimelineEventType,
-      date: new Date(p.effectiveDate).getTime(),
+      date: safeTime(p.effectiveDate),
       title: `ترقية إلى ${RANK_LABELS[p.toRank] || p.toRank}${isArkanHarb ? " أ ح" : ""}`,
       description: p.notes,
       badge: RANK_LABELS[p.fromRank] ? `${RANK_LABELS[p.fromRank]} ← ${RANK_LABELS[p.toRank]}` : undefined,
@@ -304,8 +391,8 @@ export function buildCareerTimeline(
     ...missions.map((m) => ({
       id: m._id.toString(),
       type: "mission" as SerializedTimelineEventType,
-      date: new Date(m.startDate).getTime(),
-      endDate: m.endDate ? new Date(m.endDate).getTime() : undefined,
+      date: safeTime(m.startDate),
+      endDate: m.endDate ? safeTime(m.endDate) : undefined,
       title: m.title,
       description: m.description,
       statusLabel: MISSION_STATUS_LABELS[m.status] || m.status,
@@ -313,53 +400,10 @@ export function buildCareerTimeline(
         MISSION_STATUS_COLORS[m.status] ||
         "bg-(--app-surface-container) text-(--app-muted-foreground) border-(--app-border)",
     })),
-    ...positions.flatMap((pa) => {
-      const entries = (pa.assignmentHistory || []).filter(
-        (h) => h.officerId && h.officerId.toString() === officer._id.toString()
-      );
-      if (entries.length > 0) {
-        return entries.map((h) => {
-          const isAct = !h.endDate;
-          const statusKey: PositionStatus = isAct ? "active" : "ended";
-          return {
-            id: `${pa._id.toString()}-${h._id?.toString() || h.startDate.toString()}`,
-            type: "transfer" as SerializedTimelineEventType,
-            date: new Date(h.startDate).getTime(),
-            endDate: h.endDate ? new Date(h.endDate).getTime() : undefined,
-            title: pa.positionTitle,
-            description: h.notes || pa.notes,
-            statusLabel: POSITION_STATUS_LABELS[statusKey] || statusKey,
-            statusColor:
-              POSITION_STATUS_COLORS[statusKey] ||
-              "bg-(--app-surface-container) text-(--app-muted-foreground) border-(--app-border)",
-            badge: h.role === "primary" ? "أساسي" : "بديل",
-          };
-        });
-      }
-      const isPrimary = pa.primaryOfficerId?.toString() === officer._id.toString();
-      const isSub = pa.substituteOfficerIds?.some((s) => s.toString() === officer._id.toString());
-      if (isPrimary || isSub) {
-        const statusKey: PositionStatus = "active";
-        return [
-          {
-            id: pa._id.toString(),
-            type: "transfer" as SerializedTimelineEventType,
-            date: (pa.primaryStartDate || pa.createdAt || new Date()).getTime(),
-            endDate: undefined,
-            title: pa.positionTitle,
-            description: pa.notes,
-            statusLabel: POSITION_STATUS_LABELS[statusKey],
-            statusColor: POSITION_STATUS_COLORS[statusKey],
-            badge: isPrimary ? "أساسي" : "بديل",
-          },
-        ];
-      }
-      return [];
-    }),
     ...nonJoinMovements.map((m) => ({
       id: m._id.toString(),
       type: m.action as SerializedTimelineEventType,
-      date: new Date(m.date).getTime(),
+      date: safeTime(m.date),
       title: MOVEMENT_LABELS[m.action] || m.action,
       description: m.notes,
     })),

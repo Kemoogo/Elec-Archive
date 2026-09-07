@@ -45,7 +45,7 @@ export function FaxTable({ faxes }: FaxTableProps) {
     {
       header: "التاريخ",
       accessor: "date",
-      render: (val) => new Date(val as string).toLocaleDateString("ar-EG"),
+      render: (val) => <span className="font-mono">{new Date(val as string).toLocaleDateString("ar-EG")}</span>,
     },
     {
       header: "الجهة المرسِلة",

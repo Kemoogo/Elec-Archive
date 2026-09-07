@@ -5,7 +5,6 @@ import { Department } from "@/lib/db/models/Department";
 import { Branch } from "@/lib/db/models/Branch";
 import { createDepartmentSchema } from "@/validations/department";
 import { logAuditEvent } from "@/lib/auth/audit";
-import { canEditModule } from "@/lib/auth/authorization";
 
 // Seed default branches & departments if empty
 async function seedDefaultBranchesAndDepartmentsIfNeeded() {
@@ -69,7 +68,7 @@ export async function POST(req: Request) {
   }
 
   const user = auth.user!;
-  const isAllowed = user.role === "admin" || user.role === "commander" || canEditModule(user, "arkan_harb");
+  const isAllowed = user.role === "admin";
   if (!isAllowed) {
     return NextResponse.json({ success: false, error: "غير مصرح لك بإضافة قسم جديد" }, { status: 403 });
   }

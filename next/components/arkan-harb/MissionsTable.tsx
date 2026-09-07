@@ -55,6 +55,7 @@ export function MissionsTable({
   total,
   page,
   limit,
+  canEdit = false,
   isAdmin = false,
   onPageChange,
   onLimitChange,
@@ -64,6 +65,7 @@ export function MissionsTable({
   total: number;
   page: number;
   limit: number;
+  canEdit?: boolean;
   isAdmin?: boolean;
   onPageChange: (page: number) => void;
   onLimitChange: (limit: number) => void;
@@ -172,21 +174,55 @@ export function MissionsTable({
       accessor: "status",
       cellAlign: "center",
       headerAlign: "center",
-      render: (value: unknown, row: Mission) => (
-        <div className="flex flex-col items-center gap-1">
-          <Badge
-            variant="secondary"
-            className={`${getStatusBadgeClass(value as MissionStatus)} text-[10px] font-bold px-2.5 py-1 rounded-lg border-none`}
-          >
-            {getMissionStatusLabel(value as MissionStatus)}
-          </Badge>
-          {row.statusReason && (
-            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold line-clamp-1 max-w-[130px]" title={row.statusReason}>
-              السبب: {row.statusReason}
-            </span>
-          )}
-        </div>
-      ),
+      render: (value: unknown, row: Mission) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const parseDate = (d: Date | string | null | undefined) => {
+          if (!d) return null;
+          if (typeof d === "string") {
+            const [y, m, day] = d.split("T")[0].split("-").map(Number);
+            return new Date(y, m - 1, day);
+          }
+          return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        };
+
+        const startDate = parseDate(row.startDate);
+        const endDate = parseDate(row.endDate) || startDate;
+
+        const isCurrentlyActive =
+          (row.status === "active" || row.status === "scheduled") &&
+          startDate !== null &&
+          today >= startDate &&
+          (endDate === null || today <= endDate);
+
+        return (
+          <div className="flex flex-col items-center gap-1">
+            <Badge
+              variant="secondary"
+              className={`${getStatusBadgeClass(value as MissionStatus)} text-[10px] font-bold px-2.5 py-1 rounded-lg border-none`}
+            >
+              {getMissionStatusLabel(value as MissionStatus)}
+            </Badge>
+
+            {isCurrentlyActive && (
+              <div className="flex items-center gap-1.5 text-[10px] font-bold text-(--app-success) bg-(--app-success)/10 border border-(--app-success)/20 px-2 py-0.5 rounded-full mt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-(--app-success) animate-pulse" />
+                <span>سارٍ بالتمام اليومي</span>
+              </div>
+            )}
+
+            {row.statusReason && (
+              <span
+                className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold line-clamp-1 max-w-[130px]"
+                title={row.statusReason}
+              >
+                السبب: {row.statusReason}
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       header: "الإجراءات",
@@ -201,7 +237,7 @@ export function MissionsTable({
             title="طباعة أمر التكليف"
             onClick={() => setPrintMission(row)}
           />
-          {row.status !== "completed" && row.status !== "cancelled" && (
+          {canEdit && row.status !== "completed" && row.status !== "cancelled" && (
             <>
               <ActionButton
                 icon={<CheckCircle2 className="h-4 w-4 text-emerald-500" />}
@@ -223,12 +259,14 @@ export function MissionsTable({
               />
             </>
           )}
-          <ActionButton
-            icon={<Edit className="h-4 w-4" />}
-            color="btn-action-info"
-            title="تعديل المهمة"
-            onClick={() => onEditMission(row)}
-          />
+          {canEdit && (
+            <ActionButton
+              icon={<Edit className="h-4 w-4" />}
+              color="btn-action-info"
+              title="تعديل المهمة"
+              onClick={() => onEditMission(row)}
+            />
+          )}
         </div>
       ),
     },
@@ -265,7 +303,7 @@ export function MissionsTable({
         isAdmin={isAdmin}
         onClose={() => setDetailMission(null)}
         onSuccess={() => window.location.reload()}
-        onEdit={onEditMission}
+        onEdit={canEdit ? onEditMission : undefined}
       />
 
       <MissionActionModal

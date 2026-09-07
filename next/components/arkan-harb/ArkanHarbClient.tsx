@@ -7,7 +7,7 @@ import { FolderTabs, type TabItem } from "@/components/ui/folder-tabs";
 import { ClipboardList, ScrollText, FileText, Shield, LayoutDashboard, Plus, ChevronDown, Briefcase, History, Filter } from "lucide-react";
 import { PageHeader, PrimaryHeaderBtn, SecondaryHeaderBtn } from "@/components/layout/ModernPageHeader";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { LeaveAddModal } from "@/components/officers/LeaveAddModal";
+import { LeaveRequestModal } from "@/components/officers/LeaveRequestModal";
 import { MissionForm } from "./MissionForm";
 
 interface OfficerOption {
@@ -17,6 +17,7 @@ interface OfficerOption {
   militaryId: string;
   rank: string;
   officerLabel?: string;
+  defaultLeaveSystem?: string;
 }
 
 interface ArkanHarbClientProps {
@@ -60,18 +61,27 @@ export function ArkanHarbClient({
   const activeTab = searchParams.get("tab") || "dashboard";
 
   const [isMissionModalOpen, setIsMissionModalOpen] = useState(false);
+  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
 
-  const updateParams = (newParams: Record<string, string>) => {
-    const params = new URLSearchParams(searchParams.toString());
-    Object.entries(newParams).forEach(([key, value]) => {
-      if (value) {
-        params.set(key, value);
-      } else {
-        params.delete(key);
-      }
-    });
-    router.push(`${pathname}?${params.toString()}`, { scroll: false });
-  };
+  const updateParams = React.useCallback(
+    (newParams: Record<string, string>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      Object.entries(newParams).forEach(([key, value]) => {
+        if (value) {
+          params.set(key, value);
+        } else {
+          params.delete(key);
+        }
+      });
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    },
+    [router, pathname, searchParams],
+  );
+
+  const updateParamsRef = React.useRef(updateParams);
+  useEffect(() => {
+    updateParamsRef.current = updateParams;
+  }, [updateParams]);
 
   const currentTabName = TAB_NAMES[activeTab] || TAB_NAMES.dashboard;
   const currentDescription = TAB_DESCRIPTIONS[activeTab] || TAB_DESCRIPTIONS.dashboard;
@@ -111,8 +121,28 @@ export function ArkanHarbClient({
 
   // Render header action controls per active tab using Sapphire Archive design system buttons
   const renderHeaderActions = () => {
-    if (activeTab === "leaves" && canEdit) {
-      return <LeaveAddModal officers={officers} />;
+    if (activeTab === "leaves") {
+      const showRequestsOnly = searchParams.get("requestsOnly") === "true";
+      return (
+        <div className="flex items-center gap-2">
+          <SecondaryHeaderBtn
+            label={showRequestsOnly ? "عرض كافة الضباط" : "عرض الطلبات فقط"}
+            icon={<Filter className="w-4 h-4" />}
+            onClick={() =>
+              updateParams({
+                requestsOnly: showRequestsOnly ? "" : "true",
+              })
+            }
+          />
+          {canEdit && (
+            <PrimaryHeaderBtn
+              label="تقديم طلب إجازة"
+              icon={<Plus className="w-4 h-4" />}
+              onClick={() => setIsLeaveModalOpen(true)}
+            />
+          )}
+        </div>
+      );
     }
 
     if (activeTab === "missions") {
@@ -200,9 +230,9 @@ export function ArkanHarbClient({
     const timer = setTimeout(() => {
       if (localSearch !== urlSearchQuery) {
         if (activeTab === "leaves" || activeTab === "positions") {
-          updateParams({ search: localSearch });
+          updateParamsRef.current({ search: localSearch });
         } else {
-          updateParams({ officerId: localSearch, page: "1" });
+          updateParamsRef.current({ officerId: localSearch, page: "1" });
         }
       }
     }, 300);
@@ -250,6 +280,12 @@ export function ArkanHarbClient({
 
       {canEdit && (
         <>
+          <LeaveRequestModal
+            officers={officers}
+            isOpen={isLeaveModalOpen}
+            onClose={() => setIsLeaveModalOpen(false)}
+          />
+
           <MissionForm
             mission={null}
             officers={officers}

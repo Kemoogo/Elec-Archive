@@ -66,7 +66,7 @@ export function VisitTable({ visits, emptyTitle, emptyDescription, permissions }
       header: "تاريخ الزيارة",
       accessor: "visitDate",
       minWidth: hasLongDiagnosis,
-      render: (val) => new Date(val as string).toLocaleDateString("ar-EG"),
+      render: (val) => <span className="font-mono">{new Date(val as string).toLocaleDateString("ar-EG")}</span>,
     },
     {
       header: "التشخيص",

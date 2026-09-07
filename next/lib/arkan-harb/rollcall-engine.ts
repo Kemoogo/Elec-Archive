@@ -84,10 +84,19 @@ export async function calculateDailyRollcallEntries(targetDate: Date): Promise<I
     let status: RollcallStatus = "present";
     let relatedLeaveId: Types.ObjectId | undefined;
     let relatedMissionId: Types.ObjectId | undefined;
+    let isLocked = false;
+    let lockReason: string | undefined;
+    let sourceId: string | undefined;
+    let sourceType: "leave" | "mission" | undefined;
 
     if (l) {
       status = "leave";
       relatedLeaveId = l._id as Types.ObjectId;
+      isLocked = true;
+      sourceId = l._id.toString();
+      sourceType = "leave";
+      const endStr = l.endDate ? new Date(l.endDate).toLocaleDateString("ar-EG") : "";
+      lockReason = `إجازة رسمية (${l.type || "اعتيادية"})${endStr ? ` حتى ${endStr}` : ""}`;
     } else if (m) {
       if (m.missionType === "internal_daily") {
         status = "daily_mission";
@@ -95,6 +104,10 @@ export async function calculateDailyRollcallEntries(targetDate: Date): Promise<I
         status = "external_mission";
       }
       relatedMissionId = m._id as Types.ObjectId;
+      isLocked = true;
+      sourceId = m._id.toString();
+      sourceType = "mission";
+      lockReason = `مأمورية: ${m.title || "مأمورية رسمية"}`;
     }
 
     return {
@@ -105,6 +118,10 @@ export async function calculateDailyRollcallEntries(targetDate: Date): Promise<I
       status,
       relatedLeaveId,
       relatedMissionId,
+      isLocked,
+      lockReason,
+      sourceId,
+      sourceType,
     };
   });
 

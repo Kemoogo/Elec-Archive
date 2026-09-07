@@ -100,21 +100,29 @@ export default async function OfficerDetailPage({
   const [promotions, missions, positionAssignments, leaves, movements] = await Promise.all([
     Promotion.find({ officerId: id }).sort({ effectiveDate: -1 }).lean(),
     Mission.find({ officerId: id }).sort({ startDate: -1 }).lean(),
-    PositionAssignment.find({ officerId: id }).sort({ startDate: -1 }).lean(),
+    PositionAssignment.find({
+      $or: [
+        { primaryOfficerId: id },
+        { substituteOfficerIds: id },
+        { "assignmentHistory.officerId": id },
+      ],
+    }).lean(),
     Leave.find({ officerId: id }).sort({ startDate: -1 }).limit(10).lean(),
     ServiceHistory.find({ officerId: id }).sort({ date: -1 }).lean(),
   ]);
 
   // Serialize data for components using centralized queries
   const officerLean = officer as unknown as OfficerLean;
-  const serializedPositions = serializePositions(positionAssignments as unknown as Parameters<typeof serializePositions>[0]);
+  const serializedPositions = serializePositions(
+    positionAssignments as unknown as Parameters<typeof serializePositions>[0],
+    id
+  );
   const serializedLeaves = serializeLeaves(leaves as unknown as Parameters<typeof serializeLeaves>[0]);
   const timelineEvents = buildCareerTimeline(
     officerLean,
     promotions as unknown as Parameters<typeof buildCareerTimeline>[1],
     missions as unknown as Parameters<typeof buildCareerTimeline>[2],
-    positionAssignments as unknown as Parameters<typeof buildCareerTimeline>[3],
-    movements as unknown as Parameters<typeof buildCareerTimeline>[4]
+    movements as unknown as Parameters<typeof buildCareerTimeline>[3]
   );
 
   // --- Logic Calculations ---
@@ -244,12 +252,12 @@ export default async function OfficerDetailPage({
         leaves={leavesTab}
         careerTimeline={careerTab}
         positionHistory={<PositionHistory officerId={id} initialData={serializedPositions} />}
-        actions={canEdit && (
-          <div className="flex items-center gap-2">
+        actions={canEdit ? (
+          <div key="officer-header-actions" className="flex items-center gap-2">
             <OfficerForm mode="edit" initialValues={detail} />
             <DeleteOfficerButton officerId={detail.id} officerLabel={detail.officerLabel} />
           </div>
-        )}
+        ) : undefined}
         initialTab={tab}
       />
     </PageContainer>

@@ -18,16 +18,13 @@ interface UserMenuProps {
   permissions?: ModulePermissions;
 }
 
-export function UserMenu({ fullName, role, permissions }: UserMenuProps) {
+export function UserMenu({ fullName, role, permissions: _permissions }: UserMenuProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  const canManageDepartments =
-    role === "admin" ||
-    role === "commander" ||
-    (permissions && permissions.arkan_harb !== "none");
+  const canManageDepartments = role === "admin";
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -86,6 +83,16 @@ export function UserMenu({ fullName, role, permissions }: UserMenuProps) {
         </div>
 
         <div className="p-2 space-y-0.5">
+          <button
+            onClick={() => {
+              setOpen(false);
+              router.push("/profile");
+            }}
+            className="group flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-bold text-(--app-foreground) transition-colors hover:bg-(--app-surface-container) cursor-pointer text-right"
+          >
+            <User className="w-4 h-4 text-(--app-muted-foreground) group-hover:text-(--color-primary) transition-colors" />
+            <span>الملف الشخصي وكلمة المرور</span>
+          </button>
           {role === "admin" && (
             <button
               onClick={() => {
@@ -110,7 +117,7 @@ export function UserMenu({ fullName, role, permissions }: UserMenuProps) {
               <span>إدارة الفروع والأقسام</span>
             </button>
           )}
-          {(role === "admin" || role === "commander") && (
+          {role === "admin" && (
             <button
               onClick={() => {
                 setOpen(false);

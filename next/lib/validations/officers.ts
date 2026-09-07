@@ -187,19 +187,27 @@ export const rollcallQuerySchema = z.object({
 
 export const LEAVE_CATEGORIES_Z = ["leave", "absence"] as const;
 export const LEAVE_TYPES_Z = [
-  "annual",
-  "sick",
-  "emergency",
-  "rest",
-  "overnight",
   "field",
+  "weekly_rest",
+  "daily_sleep",
+  "medical",
+  "annual",
+  "permission",
   "casual",
 ] as const;
-export const LEAVE_STATUSES_Z = ["draft", "approved", "closed", "cancelled"] as const;
+export const LEAVE_STATUSES_Z = [
+  "pending_commander",
+  "approved",
+  "rejected",
+  "other_orders",
+  "interrupted",
+  "closed",
+  "extension_pending",
+] as const;
 
 export const createLeaveSchema = z.object({
   officerId: z.string().min(1, "معرف الضابط مطلوب"),
-  category: z.enum(LEAVE_CATEGORIES_Z, { message: "الفئة غير صالحة" }),
+  category: z.enum(LEAVE_CATEGORIES_Z).default("leave"),
   type: z.enum(LEAVE_TYPES_Z, { message: "النوع غير صالح" }),
   startDate: z
     .string()
@@ -209,7 +217,34 @@ export const createLeaveSchema = z.object({
     .string()
     .min(1, "تاريخ الانتهاء مطلوب")
     .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح"),
+  lastReturnDate: z.string().optional(),
+  presenceDurationDays: z.number().optional(),
+  actingOfficerId: z.string().optional(),
+  isActingOfficerPresentConfirmed: z.boolean().optional(),
   reason: z.string().trim().optional(),
+});
+
+export const commanderDecisionSchema = z.object({
+  leaveId: z.string().optional(),
+  leaveIds: z.array(z.string()).optional(), // for bulk "تصدق للكل"
+  action: z.enum(["approve", "reject", "modify", "other_orders"]),
+  notes: z.string().trim().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+});
+
+export const extendLeaveSchema = z.object({
+  leaveId: z.string().min(1, "معرف الإجازة مطلوب"),
+  newEndDate: z
+    .string()
+    .min(1, "تاريخ الانتهاء الجديد مطلوب")
+    .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح"),
+  reason: z.string().trim().optional(),
+});
+
+export const confirmReturnSchema = z.object({
+  leaveId: z.string().min(1, "معرف الإجازة مطلوب"),
+  returnDate: z.string().optional(),
 });
 
 export const patchLeaveSchema = z.object({
@@ -224,6 +259,8 @@ export const patchLeaveSchema = z.object({
     .optional(),
   reason: z.string().trim().optional(),
   status: z.enum(LEAVE_STATUSES_Z).optional(),
+  actingOfficerId: z.string().optional(),
+  isActingOfficerPresentConfirmed: z.boolean().optional(),
 }).refine((data) => Object.keys(data).length > 0, {
   message: "يجب تحديد حقل واحد على الأقل",
 });

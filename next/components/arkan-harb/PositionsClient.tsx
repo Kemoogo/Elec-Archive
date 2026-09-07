@@ -17,7 +17,6 @@ import {
   Info, 
   Eye, 
   EyeOff, 
-  ShieldAlert,
   Trash2
 } from "lucide-react";
 
@@ -28,6 +27,7 @@ interface PositionsClientProps {
   departments: string[];
   officers: OfficerInfo[];
   canEdit: boolean;
+  isCommander?: boolean;
 }
 
 export function PositionsClient({
@@ -35,6 +35,7 @@ export function PositionsClient({
   departments,
   officers,
   canEdit,
+  isCommander = false,
 }: PositionsClientProps) {
   const { showToast } = useToast();
   const searchParams = useSearchParams();
@@ -215,124 +216,126 @@ export function PositionsClient({
 
   return (
     <div className="space-y-6">
-      {/* Dynamic Contextual Alert Badges Bar */}
-      <div className="bg-(--app-surface) border border-(--app-border) rounded-2xl p-3 px-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2.5">
-          <span className="text-xs font-bold text-(--app-muted-foreground)">
-            {viewMode === "by-position" ? "حالة الشواغر والتسكين:" : "حالة تسكين ضباط الوحدة:"}
-          </span>
-          {viewMode === "by-position" ? (
-            <>
-              {/* Vacant Primary Alert Badge */}
-              {vacantPrimaryPositions.length > 0 ? (
+      {/* Dynamic Contextual Alert Badges Bar (Hidden for Commander role) */}
+      {!isCommander && (
+        <div className="bg-(--app-surface) border border-(--app-border) rounded-2xl p-3 px-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span className="text-xs font-bold text-(--app-muted-foreground)">
+              {viewMode === "by-position" ? "حالة الشواغر والتسكين:" : "حالة تسكين ضباط الوحدة:"}
+            </span>
+            {viewMode === "by-position" ? (
+              <>
+                {/* Vacant Primary Alert Badge */}
+                {vacantPrimaryPositions.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setFilterType((prev) => (prev === "vacant-primary" ? "all" : "vacant-primary"))}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      filterType === "vacant-primary"
+                        ? "bg-amber-500 text-white shadow-md"
+                        : "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30 hover:bg-amber-500/20"
+                    }`}
+                    title="اضغط للفلترة وعرض الوظائف الشاغرة"
+                  >
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{vacantPrimaryPositions.length} وظيفة شاغرة (بدون أساسي)</span>
+                  </button>
+                ) : null}
+
+                {/* Vacant Substitute Alert Badge with Eye Toggle */}
+                {vacantSubstitutePositions.length > 0 ? (
+                  !hideSubstituteAlert ? (
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setFilterType((prev) => (prev === "vacant-substitute" ? "all" : "vacant-substitute"))}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                          filterType === "vacant-substitute"
+                            ? "bg-blue-600 text-white shadow-md"
+                            : "bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border) hover:border-(--color-primary)/40"
+                        }`}
+                        title="اضغط للفلترة وعرض الوظائف التي ليس لها ضابط بديل"
+                      >
+                        <Info className="w-3.5 h-3.5 shrink-0" />
+                        <span>{vacantSubstitutePositions.length} وظيفة بدون بديل</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setHideSubstituteAlert(true)}
+                        className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-(--app-surface-container) transition-colors cursor-pointer"
+                        title="إخفاء تنبيه الوظائف بدون بديل"
+                      >
+                        <EyeOff className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setHideSubstituteAlert(false)}
+                      className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-slate-400 hover:text-slate-600 rounded-xl hover:bg-(--app-surface-container) transition-colors cursor-pointer"
+                      title="إظهار تنبيه الوظائف بدون بديل"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>إظهار تنبيه البدلاء</span>
+                    </button>
+                  )
+                ) : null}
+
+                {vacantPrimaryPositions.length === 0 && vacantSubstitutePositions.length === 0 && (
+                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                    ✓ جميع الوظائف مسكنة ومكتملة
+                  </span>
+                )}
+              </>
+            ) : (
+              /* By Officer Mode Alert Badge */
+              unassignedOfficers.length > 0 ? (
                 <button
                   type="button"
-                  onClick={() => setFilterType((prev) => (prev === "vacant-primary" ? "all" : "vacant-primary"))}
+                  onClick={() => setFilterType((prev) => (prev === "unassigned-officers" ? "all" : "unassigned-officers"))}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    filterType === "vacant-primary"
+                    filterType === "unassigned-officers"
                       ? "bg-amber-500 text-white shadow-md"
                       : "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30 hover:bg-amber-500/20"
                   }`}
-                  title="اضغط للفلترة وعرض الوظائف الشاغرة"
+                  title="اضغط للفلترة وعرض الضباط غير المسكنين"
                 >
                   <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                  <span>{vacantPrimaryPositions.length} وظيفة شاغرة (بدون أساسي)</span>
+                  <span>{unassignedOfficers.length} ضابط غير مسكن على أي وظيفة</span>
                 </button>
-              ) : null}
-
-              {/* Vacant Substitute Alert Badge with Eye Toggle */}
-              {vacantSubstitutePositions.length > 0 ? (
-                !hideSubstituteAlert ? (
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setFilterType((prev) => (prev === "vacant-substitute" ? "all" : "vacant-substitute"))}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        filterType === "vacant-substitute"
-                          ? "bg-blue-600 text-white shadow-md"
-                          : "bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border) hover:border-(--color-primary)/40"
-                      }`}
-                      title="اضغط للفلترة وعرض الوظائف التي ليس لها ضابط بديل"
-                    >
-                      <Info className="w-3.5 h-3.5 shrink-0" />
-                      <span>{vacantSubstitutePositions.length} وظيفة بدون بديل</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setHideSubstituteAlert(true)}
-                      className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-(--app-surface-container) transition-colors cursor-pointer"
-                      title="إخفاء تنبيه الوظائف بدون بديل"
-                    >
-                      <EyeOff className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setHideSubstituteAlert(false)}
-                    className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-slate-400 hover:text-slate-600 rounded-xl hover:bg-(--app-surface-container) transition-colors cursor-pointer"
-                    title="إظهار تنبيه الوظائف بدون بديل"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>إظهار تنبيه البدلاء</span>
-                  </button>
-                )
-              ) : null}
-
-              {vacantPrimaryPositions.length === 0 && vacantSubstitutePositions.length === 0 && (
+              ) : (
                 <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                  ✓ جميع الوظائف مسكنة ومكتملة
+                  ✓ جميع ضباط الوحدة مسكنون على وظائف
                 </span>
-              )}
-            </>
-          ) : (
-            /* By Officer Mode Alert Badge */
-            unassignedOfficers.length > 0 ? (
+              )
+            )}
+
+            {/* Reset Filter Button if active */}
+            {filterType !== "all" && (
               <button
                 type="button"
-                onClick={() => setFilterType((prev) => (prev === "unassigned-officers" ? "all" : "unassigned-officers"))}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  filterType === "unassigned-officers"
-                    ? "bg-amber-500 text-white shadow-md"
-                    : "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30 hover:bg-amber-500/20"
-                }`}
-                title="اضغط للفلترة وعرض الضباط غير المسكنين"
+                onClick={() => setFilterType("all")}
+                className="text-xs font-bold text-blue-600 hover:underline mr-2 cursor-pointer"
               >
-                <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
-                <span>{unassignedOfficers.length} ضابط غير مسكن على وظيفة</span>
+                إلغاء الفلتر النشط
               </button>
-            ) : (
-              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                ✓ جميع ضباط الوحدة مسكنون على وظائف
-              </span>
-            )
-          )}
+            )}
+          </div>
 
-          {/* Reset Filter Button if active */}
-          {filterType !== "all" && (
+          {/* Left side in RTL (أقصى اليسار): Unassign All button */}
+          {canEdit && !isCommander && (
             <button
               type="button"
-              onClick={() => setFilterType("all")}
-              className="text-xs font-bold text-blue-600 hover:underline mr-2 cursor-pointer"
+              onClick={() => setIsUnassignAllOpen(true)}
+              className="btn-destructive px-3.5 py-1.5 font-bold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95 transition-all shrink-0"
+              title="تفريغ كافة التسكينات لجميع الوظائف"
             >
-              إلغاء الفلتر النشط
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>إلغاء التكليف للجميع</span>
             </button>
           )}
         </div>
-
-        {/* Left side in RTL (أقصى اليسار): Unassign All button */}
-        {canEdit && (
-          <button
-            type="button"
-            onClick={() => setIsUnassignAllOpen(true)}
-            className="btn-destructive px-3.5 py-1.5 font-bold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95 transition-all shrink-0"
-            title="تفريغ كافة التسكينات لجميع الوظائف"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>إلغاء التكليف للجميع</span>
-          </button>
-        )}
-      </div>
+      )}
 
       {/* Main Table */}
       <PositionAssignmentTable

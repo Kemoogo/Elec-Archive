@@ -6,7 +6,8 @@ import Link from "next/link";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { useToast } from "@/components/ui/toast";
-import { AlertTriangle } from "lucide-react";
+import { MonoBadge } from "@/components/ui/mono-badge";
+import { AlertTriangle, Calendar } from "lucide-react";
 
 interface SerializedStudent {
   _id: string;
@@ -101,10 +102,12 @@ export function StudentProfile({ student, canEdit }: StudentProfileProps) {
         <h2 className="mb-3 text-sm font-medium text-(--app-muted-foreground)">البيانات الشخصية</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <span className="text-xs text-(--app-muted-foreground)">تاريخ التسجيل</span>
-            <p className="text-sm text-(--app-foreground)">
-              {new Date(student.enrollDate).toLocaleDateString("ar-EG")}
-            </p>
+            <span className="text-xs text-(--app-muted-foreground) block mb-1">تاريخ التسجيل</span>
+            <MonoBadge
+              value={new Date(student.enrollDate).toLocaleDateString("ar-EG")}
+              icon={<Calendar className="w-3.5 h-3.5" />}
+              size="sm"
+            />
           </div>
           <div>
             <span className="text-xs text-(--app-muted-foreground)">الحالة</span>
@@ -135,7 +138,7 @@ export function StudentProfile({ student, canEdit }: StudentProfileProps) {
               >
                 <div>
                   <p className="text-sm text-(--app-foreground)">{doc.name}</p>
-                  <p className="text-xs text-(--app-muted-foreground)">
+                  <p className="text-xs font-mono text-(--app-muted-foreground)">
                     {new Date(doc.uploadedAt).toLocaleDateString("ar-EG")}
                   </p>
                 </div>

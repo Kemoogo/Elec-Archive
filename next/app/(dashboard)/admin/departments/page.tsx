@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import { authenticate } from "@/lib/auth/middleware";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Branch, Department } from "@/lib/db/models";
-import { canEditModule } from "@/lib/auth/authorization";
 import { DepartmentsPageClient } from "@/components/admin/DepartmentsPageClient";
 
 export default async function DepartmentsPage() {
@@ -15,6 +14,9 @@ export default async function DepartmentsPage() {
   }
 
   const user = result.user!;
+  if (user.role !== "admin") {
+    redirect("/");
+  }
 
   await connectToDatabase();
 
@@ -45,7 +47,7 @@ export default async function DepartmentsPage() {
     };
   });
 
-  const canEdit = user.role === "admin" || user.role === "commander" || canEditModule(user, "arkan_harb");
+  const canEdit = user.role === "admin";
 
   return (
     <DepartmentsPageClient

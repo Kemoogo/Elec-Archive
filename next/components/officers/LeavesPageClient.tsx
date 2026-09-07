@@ -1,75 +1,107 @@
 "use client";
 
 import { useState } from "react";
-import { LeaveRegister } from "@/components/officers/LeaveRegister";
-import { LeaveAddModal } from "@/components/officers/LeaveAddModal";
-import { PageContainer } from "@/components/layout/PageContainer";
-import { ModernPageHeader as PageHeader } from "@/components/layout/ModernPageHeader";
-import { ScrollText } from "lucide-react";
-
-interface LeaveItem {
-  id: string;
-  officerId: string;
-  officerName: string;
-  officerMilitaryId: string;
-  category: string;
-  categoryLabel: string;
-  type: string;
-  typeLabel: string;
-  startDate: string;
-  endDate: string;
-  reason: string;
-  status: string;
-  statusLabel: string;
-}
-
-interface OfficerItem {
-  id: string;
-  fullName: string;
-  militaryId: string;
-  rank?: string;
-}
+import { LeaveRegister, type LeaveItem, type OfficerLeaveStatusRow } from "@/components/officers/LeaveRegister";
+import { LeaveRequestModal, type OfficerOption } from "@/components/officers/LeaveRequestModal";
+import { ModernPageHeader as PageHeader, PrimaryHeaderBtn, SecondaryHeaderBtn } from "@/components/layout/ModernPageHeader";
+import { ScrollText, Plus, Filter } from "lucide-react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 
 interface LeavesPageClientProps {
-  initialLeaves: LeaveItem[];
-  officers: OfficerItem[];
+  officerRows: OfficerLeaveStatusRow[];
+  officers: OfficerOption[];
+  pendingRequests: LeaveItem[];
   canEdit: boolean;
+  isCommander: boolean;
   hideHeader?: boolean;
 }
 
 export function LeavesPageClient({
-  initialLeaves,
-  officers,
+  officerRows = [],
+  officers = [],
+  pendingRequests = [],
   canEdit,
+  isCommander,
   hideHeader = false,
 }: LeavesPageClientProps) {
-  const [searchQuery, setSearchQuery] = useState("");
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
 
-  const filteredLeaves = initialLeaves.filter((leave) => {
-    const search = searchQuery.toLowerCase();
+  // Active search query: either from header (URL search) or local header input
+  const effectiveSearch = (searchParams.get("search") ?? searchQuery).trim().toLowerCase();
+
+  // Toggle for requests only (like positions by-officer / by-position toggle)
+  const showRequestsOnly = searchParams.get("requestsOnly") === "true";
+
+  const toggleRequestsOnly = () => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (showRequestsOnly) {
+      params.delete("requestsOnly");
+    } else {
+      params.set("requestsOnly", "true");
+    }
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+
+  // Filter officer rows by search query
+  const filteredRows = (officerRows || []).filter((row) => {
+    if (!effectiveSearch) return true;
     return (
-      leave.officerName.toLowerCase().includes(search) ||
-      leave.officerMilitaryId.toLowerCase().includes(search) ||
-      leave.reason.toLowerCase().includes(search)
+      (row?.fullName && row.fullName.toLowerCase().includes(effectiveSearch)) ||
+      (row?.militaryId && row.militaryId.toLowerCase().includes(effectiveSearch)) ||
+      (row?.rankLabel && row.rankLabel.toLowerCase().includes(effectiveSearch)) ||
+      (row?.defaultLeaveSystem && row.defaultLeaveSystem.toLowerCase().includes(effectiveSearch))
     );
   });
 
   return (
-    <PageContainer className="max-w-[1600px] mx-auto pb-12">
+    <div className="space-y-6">
       {!hideHeader && (
         <PageHeader
-          title="سجل الإجازات والغياب"
+          title="سجل الإجازات والانقطاعات"
           icon={<ScrollText className="w-6 h-6" />}
           backHref="/arkan-harb"
           backLabel="أركان الحرب"
           showSearch
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          searchPlaceholder="بحث باسم الضابط أو السبب..."
-          action={canEdit && <LeaveAddModal officers={officers} />}
+          searchPlaceholder="بحث باسم الضابط أو الرقم العسكري أو نظام الإجازة..."
+          action={
+            <div className="flex items-center gap-2">
+              <SecondaryHeaderBtn
+                label={showRequestsOnly ? "عرض كافة الضباط" : "عرض الطلبات فقط"}
+                icon={<Filter className="w-4 h-4" />}
+                onClick={toggleRequestsOnly}
+              />
+              {canEdit && (
+                <PrimaryHeaderBtn
+                  label="تقديم طلب إجازة"
+                  icon={<Plus className="w-4 h-4" />}
+                  onClick={() => setIsRequestModalOpen(true)}
+                />
+              )}
+            </div>
+          }
         />
       )}
-      <LeaveRegister leaves={filteredLeaves} officers={officers} canEdit={canEdit} />
-    </PageContainer>
+
+      <LeaveRegister
+        officers={officers}
+        officerRows={filteredRows}
+        pendingRequests={pendingRequests}
+        canEdit={canEdit}
+        isCommander={isCommander}
+        showRequestsOnly={showRequestsOnly}
+      />
+
+      <LeaveRequestModal
+        officers={officers}
+        isOpen={isRequestModalOpen}
+        onClose={() => setIsRequestModalOpen(false)}
+      />
+    </div>
   );
 }

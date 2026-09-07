@@ -41,11 +41,15 @@ export async function GET(request: Request) {
           { militaryId: { $regex: trimmed, $options: "i" } },
         ],
       }).select("_id").lean();
-      const officerIds = matchedOfficers.map((o) => o._id);
+      const officerIds: unknown[] = matchedOfficers.map((o) => o._id);
+      if (trimmed.match(/^[0-9a-fA-F]{24}$/)) {
+        officerIds.push(trimmed);
+      }
 
       query.$or = [
         { primaryOfficerId: { $in: officerIds } },
         { substituteOfficerIds: { $in: officerIds } },
+        { "assignmentHistory.officerId": { $in: officerIds } },
         { positionTitle: { $regex: trimmed, $options: "i" } },
         { department: { $regex: trimmed, $options: "i" } },
       ];

@@ -53,12 +53,12 @@ export function CoursesTable({ courses, page, totalPages, total }: CoursesTableP
     {
       header: "تاريخ البداية",
       accessor: "startDate",
-      render: (val) => new Date(val as string).toLocaleDateString("ar-EG"),
+      render: (val) => <span className="font-mono">{new Date(val as string).toLocaleDateString("ar-EG")}</span>,
     },
     {
       header: "تاريخ الانتهاء",
       accessor: "endDate",
-      render: (val) => new Date(val as string).toLocaleDateString("ar-EG"),
+      render: (val) => <span className="font-mono">{new Date(val as string).toLocaleDateString("ar-EG")}</span>,
     },
     {
       header: "الحالة",

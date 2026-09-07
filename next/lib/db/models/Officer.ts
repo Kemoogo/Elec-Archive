@@ -74,6 +74,7 @@ export interface IOfficer extends Document {
   file121IssueDate?: string;
   photoUrl?: string;
   isArkanHarb: boolean;
+  defaultLeaveSystem?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -130,6 +131,7 @@ const OfficerSchema = new Schema<IOfficer>(
     file121IssueDate: { type: String, trim: true },
     photoUrl: { type: String, trim: true },
     isArkanHarb: { type: Boolean, default: false },
+    defaultLeaveSystem: { type: String, default: "field" },
   },
   { timestamps: true },
 );

@@ -3,7 +3,6 @@ import { revalidatePath } from "next/cache";
 import { authenticate } from "@/lib/auth/middleware";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Branch } from "@/lib/db/models/Branch";
-import { canEditModule } from "@/lib/auth/authorization";
 import { logAuditEvent } from "@/lib/auth/audit";
 
 export async function POST(req: Request) {
@@ -13,7 +12,7 @@ export async function POST(req: Request) {
   }
 
   const user = auth.user!;
-  const isAllowed = user.role === "admin" || user.role === "commander" || canEditModule(user, "arkan_harb");
+  const isAllowed = user.role === "admin";
   if (!isAllowed) {
     return NextResponse.json({ success: false, error: "غير مصرح لك بإعادة ترتيب الفروع" }, { status: 403 });
   }

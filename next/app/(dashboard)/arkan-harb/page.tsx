@@ -13,7 +13,6 @@ import {
   AuditLog,
   Officer,
   type IRollcallEntry,
-  type ILeave,
   type MissionStatus,
 } from "@/lib/db/models";
 import { ArkanHarbClient } from "@/components/arkan-harb/ArkanHarbClient";
@@ -191,6 +190,11 @@ export default async function ArkanHarbPage({
       rank: o.rank,
       rankLabel: `${RANK_LABELS[o.rank as keyof typeof RANK_LABELS] ?? o.rank}${o.isArkanHarb ? " أ ح" : ""}`,
       suggestedStatus: sug?.status || "present",
+      isLocked: Boolean(sug?.isLocked),
+      lockReason: sug?.lockReason,
+      sourceId: sug?.sourceId,
+      sourceType: sug?.sourceType,
+      reason: sug?.lockReason,
     };
   });
 
@@ -241,7 +245,7 @@ export default async function ArkanHarbPage({
     </div>
   );
 
-  // 3. Fetch Leaves Data
+  // 3. Fetch Leaves Data & Compute Dynamic Operational Status for All Officers
   const officersShort = activeOfficersList.map(o => {
     const r = RANK_LABELS[o.rank as keyof typeof RANK_LABELS] ?? o.rank ?? "";
     const label = r ? `${r}${o.isArkanHarb ? " أ ح" : ""} / ${o.fullName}` : o.fullName;
@@ -253,30 +257,166 @@ export default async function ArkanHarbPage({
       seniorityNumber: o.seniorityNumber,
       rank: r,
       officerLabel: label,
+      defaultLeaveSystem: o.defaultLeaveSystem || "field",
     };
   });
-  const leavesData = await Leave.find().sort({ startDate: -1 }).limit(50).lean();
-  const officerMap = new Map(officersShort.map(o => [o.id, o]));
-  const formattedLeaves = (leavesData as unknown as (ILeave & { _id: { toString(): string }; officerId: { toString(): string } })[]).map((l) => {
-    const off = officerMap.get(l.officerId.toString());
-    return {
+
+  // Query all non-cancelled leaves to build full status & history
+  const allLeaves = await Leave.find({ status: { $ne: "cancelled" } })
+    .populate("actingOfficerId", "fullName rank")
+    .sort({ startDate: -1 })
+    .lean();
+
+  // Query all active external missions to exclude officers from leaves tables
+  const activeExternalMissions = await Mission.find({
+    status: { $in: ["active", "scheduled"] },
+    missionType: { $ne: "internal_daily" },
+    startDate: { $lte: tomorrow },
+    $or: [{ endDate: { $exists: false } }, { endDate: { $gte: today } }],
+  }).lean();
+
+  const externalMissionOfficerIds = new Set<string>();
+  for (const m of activeExternalMissions) {
+    if (m.officerId) externalMissionOfficerIds.add(m.officerId.toString());
+    if (m.additionalOfficerIds) {
+      for (const addId of m.additionalOfficerIds) {
+        externalMissionOfficerIds.add(addId.toString());
+      }
+    }
+  }
+
+  // Format pending requests for commander bulk approval
+  const pendingRequestsFormatted = allLeaves
+    .filter((l) => l.status === "pending_commander" || l.status === "extension_pending")
+    .map((l) => ({
       id: l._id.toString(),
       officerId: l.officerId.toString(),
-      officerName: off ? off.fullName : "غير معروف",
-      officerLabel: off ? off.officerLabel : "غير معروف",
-      officerMilitaryId: off ? off.militaryId : "",
+      officerName: officersShort.find((o) => o.id === l.officerId.toString())?.fullName || "ضابط غير معروف",
+      officerMilitaryId: officersShort.find((o) => o.id === l.officerId.toString())?.militaryId || "",
       category: l.category,
       categoryLabel: l.category === "leave" ? "إجازة رسمية" : "غياب / انقطاع",
       type: l.type,
       typeLabel: l.type,
-      startDate: l.startDate.toISOString(),
-      endDate: l.endDate.toISOString(),
-      reason: l.reason || "",
+      startDate: l.startDate instanceof Date ? l.startDate.toISOString() : String(l.startDate || ""),
+      endDate: l.endDate instanceof Date ? l.endDate.toISOString() : String(l.endDate || ""),
       status: l.status,
       statusLabel: l.status,
+    }));
+
+  // Build OfficerLeaveStatusRow per active officer
+  const officerRows = activeOfficersList.map((o) => {
+    const oId = o._id.toString();
+    const r = RANK_LABELS[o.rank as keyof typeof RANK_LABELS] ?? o.rank ?? "";
+    const label = r ? `${r}${o.isArkanHarb ? " أ ح" : ""} / ${o.fullName}` : o.fullName;
+
+    const officerLeaves = allLeaves.filter((l) => l.officerId && l.officerId.toString() === oId);
+
+    // Active approved/interrupted leave covering today
+    const activeLeaveDoc = officerLeaves.find((l) => {
+      if (l.status !== "approved" && l.status !== "interrupted") return false;
+      const s = new Date(l.startDate);
+      s.setHours(0, 0, 0, 0);
+      const e = l.actualReturnDate ? new Date(l.actualReturnDate) : new Date(l.endDate);
+      e.setHours(23, 59, 59, 999);
+      return today >= s && today <= e;
+    });
+
+    // Pending leave
+    const pendingLeaveDoc = officerLeaves.find((l) => l.status === "pending_commander");
+
+    // Pending extension
+    const pendingExtensionDoc = officerLeaves.find((l) => l.status === "extension_pending");
+
+    // Last completed / closed / interrupted leave in the past
+    const lastCompletedDoc = officerLeaves.find((l) => {
+      const e = l.actualReturnDate ? new Date(l.actualReturnDate) : new Date(l.endDate);
+      return e < today && (l.status === "closed" || l.status === "interrupted" || l.status === "approved");
+    });
+
+    let lastReturnDateFormatted = "لا توجد عودة مسجلة";
+    let presenceDurationDays = 0;
+
+    if (lastCompletedDoc) {
+      const returnDate = lastCompletedDoc.actualReturnDate ? new Date(lastCompletedDoc.actualReturnDate) : new Date(lastCompletedDoc.endDate);
+      if (!isNaN(returnDate.getTime())) {
+        lastReturnDateFormatted = returnDate.toLocaleDateString("ar-EG");
+        const diffTime = Math.max(0, today.getTime() - returnDate.getTime());
+        presenceDurationDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      }
+    }
+
+    // Is returning today? (active leave whose endDate is today and return not confirmed yet)
+    let isReturningToday = false;
+    if (activeLeaveDoc && !activeLeaveDoc.isReturnConfirmed) {
+      const endD = new Date(activeLeaveDoc.endDate);
+      endD.setHours(0, 0, 0, 0);
+      isReturningToday = endD.getTime() === today.getTime();
+    }
+
+    const formatLeaveDoc = (doc?: typeof allLeaves[0]) => {
+      if (!doc) return undefined;
+      const actingObj = doc.actingOfficerId as unknown as { fullName?: string } | undefined;
+      return {
+        id: doc._id.toString(),
+        officerId: doc.officerId.toString(),
+        officerName: o.fullName,
+        officerLabel: label,
+        officerMilitaryId: o.militaryId,
+        category: doc.category,
+        categoryLabel: doc.category === "leave" ? "إجازة رسمية" : "غياب / انقطاع",
+        type: doc.type,
+        typeLabel: doc.type,
+        startDate: doc.startDate instanceof Date ? doc.startDate.toISOString() : String(doc.startDate || ""),
+        endDate: doc.endDate instanceof Date ? doc.endDate.toISOString() : String(doc.endDate || ""),
+        lastReturnDate: doc.lastReturnDate ? (doc.lastReturnDate instanceof Date ? doc.lastReturnDate.toISOString() : String(doc.lastReturnDate)) : undefined,
+        presenceDurationDays: typeof doc.presenceDurationDays === "number" && !isNaN(doc.presenceDurationDays) ? doc.presenceDurationDays : 0,
+        actingOfficerId: doc.actingOfficerId ? String(doc.actingOfficerId) : undefined,
+        actingOfficerName: actingObj?.fullName,
+        isActingOfficerPresentConfirmed: Boolean(doc.isActingOfficerPresentConfirmed),
+        commanderDecision: doc.commanderDecision ? {
+          status: doc.commanderDecision.status,
+          notes: doc.commanderDecision.notes,
+          decidedAt: doc.commanderDecision.decidedAt ? (doc.commanderDecision.decidedAt instanceof Date ? doc.commanderDecision.decidedAt.toISOString() : String(doc.commanderDecision.decidedAt)) : undefined,
+        } : undefined,
+        actualReturnDate: doc.actualReturnDate ? (doc.actualReturnDate instanceof Date ? doc.actualReturnDate.toISOString() : String(doc.actualReturnDate)) : undefined,
+        isReturnConfirmed: Boolean(doc.isReturnConfirmed),
+        reason: doc.reason || "",
+        status: doc.status,
+        statusLabel: doc.status,
+      };
+    };
+
+    return {
+      officerId: oId,
+      fullName: o.fullName,
+      rank: o.rank,
+      rankLabel: r,
+      officerLabel: label,
+      militaryId: o.militaryId,
+      seniorityNumber: o.seniorityNumber,
+      defaultLeaveSystem: o.defaultLeaveSystem || "field",
+      activeLeave: formatLeaveDoc(activeLeaveDoc),
+      pendingLeave: formatLeaveDoc(pendingLeaveDoc),
+      pendingExtension: formatLeaveDoc(pendingExtensionDoc),
+      lastCompletedLeave: formatLeaveDoc(lastCompletedDoc),
+      lastReturnDateFormatted,
+      presenceDurationDays,
+      isInUnit: o.isInUnit !== false,
+      isExternalMission: externalMissionOfficerIds.has(oId),
+      isReturningToday,
     };
   });
-  const leavesContent = <LeavesPageClient initialLeaves={formattedLeaves} officers={officersShort} canEdit={canEdit} hideHeader={true} />;
+
+  const leavesContent = (
+    <LeavesPageClient
+      officerRows={officerRows}
+      officers={officersShort}
+      pendingRequests={pendingRequestsFormatted}
+      canEdit={canEdit}
+      isCommander={user.role === "commander" || user.role === "admin"}
+      hideHeader={true}
+    />
+  );
 
   // 4. Fetch Missions Data
   const mPage = Number(params.page) || 1;
@@ -465,6 +605,7 @@ export default async function ArkanHarbPage({
       departments={allDepartmentNames}
       officers={officersShort}
       canEdit={canEdit}
+      isCommander={user.role === "commander"}
     />
   );
 
@@ -475,7 +616,7 @@ export default async function ArkanHarbPage({
       leavesContent={leavesContent}
       missionsContent={missionsContent}
       positionsContent={positionsContent}
-      officers={officersShort.map(o => ({ id: o.id, name: o.fullName, fullName: o.fullName, militaryId: o.militaryId, rank: o.rank, officerLabel: o.officerLabel }))}
+      officers={officersShort.map(o => ({ id: o.id, name: o.fullName, fullName: o.fullName, militaryId: o.militaryId, rank: o.rank, officerLabel: o.officerLabel, defaultLeaveSystem: o.defaultLeaveSystem }))}
       canEdit={canEdit}
     />
   );

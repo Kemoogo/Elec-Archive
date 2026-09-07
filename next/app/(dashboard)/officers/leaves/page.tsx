@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function LeavesRedirect() {
-  redirect("/arkan-harb/leaves");
+  redirect("/arkan-harb?tab=leaves");
 }

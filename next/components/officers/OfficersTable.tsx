@@ -127,15 +127,22 @@ export function OfficersTable({ officers, page, totalPages, total, canEdit }: Of
     {
       header: "أقدمية",
       accessor: "seniorityNumber",
-      isNumeric: true
+      isNumeric: true,
+      cellAlign: "center",
+      headerAlign: "center",
+      minWidth: true,
     },
     {
       header: "الرتبة",
       accessor: "rankLabel",
+      cellAlign: "right",
+      headerAlign: "right",
     },
     {
       header: "الأسم",
       accessor: "fullName",
+      cellAlign: "right",
+      headerAlign: "right",
       render: (val, row) => (
         <Link href={`/officers/${row.id}`} className="hover:underline hover:text-(--app-info) cursor-pointer">
           {val as string}
@@ -145,34 +152,44 @@ export function OfficersTable({ officers, page, totalPages, total, canEdit }: Of
     {
       header: "الرقم العسكري",
       accessor: "militaryId",
-      isNumeric: true
+      isNumeric: true,
+      cellAlign: "center",
+      headerAlign: "center",
     },
     {
       header: "الدفعة",
       accessor: "batch",
       emptyValue: "---",
-      isNumeric: true
+      isNumeric: true,
+      cellAlign: "center",
+      headerAlign: "center",
     },
     {
       header: "رقم الموبايل",
       accessor: "phone",
       emptyValue: "---",
-      isNumeric: true
+      isNumeric: true,
+      cellAlign: "center",
+      headerAlign: "center",
     },
     {
       header: "التصنيف",
       accessor: "typeLabel",
       emptyValue: "---",
+      cellAlign: "center",
+      headerAlign: "center",
     },
     {
       header: "السلاح",
       accessor: "weaponLabel",
       emptyValue: "---",
+      cellAlign: "center",
+      headerAlign: "center",
     },
     {
       header: "الإجراءات",
       accessor: "id",
-      cellAlign: "left",
+      cellAlign: "center",
       headerAlign: "center",
       minWidth: true,
       render: (_, row: OfficerListItem) => {
@@ -182,19 +199,28 @@ export function OfficersTable({ officers, page, totalPages, total, canEdit }: Of
         return (
           <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
             {!row._isComplete && (
-              <OfficerForm
-                mode="edit"
-                initialValues={row}
-                highlightIncomplete={true}
-                trigger={
-                  <ActionButton
-                    icon={<AlertTriangle className="w-4 h-4 text-amber-500 animate-pulse" />}
-                    color="btn-action-warning"
-                    title={`بيانات غير مكتملة (${row._missingFields?.join("، ") || "بيانات تنظيمية"})`}
-                    placement={placement}
-                  />
-                }
-              />
+              canEdit ? (
+                <OfficerForm
+                  mode="edit"
+                  initialValues={row}
+                  highlightIncomplete={true}
+                  trigger={
+                    <ActionButton
+                      icon={<AlertTriangle className="w-4 h-4 text-amber-500 animate-pulse" />}
+                      color="btn-action-warning"
+                      title={`بيانات غير مكتملة (${row._missingFields?.join("، ") || "بيانات تنظيمية"})`}
+                      placement={placement}
+                    />
+                  }
+                />
+              ) : (
+                <ActionButton
+                  icon={<AlertTriangle className="w-4 h-4 text-amber-500" />}
+                  color="btn-action-warning !cursor-default"
+                  title={`بيانات غير مكتملة (${row._missingFields?.join("، ") || "بيانات تنظيمية"})`}
+                  placement={placement}
+                />
+              )
             )}
 
             {canEdit && row.isInUnit && (

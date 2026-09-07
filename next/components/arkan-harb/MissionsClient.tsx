@@ -117,6 +117,7 @@ export function MissionsClient({
         total={total}
         page={page}
         limit={limit}
+        canEdit={canEdit}
         isAdmin={isAdmin}
         officerFilter={officerFilter}
         statusFilter={statusFilter}

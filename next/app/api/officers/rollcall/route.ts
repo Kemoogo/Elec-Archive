@@ -185,17 +185,43 @@ export async function POST(request: Request) {
       }
     }
 
+    // Calculate real operational status to strictly enforce locked entries
+    const { calculateDailyRollcallEntries } = await import("@/lib/arkan-harb/rollcall-engine");
+    const operationalEntries = await calculateDailyRollcallEntries(queryDate);
+    const operationalMap = new Map(operationalEntries.map((op) => [op.officerId.toString(), op]));
+
+    // Strict validation: if an officer is locked by leave or mission, status cannot be overridden
+    for (const entry of submittedEntries) {
+      const op = operationalMap.get(entry.officerId);
+      if (op?.isLocked && entry.status !== op.status) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `لا يمكن تعديل تمام الضابط (${op.fullName}) لأن حالته مقفلة آلياً بسبب (${op.lockReason || "إجازة/مأمورية نشطة"}). يرجى إدارة السجل من تبويب الإجازات أو المأموريات.`,
+          },
+          { status: 400 },
+        );
+      }
+    }
+
     const officerMap = new Map(activeOfficers.map((o) => [o._id.toString(), o]));
 
     const rollcallEntries = submittedEntries.map((e) => {
       const officer = officerMap.get(e.officerId);
+      const op = operationalMap.get(e.officerId);
       return {
         officerId: e.officerId,
         militaryId: officer?.militaryId ?? "",
         fullName: officer?.fullName ?? "",
         rank: officer?.rank ?? "",
-        status: e.status,
+        status: op?.isLocked ? op.status : e.status,
         note: e.note,
+        relatedLeaveId: op?.relatedLeaveId,
+        relatedMissionId: op?.relatedMissionId,
+        isLocked: op?.isLocked,
+        lockReason: op?.lockReason,
+        sourceId: op?.sourceId,
+        sourceType: op?.sourceType,
       };
     });
 

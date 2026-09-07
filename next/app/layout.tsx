@@ -46,6 +46,27 @@ export default function RootLayout({
                 document.documentElement.setAttribute('data-theme', resolved);
                 document.documentElement.style.colorScheme = resolved;
               } catch (e) {}
+
+              // Safeguard for Next.js / Turbopack dev server bug: Performance.measure negative attribute end
+              if (typeof window !== 'undefined' && window.performance && window.performance.measure) {
+                const origMeasure = window.performance.measure.bind(window.performance);
+                window.performance.measure = function(name, startOrMeasureOptions, endMark) {
+                  try {
+                    if (typeof startOrMeasureOptions === 'object' && startOrMeasureOptions !== null) {
+                      if (typeof startOrMeasureOptions.end === 'number' && startOrMeasureOptions.end < 0) {
+                        startOrMeasureOptions.end = Math.max(0, performance.now());
+                      }
+                      if (typeof startOrMeasureOptions.duration === 'number' && startOrMeasureOptions.duration < 0) {
+                        startOrMeasureOptions.duration = 0;
+                      }
+                    }
+                    return origMeasure(name, startOrMeasureOptions, endMark);
+                  } catch (err) {
+                    // Suppress Next.js dev server performance measure timing mismatch errors
+                    return undefined;
+                  }
+                };
+              }
             `,
           }}
         />

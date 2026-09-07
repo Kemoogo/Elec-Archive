@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Save, CheckCircle2, AlertCircle, Info, Loader2 } from "lucide-react";
+import { Save, CheckCircle2, AlertCircle, Info, Loader2, Lock, ExternalLink } from "lucide-react";
+import Link from "next/link";
 import { SectionWrapper } from "@/components/ui/section-wrapper";
 import { useToast } from "@/components/ui/toast";
 import { extractApiError } from "@/lib/utils";
@@ -16,6 +17,10 @@ interface RosterEntry {
   suggestedStatus?: string;
   reason?: string;
   relatedId?: string;
+  isLocked?: boolean;
+  lockReason?: string;
+  sourceId?: string;
+  sourceType?: "leave" | "mission";
 }
 
 interface EntryState {
@@ -23,6 +28,10 @@ interface EntryState {
   status: string;
   note: string;
   wasSuggested?: boolean;
+  isLocked?: boolean;
+  lockReason?: string;
+  sourceId?: string;
+  sourceType?: "leave" | "mission";
 }
 
 interface RollcallSheetProps {
@@ -56,9 +65,12 @@ export function RollcallSheet({ date, roster, existingEntries, isDraft }: Rollca
     for (const r of roster) {
       const existing = existingEntries.find((e) => e.officerId === r.id);
       
-      // If it's a new rollcall (status: "not_found" in parent), use suggestions
+      // If officer is locked by active leave/mission, strictly enforce the locked status
+      const isLocked = Boolean(r.isLocked);
+      const lockedStatus = r.suggestedStatus ?? "";
+
       const isNew = existingEntries.length === 0;
-      const initialStatus = isNew ? (r.suggestedStatus ?? "") : (existing?.status ?? "");
+      const initialStatus = isLocked ? lockedStatus : (isNew ? (r.suggestedStatus ?? "") : (existing?.status ?? ""));
       const initialNote = isNew ? (r.reason ?? "") : (existing?.note ?? "");
 
       map.set(r.id, {
@@ -66,6 +78,10 @@ export function RollcallSheet({ date, roster, existingEntries, isDraft }: Rollca
         status: initialStatus,
         note: initialNote,
         wasSuggested: isNew && !!r.suggestedStatus,
+        isLocked,
+        lockReason: r.lockReason,
+        sourceId: r.sourceId,
+        sourceType: r.sourceType,
       });
     }
     return map;
@@ -88,6 +104,11 @@ export function RollcallSheet({ date, roster, existingEntries, isDraft }: Rollca
             setEntries((prev) => {
               const next = new Map(prev);
               for (const entry of parsed) {
+                const current = next.get(entry.officerId);
+                // Never override a locked officer from localStorage
+                if (current && current.isLocked) {
+                  continue;
+                }
                 if (next.has(entry.officerId)) {
                   next.set(entry.officerId, entry);
                 }
@@ -111,6 +132,10 @@ export function RollcallSheet({ date, roster, existingEntries, isDraft }: Rollca
       const next = new Map(prev);
       const entry = next.get(officerId);
       if (entry) {
+        // Strict Lock: Do not allow status update if entry is locked by active leave/mission
+        if (field === "status" && entry.isLocked) {
+          return prev;
+        }
         next.set(officerId, { ...entry, [field]: value });
       }
       return next;
@@ -279,29 +304,72 @@ export function RollcallSheet({ date, roster, existingEntries, isDraft }: Rollca
                        </div>
                     </td>
                     <td className="px-5 py-3">
-                      <div className="flex flex-col items-center gap-1">
-                        <div className="flex gap-1.5 flex-wrap justify-center">
-                          {STATUS_OPTIONS.map((opt) => (
-                            <button
-                              key={opt.value}
-                              onClick={() => updateEntry(officer.id, "status", opt.value)}
-                              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                                entry?.status === opt.value
-                                  ? `${opt.color} shadow-xs`
-                                  : "bg-(--app-surface-container) border border-(--app-border) text-(--app-muted-foreground) hover:text-(--color-primary) hover:bg-(--app-surface)"
-                              }`}
-                            >
-                              {opt.label}
-                            </button>
-                          ))}
-                        </div>
-                        {entry?.wasSuggested && officer.reason && (
-                          <div className="flex items-center gap-1.5 text-[10px] font-medium text-(--app-success) mt-1 px-1">
-                            <div className="w-1.5 h-1.5 rounded-full bg-(--app-success) animate-pulse" />
-                            <span>اقتراح ذكي: {officer.reason}</span>
+                      {officer.isLocked ? (
+                        <div className="flex flex-col items-center gap-1.5 py-1">
+                          <div
+                            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border flex items-center gap-2 shadow-xs ${
+                              officer.sourceType === "leave"
+                                ? "bg-amber-500/10 text-amber-800 border-amber-500/30"
+                                : "bg-indigo-500/10 text-indigo-800 border-indigo-500/30"
+                            }`}
+                          >
+                            <Lock className="w-3.5 h-3.5 shrink-0 opacity-80" />
+                            <span>
+                              {STATUS_OPTIONS.find((o) => o.value === entry?.status)?.label ||
+                                (officer.sourceType === "leave" ? "إجازة" : "مأمورية")}
+                            </span>
+                            <span className="text-[10px] bg-white/70 dark:bg-black/30 px-1.5 py-0.5 rounded-md font-extrabold border border-current/20">
+                              مقفل آلياً
+                            </span>
                           </div>
-                        )}
-                      </div>
+
+                          <div className="flex items-center gap-1.5 text-[11px] font-bold text-(--app-muted-foreground)">
+                            <span>{officer.lockReason || officer.reason}</span>
+                            <Link
+                              href={
+                                officer.sourceType === "leave"
+                                  ? "/arkan-harb?tab=leaves"
+                                  : "/arkan-harb?tab=missions"
+                              }
+                              className="text-(--color-primary) hover:underline flex items-center gap-0.5 transition-colors cursor-pointer mr-1"
+                              title={
+                                officer.sourceType === "leave"
+                                  ? "الانتقال إلى سجل الإجازات لتعديل أو قطع الإجازة"
+                                  : "الانتقال إلى سجل المأموريات لتعديل أو إلغاء المأمورية"
+                              }
+                            >
+                              <span>
+                                {officer.sourceType === "leave" ? "سجل الإجازات" : "المأموريات"}
+                              </span>
+                              <ExternalLink className="w-2.5 h-2.5" />
+                            </Link>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-1">
+                          <div className="flex gap-1.5 flex-wrap justify-center">
+                            {STATUS_OPTIONS.map((opt) => (
+                              <button
+                                key={opt.value}
+                                onClick={() => updateEntry(officer.id, "status", opt.value)}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                                  entry?.status === opt.value
+                                    ? `${opt.color} shadow-xs`
+                                    : "bg-(--app-surface-container) border border-(--app-border) text-(--app-muted-foreground) hover:text-(--color-primary) hover:bg-(--app-surface)"
+                                }`}
+                              >
+                                {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                          {entry?.wasSuggested && officer.reason && (
+                            <div className="flex items-center gap-1.5 text-[10px] font-medium text-(--app-success) mt-1 px-1">
+                              <div className="w-1.5 h-1.5 rounded-full bg-(--app-success) animate-pulse" />
+                              <span>اقتراح ذكي: {officer.reason}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </td>
                     <td className="p-4">
                       <div className="relative">

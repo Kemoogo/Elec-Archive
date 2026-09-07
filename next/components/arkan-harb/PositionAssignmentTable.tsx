@@ -171,7 +171,7 @@ export function PositionAssignmentTable({
                   <tr className="hover:bg-(--app-surface-container) group-has-[.branch-cell:hover]/branch:bg-(--app-surface-container) transition-colors duration-150">
                     {/* Serial Number */}
                     <td
-                      className="px-5 py-3 text-center font-mono font-bold text-(--app-muted-foreground) align-middle border-l border-(--app-border)/30 whitespace-nowrap tabular-nums"
+                      className="px-5 py-3 text-center font-mono font-bold text-(--app-muted-foreground) align-middle whitespace-nowrap tabular-nums"
                       style={{ width: "1%" }}
                     >
                       {runningSerial++}
@@ -180,7 +180,7 @@ export function PositionAssignmentTable({
                     {/* Merged Branch / Department Cell with rowSpan */}
                     <td
                       rowSpan={rowSpan}
-                      className="branch-cell px-5 py-3 align-middle border-l border-(--app-border)/30 group-hover/branch:bg-(--app-surface-container) hover:!bg-blue-500/10 dark:hover:!bg-blue-900/20 transition-colors duration-150 whitespace-nowrap bg-(--app-surface) cursor-default"
+                      className="branch-cell px-5 py-3 align-middle group-hover/branch:bg-(--app-surface-container) hover:!bg-blue-500/10 dark:hover:!bg-blue-900/20 transition-colors duration-150 whitespace-nowrap bg-(--app-surface) cursor-default"
                       style={{ width: "1%" }}
                     >
                       <div className="flex items-center gap-2.5">
@@ -270,7 +270,7 @@ export function PositionAssignmentTable({
                     <tr key={item.id} className="hover:bg-(--app-surface-container) group-has-[.branch-cell:hover]/branch:bg-(--app-surface-container) transition-colors duration-150">
                       {/* Serial Number */}
                       <td
-                        className="px-5 py-3 text-center font-mono font-bold text-(--app-muted-foreground) align-middle border-l border-(--app-border)/30 whitespace-nowrap tabular-nums"
+                        className="px-5 py-3 text-center font-mono font-bold text-(--app-muted-foreground) align-middle whitespace-nowrap tabular-nums"
                         style={{ width: "1%" }}
                       >
                         {runningSerial++}
@@ -411,6 +411,7 @@ export function PositionAssignmentTable({
   const byOfficerColumns: TableColumn<OfficerRowItem>[] = [
     {
       header: "الرتبة",
+      accessor: "officer.rank",
       headerAlign: "center" as const,
       cellAlign: "center" as const,
       minWidth: true,
@@ -423,26 +424,26 @@ export function PositionAssignmentTable({
           </span>
         );
       },
-      className: "border-l border-(--app-border)/30",
     },
     {
       header: "الأسم",
+      accessor: "officer.fullName",
       headerAlign: "right" as const,
       cellAlign: "right" as const,
-      render: (_val, row) => (
+      render: (val, row) => (
         <button
           type="button"
           onClick={() => onSelectOfficer(row.officer)}
           className="font-bold text-xs text-(--app-muted-foreground) hover:underline hover:text-(--app-info) cursor-pointer text-right transition-colors"
           title="عرض وتعديل تكليفات الضابط"
         >
-          {row.officer.fullName}
+          {val as string}
         </button>
       ),
-      className: "border-l border-(--app-border)/30",
     },
     {
       header: "وظائف اساسية",
+      accessor: "primaryDisplay",
       headerAlign: "right" as const,
       cellAlign: "right" as const,
       render: (_val, row) => {
@@ -465,10 +466,10 @@ export function PositionAssignmentTable({
           </div>
         );
       },
-      className: "border-l border-(--app-border)/30",
     },
     {
       header: "الوظائف البديل",
+      accessor: "substituteDisplay",
       headerAlign: "right" as const,
       cellAlign: "right" as const,
       render: (_val, row) => {
@@ -488,12 +489,12 @@ export function PositionAssignmentTable({
           </div>
         );
       },
-      className: "border-l border-(--app-border)/30",
     },
     ...(canEdit
       ? [
           {
             header: "الإجراءات",
+            accessor: "id",
             headerAlign: "center" as const,
             cellAlign: "center" as const,
             minWidth: true,

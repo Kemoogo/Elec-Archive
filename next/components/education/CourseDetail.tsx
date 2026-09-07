@@ -7,8 +7,9 @@ import type { CourseStatus } from "@/lib/db/models/Course";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { useToast } from "@/components/ui/toast";
+import { MonoBadge } from "@/components/ui/mono-badge";
 import { extractApiError } from "@/lib/utils";
-import { Trash2 } from "lucide-react";
+import { Trash2, Calendar } from "lucide-react";
 
 interface CourseDetailProps {
   course: {
@@ -125,12 +126,20 @@ export function CourseDetail({ course, canEdit }: CourseDetailProps) {
         <h2 className="mb-3 text-sm font-medium text-(--app-muted-foreground)">معلومات الدورة</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <span className="text-xs text-(--app-muted-foreground)">تاريخ البداية</span>
-            <p className="text-sm text-(--app-foreground)">{new Date(course.startDate).toLocaleDateString("ar-EG")}</p>
+            <span className="text-xs text-(--app-muted-foreground) block mb-1">تاريخ البداية</span>
+            <MonoBadge
+              value={new Date(course.startDate).toLocaleDateString("ar-EG")}
+              icon={<Calendar className="w-3.5 h-3.5" />}
+              size="sm"
+            />
           </div>
           <div>
-            <span className="text-xs text-(--app-muted-foreground)">تاريخ الانتهاء</span>
-            <p className="text-sm text-(--app-foreground)">{new Date(course.endDate).toLocaleDateString("ar-EG")}</p>
+            <span className="text-xs text-(--app-muted-foreground) block mb-1">تاريخ الانتهاء</span>
+            <MonoBadge
+              value={new Date(course.endDate).toLocaleDateString("ar-EG")}
+              icon={<Calendar className="w-3.5 h-3.5" />}
+              size="sm"
+            />
           </div>
           <div>
             <span className="text-xs text-(--app-muted-foreground)">نوع المشاركين</span>
