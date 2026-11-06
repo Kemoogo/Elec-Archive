@@ -15,6 +15,7 @@ const eslintConfig = defineConfig([
     "build/**",
     "coverage/**",
     "next-env.d.ts",
+    "scripts/**",
   ]),
   {
     plugins: {
@@ -28,6 +29,7 @@ const eslintConfig = defineConfig([
         "warn",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
+      "react-hooks/set-state-in-effect": "warn",
     },
   },
 ]);

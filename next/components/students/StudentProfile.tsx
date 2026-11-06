@@ -8,6 +8,7 @@ import { ModalShell } from "@/components/ui/modal-shell";
 import { useToast } from "@/components/ui/toast";
 import { MonoBadge } from "@/components/ui/mono-badge";
 import { AlertTriangle, Calendar } from "lucide-react";
+import { formatDateDisplay } from "@/lib/utils/date-display";
 
 interface SerializedStudent {
   _id: string;
@@ -32,10 +33,10 @@ const statusLabels: Record<string, string> = {
 };
 
 const statusColors: Record<string, string> = {
-  active: "bg-(--app-success)/20 text-(--app-success) border-(--app-success)/30",
-  graduated: "bg-(--app-info)/20 text-(--app-info) border-(--app-info)/30",
-  inactive: "bg-(--app-border) text-(--app-muted-foreground) border-(--app-border)",
-  withdrawn: "bg-(--app-error)/20 text-(--app-error) border-(--app-error)/30",
+  active: "bg-(--color-primary)/10 text-(--color-primary) border border-(--color-primary)/20",
+  graduated: "bg-(--app-info)/10 text-(--app-info) border border-(--app-info)/20",
+  inactive: "bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)",
+  withdrawn: "bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)",
 };
 
 export function StudentProfile({ student, canEdit }: StudentProfileProps) {
@@ -73,10 +74,10 @@ export function StudentProfile({ student, canEdit }: StudentProfileProps) {
       </nav>
 
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-(--app-foreground)">{student.fullName}</h1>
-          <p className="mt-1 text-sm text-(--app-muted-foreground)">رقم الطالب: {student.studentId}</p>
+          <h1 className="text-xl font-bold text-(--app-foreground)">{student.fullName}</h1>
+          <p className="text-sm font-mono text-(--app-muted-foreground)">{student.studentId}</p>
           <span
             className={`mt-2 inline-block rounded-full border px-3 py-1 text-xs ${
               statusColors[student.status] ?? statusColors.active
@@ -104,7 +105,7 @@ export function StudentProfile({ student, canEdit }: StudentProfileProps) {
           <div>
             <span className="text-xs text-(--app-muted-foreground) block mb-1">تاريخ التسجيل</span>
             <MonoBadge
-              value={new Date(student.enrollDate).toLocaleDateString("ar-EG")}
+              value={formatDateDisplay(student.enrollDate)}
               icon={<Calendar className="w-3.5 h-3.5" />}
               size="sm"
             />
@@ -139,7 +140,7 @@ export function StudentProfile({ student, canEdit }: StudentProfileProps) {
                 <div>
                   <p className="text-sm text-(--app-foreground)">{doc.name}</p>
                   <p className="text-xs font-mono text-(--app-muted-foreground)">
-                    {new Date(doc.uploadedAt).toLocaleDateString("ar-EG")}
+                    {formatDateDisplay(doc.uploadedAt)}
                   </p>
                 </div>
                 <a
@@ -165,23 +166,13 @@ export function StudentProfile({ student, canEdit }: StudentProfileProps) {
           panelClassName="max-w-96"
           onClose={() => setShowDeleteConfirm(false)}
           footer={
-            <ModalActions>
-              <button
-                type="button"
-                onClick={handleDeactivate}
-                disabled={isDeleting}
-                className="btn-destructive-sm"
-              >
-                {isDeleting ? "جاري الإيقاف..." : "تأكيد الإيقاف"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowDeleteConfirm(false)}
-                className="rounded-md border border-(--app-border) px-4 py-2 text-sm text-foreground hover:bg-white/10"
-              >
-                إلغاء
-              </button>
-            </ModalActions>
+            <ModalActions
+              submitText={isDeleting ? "جاري الإيقاف..." : "تأكيد الإيقاف"}
+              submitVariant="destructive"
+              submitLoading={isDeleting}
+              onConfirm={handleDeactivate}
+              onCancel={() => setShowDeleteConfirm(false)}
+            />
           }
         >
             <p className="mt-2 text-sm text-(--app-muted-foreground)">

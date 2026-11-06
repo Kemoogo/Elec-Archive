@@ -59,7 +59,16 @@ export const createOfficerSchema = z.object({
   religion: z.string().trim().optional(),
   maritalStatus: z.string().trim().optional(),
   faculty: z.string().trim().optional(),
-  file121Url: z.string().trim().optional(),
+  file121Url: z
+    .string()
+    .trim()
+    .regex(/^(\/uploads\/officers\/[a-zA-Z0-9_-]+\.pdf)?$/, "مسار ملف 121 غير صالح")
+    .optional(),
+  photoUrl: z
+    .string()
+    .trim()
+    .regex(/^(\/uploads\/officers\/photos\/[a-zA-Z0-9_-]+\.(jpg|jpeg|png|webp))?$/, "مسار الصورة غير صالح")
+    .optional(),
   file121IssueDate: z.string().trim().optional(),
   isArkanHarb: z.boolean().default(false),
 }).superRefine((data, ctx) => {
@@ -98,6 +107,7 @@ export const patchOfficerSchema = z.object({
   phone: z.string().trim().optional(),
   nationalId: z.string().trim().optional(),
   employmentStatus: z.enum(EMPLOYMENT_STATUSES_Z).optional(),
+  defaultLeaveSystem: z.string().trim().optional(),
   joinDate: z
     .string()
     .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح")
@@ -114,10 +124,26 @@ export const patchOfficerSchema = z.object({
   religion: z.string().trim().optional(),
   maritalStatus: z.string().trim().optional(),
   faculty: z.string().trim().optional(),
-  file121Url: z.string().trim().optional(),
+  file121Url: z
+    .string()
+    .trim()
+    .regex(/^(\/uploads\/officers\/[a-zA-Z0-9_-]+\.pdf)?$/, "مسار ملف 121 غير صالح")
+    .optional(),
+  photoUrl: z
+    .string()
+    .trim()
+    .regex(/^(\/uploads\/officers\/photos\/[a-zA-Z0-9_-]+\.(jpg|jpeg|png|webp))?$/, "مسار الصورة غير صالح")
+    .optional(),
   file121IssueDate: z.string().trim().optional(),
   isInUnit: z.boolean().optional(),
   isArkanHarb: z.boolean().optional(),
+  movement: z
+    .object({
+      action: z.enum(["transfer_out", "return_to_unit", "termination", "retirement", "death"]).optional(),
+      date: z.string().min(1).optional(),
+      notes: z.string().max(500).optional(),
+    })
+    .optional(),
 }).refine((data) => Object.keys(data).length > 0, {
   message: "يجب تحديد حقل واحد على الأقل",
 });
@@ -161,12 +187,49 @@ export const deleteDocumentSchema = z.object({
   documentId: z.string().min(1, "معرف المستند مطلوب"),
 });
 
-export const ROLLCALL_STATUSES_Z = ["present", "absent", "leave", "mission", "medical", "course"] as const;
+export const ROLLCALL_STATUSES_Z = [
+  "present",
+  "daily_mission",
+  "clinic",
+  "custom_present",
+  "leave",
+  "absent",
+  "course",
+  "rest",
+  "external_mission",
+  "mission",
+  "medical",
+  "attached",
+  "hospital",
+  "prison",
+  "unit_arrest",
+  "court",
+  "travel_abroad",
+  "custom_out",
+] as const;
 
 export const rollcallEntrySchema = z.object({
   officerId: z.string().min(1, "معرف الضابط مطلوب"),
   status: z.enum(ROLLCALL_STATUSES_Z, { message: "الحالة غير صالحة" }),
   note: z.string().trim().optional(),
+  customReason: z.string().trim().optional(),
+  hospitalName: z.string().trim().optional(),
+  hospitalAdmissionDate: z.string().trim().optional(),
+  disciplinaryType: z.string().trim().optional(),
+  disciplinaryAuthority: z.string().trim().optional(),
+  travelDestination: z.string().trim().optional(),
+  travelPurpose: z.string().trim().optional(),
+  statusStartDate: z.string().trim().optional(),
+  statusEndDate: z.string().trim().optional(),
+});
+
+export const customRollcallTableSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1, "اسم الجدول مطلوب"),
+  isInsideUnit: z.boolean().default(false),
+  officerIds: z.array(z.string()).default([]),
+  officerTasks: z.record(z.string(), z.string()).optional(),
+  notes: z.string().optional(),
 });
 
 export const rollcallSubmitSchema = z.object({
@@ -176,6 +239,8 @@ export const rollcallSubmitSchema = z.object({
     .refine((val) => !isNaN(Date.parse(val)), "التاريخ غير صالح"),
   action: z.enum(["save_draft", "submit"], { message: "الإجراء غير صالح" }),
   entries: z.array(rollcallEntrySchema).min(1, "يجب إدخال سجل واحد على الأقل"),
+  customTables: z.array(customRollcallTableSchema).optional(),
+  confirmedOfficerIds: z.array(z.string()).optional(),
 });
 
 export const rollcallQuerySchema = z.object({
@@ -194,6 +259,7 @@ export const LEAVE_TYPES_Z = [
   "annual",
   "permission",
   "casual",
+  "rest",
 ] as const;
 export const LEAVE_STATUSES_Z = [
   "pending_commander",
@@ -222,6 +288,24 @@ export const createLeaveSchema = z.object({
   actingOfficerId: z.string().optional(),
   isActingOfficerPresentConfirmed: z.boolean().optional(),
   reason: z.string().trim().optional(),
+  medicalReportUrl: z.string().trim().optional(),
+}).refine((data) => new Date(data.endDate) >= new Date(data.startDate), {
+  message: "تاريخ النهاية يجب أن يكون بعد تاريخ البداية",
+  path: ["endDate"],
+}).refine((data) => {
+  // Extract date string YYYY-MM-DD
+  const startStr = data.startDate.split("T")[0];
+  const now = new Date();
+  const _todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+  
+  // Start date must not be later than tomorrow (can be today or tomorrow; or past if registering historical/backlog)
+  return startStr <= tomorrowStr;
+}, {
+  message: "تاريخ بداية الإجازة يجب أن يكون اليوم أو باكر فقط، ولا يمكن تقديم طلب لتاريخ لاحق",
+  path: ["startDate"],
 });
 
 export const commanderDecisionSchema = z.object({
@@ -247,6 +331,11 @@ export const confirmReturnSchema = z.object({
   returnDate: z.string().optional(),
 });
 
+export const cancelLeaveSchema = z.object({
+  leaveId: z.string().min(1, "معرف الإجازة مطلوب"),
+  reason: z.string().trim().optional(),
+});
+
 export const patchLeaveSchema = z.object({
   type: z.enum(LEAVE_TYPES_Z).optional(),
   startDate: z
@@ -263,6 +352,9 @@ export const patchLeaveSchema = z.object({
   isActingOfficerPresentConfirmed: z.boolean().optional(),
 }).refine((data) => Object.keys(data).length > 0, {
   message: "يجب تحديد حقل واحد على الأقل",
+}).refine((data) => !data.startDate || !data.endDate || new Date(data.endDate) >= new Date(data.startDate), {
+  message: "تاريخ النهاية يجب أن يكون بعد تاريخ البداية",
+  path: ["endDate"],
 });
 
 export const leavesListQuerySchema = z.object({

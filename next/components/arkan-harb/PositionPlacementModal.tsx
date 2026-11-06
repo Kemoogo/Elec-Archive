@@ -7,17 +7,9 @@ import { useToast } from "@/components/ui/toast";
 import { extractApiError } from "@/lib/utils";
 import { compareOfficers } from "@/lib/officers/seniority";
 import { RANK_LABELS, type OfficerRank } from "@/lib/db/models/Officer.shared";
-import { Briefcase, User, Plus, Trash2, ChevronDown, AlertCircle, AlertTriangle, ArrowDown } from "lucide-react";
-
-interface OfficerOption {
-  id: string;
-  fullName: string;
-  rank: string;
-  militaryId?: string;
-  seniorityNumber?: string;
-  officerLabel?: string;
-  isArkanHarb?: boolean;
-}
+import { Briefcase, User, Plus, Trash2, AlertCircle, AlertTriangle, ArrowDown } from "lucide-react";
+import { CustomSelect, type CustomSelectOption } from "@/components/ui/custom-select";
+import type { OfficerOption } from "@/types";
 
 export interface PositionPlacementData {
   id: string;
@@ -79,6 +71,16 @@ function PositionPlacementModalContent({
   const sortedOfficers = React.useMemo(() => {
     return [...officers].sort((a, b) => compareOfficers(a, b));
   }, [officers]);
+
+  const primaryOfficerOptions: CustomSelectOption[] = React.useMemo(() => {
+    return [
+      { value: "", label: "-- بدون تعيين (وظيفة شاغرة) --" },
+      ...sortedOfficers.map((off) => ({
+        value: off.id,
+        label: off.officerLabel || `${off.rank} / ${off.fullName}`,
+      })),
+    ];
+  }, [sortedOfficers]);
 
   const initialPrimaryId = position ? extractOfficerId(position.primaryOfficer) : "";
   const initialSubIds = position
@@ -170,14 +172,27 @@ function PositionPlacementModalContent({
     await executeSave();
   }
 
+  const getSubstituteOptions = (currentIdx: number): CustomSelectOption[] => {
+    return [
+      { value: "", label: "-- اختر ضابطاً بديلاً --" },
+      ...sortedOfficers.map((off) => ({
+        value: off.id,
+        label: `${off.officerLabel || `${off.rank} / ${off.fullName}`}${off.id === primaryOfficerId ? " (الضابط الأساسي)" : ""}`,
+        disabled:
+          off.id === primaryOfficerId ||
+          substituteOfficerIds.some((s, i) => i !== currentIdx && s === off.id),
+      })),
+    ];
+  };
+
   return (
     <ModalShell
-      title={`تسكين وتكليف ضابط: ${position.positionTitle}`}
-      icon={<User className="w-4 h-4" />}
+      title={`تسكين وتكليف الوظيفة: ${position.positionTitle}`}
+      icon={<Briefcase className="w-4 h-4" />}
       onClose={onClose}
       overlayClassName="bg-black/40"
       panelClassName="max-w-xl border-(--app-border) shadow-depth-xl"
-      bodyClassName="p-5 no-scrollbar space-y-4"
+      bodyClassName="p-5 space-y-4 no-scrollbar"
       footer={
         <ModalActions
           form="placement-form"
@@ -187,15 +202,19 @@ function PositionPlacementModalContent({
         />
       }
     >
-      {/* Header Info */}
-      <div className="p-3.5 bg-(--color-primary)/5 border border-(--color-primary)/10 shadow-sm rounded-2xl flex items-center justify-between text-right">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-(--color-primary)/10 border border-(--color-primary)/20 flex items-center justify-center text-(--color-primary)">
+      {/* بطاقة معلومات الوظيفة */}
+      <div className="p-4 bg-(--color-primary)/5 border border-(--color-primary)/10 shadow-sm rounded-2xl flex items-center justify-between text-right">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-(--color-primary)/10 flex items-center justify-center text-(--color-primary) border border-(--color-primary)/20">
             <Briefcase className="w-5 h-5" />
           </div>
           <div>
-            <h4 className="text-sm font-extrabold text-(--color-primary)">{position.positionTitle}</h4>
-            <p className="text-xs text-(--app-muted-foreground) font-bold">الفرع: {position.department}</p>
+            <h4 className="text-sm font-black text-(--color-primary)">
+              {position.positionTitle}
+            </h4>
+            <div className="flex items-center gap-2 text-xs font-bold text-(--app-muted-foreground) mt-0.5">
+              <span>الفرع: {position.department || "عام"}</span>
+            </div>
           </div>
         </div>
         {position.hasNoSubstitute && (
@@ -220,33 +239,24 @@ function PositionPlacementModalContent({
               <button
                 type="button"
                 onClick={() => setPrimaryOfficerId("")}
-                className="text-[11px] font-bold text-red-500 hover:underline cursor-pointer"
+                className="text-[11px] font-bold text-(--color-primary) hover:underline cursor-pointer"
               >
                 تفريغ التسكين (شاغر)
               </button>
             )}
           </div>
-          <div className="relative">
-            <select
-              id="pos-primary"
-              value={primaryOfficerId}
-              onChange={(e) => setPrimaryOfficerId(e.target.value)}
-              className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-(--app-foreground) focus:outline-none focus:ring-blue-500/20 focus:border-blue-500 transition-all text-right appearance-none cursor-pointer"
-            >
-              <option value="">-- بدون تعيين (وظيفة شاغرة) --</option>
-              {sortedOfficers.map((off) => (
-                <option key={off.id} value={off.id}>
-                  {off.officerLabel || `${off.rank} / ${off.fullName}`}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-          </div>
+          <CustomSelect
+            id="pos-primary"
+            value={primaryOfficerId}
+            onChange={setPrimaryOfficerId}
+            options={primaryOfficerOptions}
+            placeholder="-- بدون تعيين (وظيفة شاغرة) --"
+          />
 
           {/* تنبيه استبدال الضابط الأساسي الحالي */}
           {initialPrimaryId && primaryOfficerId && primaryOfficerId !== initialPrimaryId && (
             <div className="p-2.5 bg-(--app-surface-container) border border-(--app-border) rounded-xl flex items-center gap-2 text-xs font-bold text-(--app-muted-foreground) animate-in fade-in duration-200">
-              <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+              <AlertTriangle className="w-4 h-4 text-(--color-primary) shrink-0" />
               <span>
                 تنبيه: سيتم استبدال الضابط الأساسي الحالي <span className="font-extrabold text-(--app-foreground)">({getOfficerDisplay(position.primaryOfficer)})</span> عند الحفظ.
               </span>
@@ -256,7 +266,7 @@ function PositionPlacementModalContent({
           {/* تنبيه تفريغ الوظيفة وجعلها شاغرة */}
           {initialPrimaryId && !primaryOfficerId && (
             <div className="p-2.5 bg-(--app-surface-container) border border-(--app-border) rounded-xl flex items-center gap-2 text-xs font-bold text-(--app-muted-foreground) animate-in fade-in duration-200">
-              <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+              <AlertCircle className="w-4 h-4 text-(--color-primary) shrink-0" />
               <span>
                 تنبيه: سيتم إلغاء تسكين الضابط <span className="font-extrabold text-(--app-foreground)">({getOfficerDisplay(position.primaryOfficer)})</span> وجعل الوظيفة شاغرة.
               </span>
@@ -264,7 +274,7 @@ function PositionPlacementModalContent({
           )}
         </div>
 
-        {/* 2. الضباط البدلاء (يتم إخفاؤهم تماماً في حال "وظيفة بدون بديل") */}
+        {/* 2. الضباط البدلاء */}
         {!position.hasNoSubstitute && (
           <div className="p-3.5 bg-(--app-surface-container)/30 rounded-2xl border border-(--app-border) space-y-3">
             <div className="flex items-center justify-between">
@@ -290,33 +300,18 @@ function PositionPlacementModalContent({
               <div className="space-y-2">
                 {substituteOfficerIds.map((subId, idx) => (
                   <div key={idx} className="flex items-center gap-2">
-                    <div className="flex-1 relative">
-                      <select
+                    <div className="flex-1">
+                      <CustomSelect
                         value={subId}
-                        onChange={(e) => handleUpdateSubstitute(idx, e.target.value)}
-                        className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-xs font-bold text-(--app-foreground) focus:outline-none focus:ring-blue-500/20 focus:border-blue-500 transition-all text-right appearance-none cursor-pointer"
-                      >
-                        <option value="">-- اختر ضابطاً بديلاً --</option>
-                        {sortedOfficers.map((off) => (
-                          <option
-                            key={off.id}
-                            value={off.id}
-                            disabled={
-                              off.id === primaryOfficerId ||
-                              substituteOfficerIds.some((s, i) => i !== idx && s === off.id)
-                            }
-                          >
-                            {off.officerLabel || `${off.rank} / ${off.fullName}`}
-                            {off.id === primaryOfficerId ? " (الضابط الأساسي)" : ""}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                        onChange={(val) => handleUpdateSubstitute(idx, val)}
+                        options={getSubstituteOptions(idx)}
+                        placeholder="-- اختر ضابطاً بديلاً --"
+                      />
                     </div>
                     <button
                       type="button"
                       onClick={() => handleRemoveSubstitute(idx)}
-                      className="p-2 rounded-xl text-red-500 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all cursor-pointer"
+                      className="p-2 rounded-xl text-slate-500 hover:text-(--color-primary) hover:bg-(--color-primary)/10 border border-transparent hover:border-(--app-border) transition-all cursor-pointer shrink-0"
                       title="حذف هذا البديل"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -370,32 +365,22 @@ function PositionPlacementModalContent({
       {showConfirmModal && (
         <ModalShell
           title={primaryOfficerId ? "تأكيد استبدال الضابط الأساسي" : "تأكيد تفريغ الوظيفة"}
-          icon={<AlertTriangle className="w-4 h-4 text-amber-500" />}
+          icon={<AlertTriangle className="w-4 h-4 text-(--color-primary)" />}
           onClose={() => setShowConfirmModal(false)}
           overlayClassName="bg-black/40"
           panelClassName="max-w-md border-(--app-border) shadow-depth-xl z-[70]"
           bodyClassName="p-5 space-y-4 text-right"
           footer={
-            <div className="flex items-center justify-end gap-2 w-full">
-              <button
-                type="button"
-                onClick={() => setShowConfirmModal(false)}
-                className="btn-secondary text-xs"
-              >
-                إلغاء
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowConfirmModal(false);
-                  executeSave();
-                }}
-                disabled={loading}
-                className={primaryOfficerId ? "btn-primary text-xs flex items-center gap-1.5" : "btn-destructive text-xs flex items-center gap-1.5"}
-              >
-                <span>{primaryOfficerId ? "تأكيد الاستبدال والتسكين" : "تأكيد تفريغ الوظيفة"}</span>
-              </button>
-            </div>
+            <ModalActions
+              submitText={primaryOfficerId ? "تأكيد الاستبدال والتسكين" : "تأكيد تفريغ الوظيفة"}
+              submitVariant={primaryOfficerId ? "primary" : "destructive"}
+              submitLoading={loading}
+              onConfirm={() => {
+                setShowConfirmModal(false);
+                executeSave();
+              }}
+              onCancel={() => setShowConfirmModal(false)}
+            />
           }
         >
           {/* Position Info Banner */}
@@ -447,7 +432,7 @@ function PositionPlacementModalContent({
 
           {/* Notice Note */}
           <div className="flex items-start gap-2 p-2.5 bg-(--app-surface-container)/60 rounded-xl border border-(--app-border)/60 text-[11px] font-bold text-(--app-muted-foreground)">
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+            <AlertTriangle className="w-3.5 h-3.5 text-(--color-primary) shrink-0 mt-0.5" />
             <p className="leading-relaxed">
               {primaryOfficerId
                 ? "سيتم إنهاء تكليف الضابط الحالي كضابط أساسي تلقائياً وأرشفة فترته السابقة في السجل التاريخي للوظيفة."

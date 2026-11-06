@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { cn } from "@/lib/utils";
 import { SectionWrapper } from "@/components/ui/section-wrapper";
 import { EmptyState } from "./empty-state";
+import { LoadingState } from "./loading-state";
 import { Database, LucideIcon } from "lucide-react";
 
 export type TableColumn<T extends object> = {
@@ -16,8 +17,8 @@ export type TableColumn<T extends object> = {
     headerClassName?: string;
     tdClassName?: string;
     minWidth?: boolean;
-    cellAlign?: "right" | "center" | "left";
-    headerAlign?: "right" | "center" | "left";
+    cellAlign?: "right" | "center" | "left" | "justify";
+    headerAlign?: "right" | "center" | "left" | "justify";
     emptyValue?: string;
 };
 
@@ -34,6 +35,9 @@ type Props<T extends object> = {
     emptyTitle?: string;
     emptyDescription?: string;
     isLoading?: boolean;
+    loadingText?: string;
+    className?: string;
+    wrapperClassName?: string;
 };
 
 type GenericTableColumn = TableColumn<object>;
@@ -43,6 +47,7 @@ const ALIGN_CLASS: Record<TableAlign, string> = {
     right: "text-right",
     center: "text-center",
     left: "text-left",
+    justify: "text-justify [text-align-last:justify] px-6",
 };
 
 function getAlignClass(align: TableAlign) {
@@ -90,7 +95,10 @@ export default function MainTable<T extends object>({
     emptyDescription = "لم يتم العثور على أي سجلات لعرضها في هذا الجدول",
     emptyIcon = Database,
     isLoading = false,
+    loadingText = "جاري تحميل البيانات...",
     variant = "primary",
+    className,
+    wrapperClassName,
 }: Props<T> & { emptyIcon?: LucideIcon; variant?: "primary" | "secondary" }) {
     const headerDepth = getHeaderDepth(columns);
     const headerRows = buildHeaderRows(columns, headerDepth);
@@ -123,11 +131,8 @@ export default function MainTable<T extends object>({
 
     if (isLoading) {
         return (
-            <SectionWrapper noPadding className="overflow-hidden">
-                <div className="p-12 flex flex-col items-center justify-center gap-4">
-                    <div className="w-10 h-10 border-4 border-(--color-primary)/20 border-t-(--color-primary) rounded-full animate-spin" />
-                    <p className="text-sm font-bold text-(--app-muted-foreground)">جاري التحميل...</p>
-                </div>
+            <SectionWrapper noPadding className={cn("overflow-hidden rounded-2xl", wrapperClassName)}>
+                <LoadingState message={loadingText} variant="inline" />
             </SectionWrapper>
         );
     }
@@ -143,9 +148,9 @@ export default function MainTable<T extends object>({
     }
 
     return (
-        <SectionWrapper noPadding className="overflow-hidden rounded-2xl">
+        <SectionWrapper noPadding className={cn("overflow-hidden rounded-2xl", wrapperClassName)}>
             <div className="overflow-x-auto">
-                <table className="w-full table-auto min-w-full">
+                <table className={cn("w-full table-auto min-w-full", className)}>
                     <thead className={appliedTheadClassName}>
                             {headerRows.map((row, rowIndex) => (
                                 <tr key={rowIndex}>

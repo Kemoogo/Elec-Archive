@@ -8,6 +8,7 @@ import { FormInput, FormLabel } from "@/components/ui/form-fields";
 import { MonoBadge } from "@/components/ui/mono-badge";
 import { useToast } from "@/components/ui/toast";
 import { extractApiError } from "@/lib/utils";
+import { formatDateDisplay } from "@/lib/utils/date-display";
 import {
   User,
   KeyRound,
@@ -216,11 +217,7 @@ export function ProfileClient({ user }: ProfileClientProps) {
                   value={
                     user.createdAt ? (
                       <MonoBadge
-                        value={new Date(user.createdAt).toLocaleDateString("ar-EG", {
-                          year: "numeric",
-                          month: "2-digit",
-                          day: "2-digit",
-                        })}
+                        value={formatDateDisplay(user.createdAt)}
                         icon={<Calendar className="w-3.5 h-3.5" />}
                         variant="surface"
                         size="md"

@@ -5,13 +5,14 @@ import MainTable, { type TableColumn } from "@/components/ui/Table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Paginator } from "@/components/ui/paginator";
-import { getStatusBadgeClass, getMissionStatusLabel } from "@/lib/utils/status-badge";
+import { getMissionStatusLabel } from "@/lib/utils/status-badge";
 import { Edit, Printer, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { ActionButton } from "@/components/officers/OfficersTable";
-import { MissionPrintModal } from "./MissionPrintModal";
 import { MissionCompleteModal } from "./MissionCompleteModal";
 import { MissionActionModal } from "./MissionActionModal";
 import { MissionDetailModal } from "./MissionDetailModal";
+import { TravelOrderModal } from "./TravelOrderModal";
+import { formatDateDisplay } from "@/lib/utils/date-display";
 
 export type MissionStatus = "scheduled" | "active" | "completed" | "cancelled" | "postponed";
 
@@ -22,6 +23,7 @@ export interface Mission {
   officerRankLabel?: string;
   officerLabel?: string;
   officerMilitaryId?: string;
+  missionType?: "internal_daily" | "external_multiday";
   title: string;
   description?: string;
   destination?: string;
@@ -31,6 +33,11 @@ export interface Mission {
   statusReason?: string;
   resultSummary?: string;
   linkedFaxId?: string;
+  linkedFax?: { _id: string; faxNumber?: string; subject?: string } | string;
+  travelOrderNumber?: string;
+  transportationMean?: string;
+  authorizedWeapons?: string;
+  clearanceDocuments?: Array<{ fileName?: string; name?: string; fileUrl: string; uploadedAt?: string | Date }>;
   completedAt?: Date | string;
   createdBy: string;
   createdAt: Date | string;
@@ -39,14 +46,7 @@ export interface Mission {
 // Helper function to format date for display
 function formatDate(date: Date | string | null | undefined): string {
   if (!date) return "";
-  if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}/.exec(date)) {
-    const [year, month, day] = date.split('T')[0].split('-').map(Number);
-    const d = new Date(year, month - 1, day);
-    return d.toLocaleDateString("ar-EG");
-  }
-  const d = typeof date === "string" ? new Date(date) : date;
-  if (isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("ar-EG");
+  return formatDateDisplay(date);
 }
 
 
@@ -75,10 +75,10 @@ export function MissionsTable({
   officerFilter: string;
   statusFilter: string;
 }) {
-  const [printMission, setPrintMission] = useState<Mission | null>(null);
   const [completeMission, setCompleteMission] = useState<Mission | null>(null);
   const [detailMission, setDetailMission] = useState<Mission | null>(null);
   const [actionTarget, setActionTarget] = useState<{ mission: Mission; type: "postpone" | "cancel" } | null>(null);
+  const [travelOrderMission, setTravelOrderMission] = useState<Mission | null>(null);
 
   const columns: TableColumn<Mission>[] = [
     {
@@ -91,7 +91,7 @@ export function MissionsTable({
           <button
             type="button"
             onClick={() => setDetailMission(row)}
-            className="font-bold text-(--color-primary) hover:underline text-right cursor-pointer"
+            className="font-black text-xs text-(--color-primary) hover:underline hover:text-(--app-info) text-right cursor-pointer transition-colors"
           >
             {value as string}
           </button>
@@ -104,7 +104,7 @@ export function MissionsTable({
       cellAlign: "center",
       headerAlign: "center",
       render: (_: unknown, row: Mission) => (
-        <span className="font-extrabold text-xs text-(--app-muted-foreground)">
+        <span className="font-bold text-xs text-(--app-muted-foreground)">
           {row.officerRankLabel || "ـ"}
         </span>
       ),
@@ -115,16 +115,9 @@ export function MissionsTable({
       cellAlign: "right",
       headerAlign: "right",
       render: (_: unknown, row: Mission) => (
-        <div className="flex flex-col text-right">
-          <span className="text-sm font-extrabold text-(--app-foreground)">
-            {row.officerName || row.officerLabel || "ضابط غير معروف"}
-          </span>
-          {row.officerMilitaryId && (
-            <span className="text-xs font-mono text-(--app-muted-foreground)">
-              عسكري: #{row.officerMilitaryId}
-            </span>
-          )}
-        </div>
+        <span className="text-xs font-bold text-(--app-muted-foreground)">
+          {row.officerName || row.officerLabel || "ضابط غير معروف"}
+        </span>
       ),
     },
     {
@@ -149,18 +142,14 @@ export function MissionsTable({
           <div className="flex flex-col items-center gap-1 text-xs font-bold">
             <Badge
               variant="outline"
-              className={
-                isMultiDay
-                  ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20 text-[10px] py-0 px-2 font-bold"
-                  : "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20 text-[10px] py-0 px-2 font-bold"
-              }
+              className="bg-(--app-surface-container) text-(--app-muted-foreground) border-(--app-border) text-[10px] py-0 px-2 font-bold"
             >
               {isMultiDay ? "مأمورية ممتدة" : "مأمورية"}
             </Badge>
             <div className="flex flex-col items-center">
-              <span className="font-extrabold text-(--app-foreground)">{formatDate(row.startDate)}</span>
+              <span className="font-bold text-xs text-(--app-muted-foreground)">{formatDate(row.startDate)}</span>
               {row.endDate && (
-                <span className="text-xs font-semibold text-(--app-muted-foreground) mt-0.5">
+                <span className="text-[10px] font-medium text-(--app-muted-foreground) mt-0.5">
                   حتى {formatDate(row.endDate)}
                 </span>
               )}
@@ -200,14 +189,14 @@ export function MissionsTable({
           <div className="flex flex-col items-center gap-1">
             <Badge
               variant="secondary"
-              className={`${getStatusBadgeClass(value as MissionStatus)} text-[10px] font-bold px-2.5 py-1 rounded-lg border-none`}
+              className="bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border) text-[10px] font-bold px-2.5 py-1 rounded-lg"
             >
               {getMissionStatusLabel(value as MissionStatus)}
             </Badge>
 
             {isCurrentlyActive && (
-              <div className="flex items-center gap-1.5 text-[10px] font-bold text-(--app-success) bg-(--app-success)/10 border border-(--app-success)/20 px-2 py-0.5 rounded-full mt-0.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-(--app-success) animate-pulse" />
+              <div className="flex items-center gap-1.5 text-[10px] font-bold text-(--app-muted-foreground) bg-(--app-surface-container) border border-(--app-border) px-2 py-0.5 rounded-full mt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-(--color-primary) animate-pulse" />
                 <span>سارٍ بالتمام اليومي</span>
               </div>
             )}
@@ -231,29 +220,23 @@ export function MissionsTable({
       minWidth: true,
       render: (_: unknown, row: Mission) => (
         <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
-          <ActionButton
-            icon={<Printer className="h-4 w-4 text-blue-500" />}
-            color="btn-action-info"
-            title="طباعة أمر التكليف"
-            onClick={() => setPrintMission(row)}
-          />
           {canEdit && row.status !== "completed" && row.status !== "cancelled" && (
             <>
               <ActionButton
-                icon={<CheckCircle2 className="h-4 w-4 text-emerald-500" />}
-                color="btn-action-info"
+                icon={<CheckCircle2 className="h-4 w-4 text-(--color-primary) hover:text-(--app-info)" />}
+                color="btn-action-primary"
                 title="إكمال وتوثيق التقرير"
                 onClick={() => setCompleteMission(row)}
               />
               <ActionButton
-                icon={<Clock className="h-4 w-4 text-purple-500" />}
-                color="btn-action-info"
+                icon={<Clock className="h-4 w-4 text-(--color-primary) hover:text-(--app-info)" />}
+                color="btn-action-primary"
                 title="تأجيل المأمورية"
                 onClick={() => setActionTarget({ mission: row, type: "postpone" })}
               />
               <ActionButton
-                icon={<XCircle className="h-4 w-4 text-red-500" />}
-                color="btn-action-info"
+                icon={<XCircle className="h-4 w-4 text-(--color-primary) hover:text-(--app-info)" />}
+                color="btn-action-primary"
                 title="إلغاء المأمورية"
                 onClick={() => setActionTarget({ mission: row, type: "cancel" })}
               />
@@ -261,12 +244,18 @@ export function MissionsTable({
           )}
           {canEdit && (
             <ActionButton
-              icon={<Edit className="h-4 w-4" />}
-              color="btn-action-info"
+              icon={<Edit className="h-4 w-4 text-(--color-primary) hover:text-(--app-info)" />}
+              color="btn-action-primary"
               title="تعديل المهمة"
               onClick={() => onEditMission(row)}
             />
           )}
+          <ActionButton
+            icon={<Printer className="h-4 w-4 text-(--color-primary) hover:text-(--app-info)" />}
+            color="btn-action-primary"
+            title="طباعة أمر التحرك وخط السير"
+            onClick={() => setTravelOrderMission(row)}
+          />
         </div>
       ),
     },
@@ -284,12 +273,6 @@ export function MissionsTable({
       />
 
       {/* Modals */}
-      <MissionPrintModal
-        mission={printMission}
-        isOpen={!!printMission}
-        onClose={() => setPrintMission(null)}
-      />
-
       <MissionCompleteModal
         mission={completeMission}
         isOpen={!!completeMission}
@@ -312,6 +295,12 @@ export function MissionsTable({
         isOpen={!!actionTarget}
         onClose={() => setActionTarget(null)}
         onSuccess={() => window.location.reload()}
+      />
+
+      <TravelOrderModal
+        mission={travelOrderMission}
+        isOpen={!!travelOrderMission}
+        onClose={() => setTravelOrderMission(null)}
       />
 
       {/* Pagination section */}

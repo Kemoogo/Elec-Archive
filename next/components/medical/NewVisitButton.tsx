@@ -1,14 +1,30 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { PrimaryHeaderBtn } from "@/components/layout/ModernPageHeader";
 import { Plus, Trash2, AlertTriangle, Stethoscope } from "lucide-react";
-import { FormField, FormLabel, FormInput, FormSelect, FormTextarea } from "@/components/ui/form-fields";
+import { FormField, FormLabel, FormInput, FormTextarea } from "@/components/ui/form-fields";
+import { CustomSelect, type CustomSelectOption } from "@/components/ui/custom-select";
 import { useToast } from "@/components/ui/toast";
 import { extractApiError } from "@/lib/utils";
+
+const FITNESS_CATEGORY_OPTIONS: CustomSelectOption[] = [
+  { value: "fit", label: "لائق طبياً" },
+  { value: "class_a", label: "لياقة فئة أ" },
+  { value: "class_b", label: "لياقة فئة ب" },
+  { value: "class_c", label: "لياقة فئة ج" },
+  { value: "temporary_unfit", label: "غير لائق مؤقتاً" },
+];
+
+const REST_TYPE_OPTIONS: CustomSelectOption[] = [
+  { value: "none", label: "لا يوجد" },
+  { value: "ward", label: "راحة بالعنبر" },
+  { value: "home", label: "راحة منزلية" },
+  { value: "exemption", label: "إعفاء مجهود" },
+];
 
 interface MedicineOption {
   _id: string;
@@ -52,6 +68,40 @@ export function NewVisitModal({ onClose }: { onClose: () => void }) {
   const [officerSearch, setOfficerSearch] = useState("");
   const [officerResults, setOfficerResults] = useState<{ militaryId: string; fullName: string; formattedName: string }[]>([]);
   const [searchingOfficers, setSearchingOfficers] = useState(false);
+  const officerAbortRef = useRef<AbortController | null>(null);
+
+  const fetchOfficers = useCallback(async (term: string) => {
+    const trimmed = term.trim();
+    if (trimmed.length < 2) {
+      setOfficerResults([]);
+      setSearchingOfficers(false);
+      return;
+    }
+
+    if (officerAbortRef.current) {
+      officerAbortRef.current.abort();
+    }
+    const controller = new AbortController();
+    officerAbortRef.current = controller;
+
+    setSearchingOfficers(true);
+    try {
+      const res = await fetch(`/api/medical/officers/search?q=${encodeURIComponent(trimmed)}`, {
+        signal: controller.signal,
+      });
+      const data = await res.json();
+      if (controller.signal.aborted) return;
+      if (data.success) {
+        setOfficerResults(data.data.officers || []);
+      }
+    } catch {
+      // Aborted or network error
+    } finally {
+      if (!controller.signal.aborted) {
+        setSearchingOfficers(false);
+      }
+    }
+  }, []);
 
   const [patientId, setPatientId] = useState("");
   const [patientName, setPatientName] = useState("");
@@ -72,38 +122,32 @@ export function NewVisitModal({ onClose }: { onClose: () => void }) {
   const [dispenseQty, setDispenseQty] = useState(1);
   const [medicineSearch, setMedicineSearch] = useState("");
 
-  useEffect(() => {
+  const fetchMedicines = () => {
     fetch("/api/medical/medicines")
       .then((res) => res.json())
       .then((data) => {
         if (data.success) setMedicines(data.data.medicines);
       })
-      .catch(() => { });
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    fetchMedicines();
   }, []);
 
   useEffect(() => {
-    if (category !== "officer" || !officerSearch.trim()) {
-      const timer = setTimeout(() => {
-        setOfficerResults([]);
-      }, 0);
-      return () => clearTimeout(timer);
+    if (category !== "officer" || officerSearch.trim().length < 2) {
+      setOfficerResults([]);
+      setSearchingOfficers(false);
+      return;
     }
 
     const delayDebounce = setTimeout(() => {
-      setSearchingOfficers(true);
-      fetch(`/api/medical/officers/search?q=${encodeURIComponent(officerSearch)}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.success) {
-            setOfficerResults(data.data.officers);
-          }
-        })
-        .catch(() => {})
-        .finally(() => setSearchingOfficers(false));
-    }, 300);
+      fetchOfficers(officerSearch);
+    }, 500);
 
     return () => clearTimeout(delayDebounce);
-  }, [officerSearch, category]);
+  }, [officerSearch, category, fetchOfficers]);
 
   useEffect(() => {
     if (!patientId.trim()) {
@@ -228,6 +272,7 @@ export function NewVisitModal({ onClose }: { onClose: () => void }) {
         setFitnessCategory("fit");
         setPatientRecord(null);
         setLoading(false);
+        fetchMedicines();
       }
     } catch {
       setError("حدث خطأ في الخادم");
@@ -236,32 +281,22 @@ export function NewVisitModal({ onClose }: { onClose: () => void }) {
   };
 
   const footer = (
-    <ModalActions className="sm:items-stretch w-full">
-      <button
-        type="submit"
-        form="visit-form"
-        className="btn-primary"
-        disabled={loading}
-      >
-        حفظ وخروج
-      </button>
-      <button
-        type="button"
-        onClick={(e) => handleSubmit(e as unknown as React.FormEvent, false)}
-        className="btn-secondary"
-        disabled={loading}
-      >
-        حفظ
-      </button>
-      <button
-        type="button"
-        onClick={onClose}
-        className="btn-secondary"
-        disabled={loading}
-      >
-        إلغاء
-      </button>
-    </ModalActions>
+    <ModalActions
+      startSlot={
+        <button
+          type="button"
+          onClick={(e) => handleSubmit(e as unknown as React.FormEvent, false)}
+          className="btn-secondary text-xs flex items-center gap-1.5 cursor-pointer"
+          disabled={loading}
+        >
+          حفظ ومتابعة
+        </button>
+      }
+      form="visit-form"
+      submitText="حفظ وخروج"
+      submitLoading={loading}
+      onCancel={onClose}
+    />
   );
 
   return (
@@ -350,8 +385,14 @@ export function NewVisitModal({ onClose }: { onClose: () => void }) {
                   type="text"
                   value={officerSearch}
                   onChange={(e) => setOfficerSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      fetchOfficers(officerSearch);
+                    }
+                  }}
                   className="w-full px-4 py-2.5 bg-(--app-surface) border border-(--app-info)/30 focus:border-(--app-info) focus:ring-4 focus:ring-(--app-info)/10 rounded-xl text-sm font-bold text-(--app-foreground) transition-all text-right focus:outline-none"
-                  placeholder="اكتب اسم الضابط أو رقمه العسكري للبحث..."
+                  placeholder="اكتب اسم الضابط أو رقمه العسكري للبحث (حرفين على الأقل)..."
                   autoComplete="off"
                 />
                 {searchingOfficers && (
@@ -428,9 +469,9 @@ export function NewVisitModal({ onClose }: { onClose: () => void }) {
           </div>
 
           {patientRecord && (patientRecord.allergies.length > 0 || patientRecord.chronicConditions.length > 0) && (
-            <div className="p-4 bg-(--app-warning)/10 border border-(--app-warning)/30 rounded-2xl space-y-2 text-(--app-warning) text-right animate-in fade-in duration-300">
-              <div className="flex items-center gap-2 font-black text-sm text-(--app-foreground)">
-                <AlertTriangle className="w-5 h-5 text-(--app-warning)" />
+            <div className="p-4 bg-(--color-primary)/5 border border-(--color-primary)/20 rounded-2xl space-y-2 text-right animate-in fade-in duration-300">
+              <div className="flex items-center gap-2 font-black text-sm text-(--color-primary)">
+                <AlertTriangle className="w-5 h-5 text-(--color-primary)" />
                 <span>تنبيه طبي هام للمريض!</span>
               </div>
               <div className="grid grid-cols-2 gap-4 text-xs font-bold mt-1">
@@ -477,34 +518,25 @@ export function NewVisitModal({ onClose }: { onClose: () => void }) {
 
           {/* اللياقة الطبية والراحة الطبية */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-(--app-border) pt-4">
-            <div className="space-y-1.5">
-              <FormLabel htmlFor="visit-fitness">اللياقة الطبية</FormLabel>
-              <FormSelect id="visit-fitness" value={fitnessCategory} onChange={(e) => setFitnessCategory(e.target.value)}>
-                <option value="fit">لائق طبياً</option>
-                <option value="class_a">لياقة فئة أ</option>
-                <option value="class_b">لياقة فئة ب</option>
-                <option value="class_c">لياقة فئة ج</option>
-                <option value="temporary_unfit">غير لائق مؤقتاً</option>
-              </FormSelect>
-            </div>
+            <CustomSelect
+              id="visit-fitness"
+              label="اللياقة الطبية"
+              value={fitnessCategory}
+              onChange={setFitnessCategory}
+              options={FITNESS_CATEGORY_OPTIONS}
+            />
 
             <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1.5">
-                <FormLabel htmlFor="visit-restType">نوع الراحة الطبية</FormLabel>
-                <FormSelect
-                  id="visit-restType"
-                  value={restType}
-                  onChange={(e) => {
-                    setRestType(e.target.value);
-                    if (e.target.value === "none") setRestDays(0);
-                  }}
-                >
-                  <option value="none">لا يوجد</option>
-                  <option value="ward">راحة بالعنبر</option>
-                  <option value="home">راحة منزلية</option>
-                  <option value="exemption">إعفاء مجهود</option>
-                </FormSelect>
-              </div>
+              <CustomSelect
+                id="visit-restType"
+                label="نوع الراحة الطبية"
+                value={restType}
+                onChange={(val) => {
+                  setRestType(val);
+                  if (val === "none") setRestDays(0);
+                }}
+                options={REST_TYPE_OPTIONS}
+              />
 
               <div className="space-y-1.5">
                 <FormLabel htmlFor="visit-restDays">المدة (بالأيام)</FormLabel>
@@ -630,7 +662,7 @@ export function NewVisitModal({ onClose }: { onClose: () => void }) {
                           <button
                             type="button"
                             onClick={() => removeDispense(d.medicineId)}
-                            className="btn-action-danger"
+                            className="p-1.5 rounded-lg btn-action-primary cursor-pointer"
                             title="حذف"
                           >
                             <Trash2 className="h-4 w-4" />

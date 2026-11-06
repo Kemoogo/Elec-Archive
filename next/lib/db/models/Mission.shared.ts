@@ -24,9 +24,15 @@ export const MISSION_STATUS_LABELS: Record<MissionStatus, string> = {
 };
 
 export const MISSION_STATUS_COLORS: Record<MissionStatus, string> = {
-  scheduled: "bg-(--app-warning)/10 text-(--app-warning) border-(--app-warning)/20",
+  scheduled: "bg-(--app-info)/10 text-(--app-info) border-(--app-info)/20",
   active: "bg-(--app-success)/10 text-(--app-success) border-(--app-success)/20",
   completed: "bg-(--app-surface-container) text-(--app-muted-foreground) border-(--app-border)",
   cancelled: "bg-(--app-error)/10 text-(--app-error) border-(--app-error)/20",
   postponed: "bg-purple-500/10 text-purple-600 border-purple-500/20 dark:bg-purple-500/20 dark:text-purple-400 dark:border-purple-500/30",
 };
+
+export interface IMissionClearanceDoc {
+  name: string;
+  fileUrl: string;
+  uploadedAt: Date;
+}

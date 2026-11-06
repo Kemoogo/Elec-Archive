@@ -5,7 +5,8 @@ import { ModalShell } from "@/components/ui/modal-shell";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { useToast } from "@/components/ui/toast";
 import { extractApiError } from "@/lib/utils";
-import { Briefcase, ChevronDown } from "lucide-react";
+import { Briefcase } from "lucide-react";
+import { CustomSelect } from "@/components/ui/custom-select";
 
 interface DynamicBranch {
   _id: string;
@@ -168,37 +169,24 @@ function PositionDetailModalContent({
         </div>
 
         {/* 2. الفرع التابع له */}
-        <div className="space-y-1.5">
-          <label
-            htmlFor="pos-dept"
-            className="text-xs font-bold text-(--app-muted-foreground) block mr-1"
-          >
-            الفرع التابع له <span className="text-red-500">*</span>
-          </label>
-          <div className="relative">
-            <select
-              id="pos-dept"
-              value={department}
-              onChange={(e) => setDepartment(e.target.value)}
-              className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-(--app-foreground) focus:outline-none focus:ring-blue-500/20 focus:border-blue-500 transition-all text-right appearance-none cursor-pointer"
-            >
-              {dynamicBranches.length > 0 ? (
-                dynamicBranches.map((branch) => (
-                  <option key={branch._id} value={branch.name}>
-                    {branch.name}
-                  </option>
-                ))
-              ) : (
-                departments.map((dept) => (
-                  <option key={dept} value={dept}>
-                    {dept}
-                  </option>
-                ))
-              )}
-            </select>
-            <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-          </div>
-        </div>
+        <CustomSelect
+          id="pos-dept"
+          label="الفرع التابع له"
+          value={department}
+          onChange={setDepartment}
+          options={
+            dynamicBranches.length > 0
+              ? dynamicBranches.map((branch) => ({
+                  value: branch.name,
+                  label: branch.name,
+                }))
+              : departments.map((dept) => ({
+                  value: dept,
+                  label: dept,
+                }))
+          }
+          required
+        />
 
         {/* 3. ملاحظات إضافية */}
         <div className="space-y-1.5">

@@ -1,18 +1,19 @@
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db/connect";
 import { authenticate } from "@/lib/auth/middleware";
-import { canEditModule } from "@/lib/auth/authorization";
+import { hasModuleAccess } from "@/lib/auth/rbac";
 import { logAuditEvent } from "@/lib/auth/audit";
 import { errors } from "@/lib/auth/errors";
 import { PositionAssignment } from "@/lib/db/models/PositionAssignment";
 import { handleApiError } from "@/lib/utils/api-error";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
+import { Types } from "mongoose";
 
 export async function POST(request: Request) {
   const auth = await authenticate();
   if (!auth.success) return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
 
-  if (!canEditModule(auth.user!, "arkan_harb") && !canEditModule(auth.user!, "officers")) {
+  if (!hasModuleAccess(auth.user, "arkan_harb", "edit") && !hasModuleAccess(auth.user, "officers", "edit")) {
     return NextResponse.json({ success: false, error: errors.insufficientPermissions }, { status: 403 });
   }
 
@@ -23,38 +24,41 @@ export async function POST(request: Request) {
   await connectToDatabase();
 
   try {
-    const positions = await PositionAssignment.find({
-      $or: [
-        { primaryOfficerId: { $ne: null } },
-        { substituteOfficerIds: { $exists: true, $ne: [] } },
-      ],
-    });
-
     const now = new Date();
-    let unassignedCount = 0;
-
-    for (const position of positions) {
-      // Close open history entries
-      for (const history of position.assignmentHistory || []) {
-        if (!history.endDate) {
-          history.endDate = now;
-        }
+    const result = await PositionAssignment.updateMany(
+      {
+        $or: [
+          { primaryOfficerId: { $ne: null } },
+          { substituteOfficerIds: { $exists: true, $not: { $size: 0 } } },
+        ],
+      },
+      {
+        $set: {
+          "assignmentHistory.$[activeElem].endDate": now,
+          "assignmentHistory.$[activeElem].notes": "إلغاء التكليف وإخلاء الوظيفة",
+          primaryOfficerId: null,
+          primaryStartDate: null,
+          substituteOfficerIds: [],
+          substituteStartDates: [],
+          updatedBy: new Types.ObjectId(auth.user!.id),
+        },
+      },
+      {
+        arrayFilters: [{ "activeElem.endDate": null }],
       }
+    );
 
-      position.primaryOfficerId = null;
-      position.primaryStartDate = null;
-      position.substituteOfficerIds = [];
-      position.updatedBy = auth.user!.id;
-      await position.save();
-      unassignedCount++;
-    }
+    const unassignedCount = result.modifiedCount;
+
+    const primaryTargetId = auth.user!.id;
 
     await logAuditEvent({
       userId: auth.user!.id,
       userName: auth.user!.fullName,
       action: "UPDATE",
       module: "arkan_harb",
-      description: `تم تفريغ وإلغاء التكليف للجميع لعدد ${unassignedCount} وظيفة في الهيكل الإداري`,
+      targetId: primaryTargetId,
+      description: `تم تفريغ وإلغاء التكليف لجميع الوظائف في الهيكل التنظيمي لأركان حرب (${unassignedCount} وظيفة)`,
       ipAddress: ip,
     });
 

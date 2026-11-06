@@ -111,7 +111,7 @@ function DeletePositionModalContent({
         <div className="text-xs text-(--app-muted-foreground) space-y-1 pt-1 border-t border-(--app-border)/40">
           <div className="flex items-center justify-between">
             <span>الضابط الأساسي:</span>
-            <span className={`font-bold ${hasPrimary ? "text-blue-700 dark:text-blue-400" : "text-amber-600"}`}>
+            <span className={`font-bold ${hasPrimary ? "text-(--color-primary)" : "text-(--app-muted-foreground)"}`}>
               {getOfficerDisplay(position.primaryOfficer)}
             </span>
           </div>

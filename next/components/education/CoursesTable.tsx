@@ -4,6 +4,7 @@ import Link from "next/link";
 import MainTable, { type TableColumn } from "@/components/ui/Table";
 import { Paginator } from "@/components/ui/paginator";
 import { BookOpen } from "lucide-react";
+import { formatDateDisplay } from "@/lib/utils/date-display";
 
 interface CourseRow {
   _id: string;
@@ -29,9 +30,9 @@ const statusLabels: Record<string, string> = {
 };
 
 const statusColors: Record<string, string> = {
-  upcoming: "bg-(--app-info)/20 text-(--app-info) border-(--app-info)/30",
-  ongoing: "bg-(--app-success)/20 text-(--app-success) border-(--app-success)/30",
-  completed: "bg-(--app-border) text-(--app-muted-foreground) border-(--app-border)",
+  upcoming: "bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)",
+  ongoing: "bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)",
+  completed: "bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)",
 };
 
 const modelLabels: Record<string, string> = {
@@ -45,7 +46,7 @@ export function CoursesTable({ courses, page, totalPages, total }: CoursesTableP
       header: "عنوان الدورة",
       accessor: "title",
       render: (val, row) => (
-        <Link href={`/education/${row._id}`} className="hover:underline hover:text-(--app-info) cursor-pointer font-medium text-(--color-primary)">
+        <Link href={`/education/${row._id}`} className="hover:underline hover:text-(--app-info) cursor-pointer font-black text-xs text-(--color-primary) transition-colors">
           {val as string}
         </Link>
       ),
@@ -53,19 +54,19 @@ export function CoursesTable({ courses, page, totalPages, total }: CoursesTableP
     {
       header: "تاريخ البداية",
       accessor: "startDate",
-      render: (val) => <span className="font-mono">{new Date(val as string).toLocaleDateString("ar-EG")}</span>,
+      render: (val) => <span className="font-mono text-xs text-(--app-muted-foreground)">{formatDateDisplay(val as string)}</span>,
     },
     {
       header: "تاريخ الانتهاء",
       accessor: "endDate",
-      render: (val) => <span className="font-mono">{new Date(val as string).toLocaleDateString("ar-EG")}</span>,
+      render: (val) => <span className="font-mono text-xs text-(--app-muted-foreground)">{formatDateDisplay(val as string)}</span>,
     },
     {
       header: "الحالة",
       accessor: "status",
       render: (val) => (
         <span
-          className={`inline-block rounded-full border px-3 py-1 text-xs font-medium ${
+          className={`inline-block rounded-full border px-3 py-1 text-xs font-bold ${
             statusColors[val as string] ?? statusColors.upcoming
           }`}
         >

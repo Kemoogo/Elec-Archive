@@ -5,12 +5,13 @@ import { logAuditEvent } from "@/lib/auth/audit";
 import { errors } from "@/lib/auth/errors";
 import { handleApiError } from "@/lib/utils/api-error";
 import { Officer, RANK_LABELS, type OfficerRank } from "@/lib/db/models/Officer";
-import { DailyRollcall } from "@/lib/db/models/DailyRollcall";
-import type { IRollcallEntry } from "@/lib/db/models/DailyRollcall";
+import { DailyRollcall, ROLLCALL_STATUS_LABELS } from "@/lib/db/models/DailyRollcall";
+import type { IRollcallEntry, ICustomRollcallTable } from "@/lib/db/models/DailyRollcall";
 import { canViewOfficers, canEditOfficers, canViewCommanderRollcall } from "@/lib/officers/access";
 import { rollcallSubmitSchema, rollcallQuerySchema } from "@/lib/validations/officers";
 import { checkOfficersRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
 import { createNotificationForCommanders } from "@/lib/notifications/createNotification";
+import { getUtcDayRange } from "@/lib/arkan-harb/rollcall-engine";
 
 export async function GET(request: Request) {
   const auth = await authenticate();
@@ -45,17 +46,14 @@ export async function GET(request: Request) {
     );
   }
 
-  const queryDate = new Date(parsed.data.date);
-  queryDate.setHours(0, 0, 0, 0);
-  const nextDay = new Date(queryDate);
-  nextDay.setDate(nextDay.getDate() + 1);
+  const { startOfDay: queryDate, nextDay } = getUtcDayRange(parsed.data.date);
 
   const rollcall = await DailyRollcall.findOne({
     date: { $gte: queryDate, $lt: nextDay },
   }).lean();
 
   if (!rollcall) {
-    const { getSuggestedRollcall } = await import("@/lib/officers/rollcall-engine");
+    const { getSuggestedRollcall } = await import("@/lib/arkan-harb/rollcall-engine");
     const suggestions = await getSuggestedRollcall(queryDate);
 
     return NextResponse.json({
@@ -97,7 +95,17 @@ export async function GET(request: Request) {
         rankLabel: RANK_LABELS[e.rank as keyof typeof RANK_LABELS] ?? e.rank,
         status: e.status,
         note: e.note,
+        customReason: e.customReason,
+        hospitalName: e.hospitalName,
+        hospitalAdmissionDate: e.hospitalAdmissionDate,
+        disciplinaryType: e.disciplinaryType,
+        disciplinaryAuthority: e.disciplinaryAuthority,
+        travelDestination: e.travelDestination,
+        travelPurpose: e.travelPurpose,
+        statusStartDate: e.statusStartDate,
+        statusEndDate: e.statusEndDate,
       })),
+      customTables: rollcall.customTables || [],
       submittedBy: rollcall.submittedBy?.toString(),
       submittedAt: rollcall.submittedAt?.toISOString(),
       viewedByCommander: rollcall.viewedByCommander,
@@ -140,12 +148,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const { date, action, entries: submittedEntries } = parsed.data;
+    const { date, action, entries: submittedEntries, customTables, confirmedOfficerIds } = parsed.data;
 
-    const queryDate = new Date(date);
-    queryDate.setHours(0, 0, 0, 0);
-    const nextDay = new Date(queryDate);
-    nextDay.setDate(nextDay.getDate() + 1);
+    const { startOfDay: queryDate, nextDay } = getUtcDayRange(date);
 
     const existing = await DailyRollcall.findOne({
       date: { $gte: queryDate, $lt: nextDay },
@@ -158,7 +163,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const activeOfficers = await Officer.find({ employmentStatus: "active" }).lean();
+    const activeOfficers = await Officer.find({ isInUnit: true, employmentStatus: "active" }).lean();
     const activeOfficerIds = new Set(activeOfficers.map((o) => o._id.toString()));
 
     if (action === "submit") {
@@ -190,44 +195,110 @@ export async function POST(request: Request) {
     const operationalEntries = await calculateDailyRollcallEntries(queryDate);
     const operationalMap = new Map(operationalEntries.map((op) => [op.officerId.toString(), op]));
 
-    // Strict validation: if an officer is locked by leave or mission, status cannot be overridden
-    for (const entry of submittedEntries) {
-      const op = operationalMap.get(entry.officerId);
-      if (op?.isLocked && entry.status !== op.status) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: `لا يمكن تعديل تمام الضابط (${op.fullName}) لأن حالته مقفلة آلياً بسبب (${op.lockReason || "إجازة/مأمورية نشطة"}). يرجى إدارة السجل من تبويب الإجازات أو المأموريات.`,
-          },
-          { status: 400 },
-        );
+    // Strict validation: allow returning today officers, custom tables, or explicit special status overrides
+    if (action === "submit") {
+      for (const entry of submittedEntries) {
+        const op = operationalMap.get(entry.officerId);
+        if (op?.isLocked && entry.status !== op.status) {
+          const isAllowedOverride =
+            (op.isReturningToday && (entry.status === "present" || entry.status === "custom_present")) ||
+            entry.status === "hospital" ||
+            entry.status === "prison" ||
+            entry.status === "unit_arrest" ||
+            entry.status === "court" ||
+            entry.status === "travel_abroad" ||
+            entry.status === "absent";
+
+          if (!isAllowedOverride) {
+            return NextResponse.json(
+              {
+                success: false,
+                error: `لا يمكن تغيير حالة الضابط المقيدة في المنظومة (${op.lockReason || op.status})`,
+              },
+              { status: 400 }
+            );
+          }
+        }
       }
     }
 
     const officerMap = new Map(activeOfficers.map((o) => [o._id.toString(), o]));
 
-    const rollcallEntries = submittedEntries.map((e) => {
+    const rollcallEntries: IRollcallEntry[] = submittedEntries.map((e) => {
       const officer = officerMap.get(e.officerId);
       const op = operationalMap.get(e.officerId);
+      const isSpecialOverride =
+        e.status === "clinic" ||
+        e.status === "hospital" ||
+        e.status === "prison" ||
+        e.status === "unit_arrest" ||
+        e.status === "court" ||
+        e.status === "travel_abroad" ||
+        e.status === "absent";
+
+      const isReturning = op?.isReturningToday && (e.status === "present" || e.status === "custom_present");
+      const effectiveStatus = (op?.isLocked && !isReturning && !isSpecialOverride)
+        ? op.status
+        : e.status;
+
       return {
         officerId: e.officerId,
         militaryId: officer?.militaryId ?? "",
         fullName: officer?.fullName ?? "",
         rank: officer?.rank ?? "",
-        status: op?.isLocked ? op.status : e.status,
+        status: effectiveStatus,
         note: e.note,
+        customReason: e.customReason,
+        hospitalName: e.hospitalName,
+        hospitalAdmissionDate: e.hospitalAdmissionDate,
+        disciplinaryType: e.disciplinaryType,
+        disciplinaryAuthority: e.disciplinaryAuthority,
+        travelDestination: e.travelDestination,
+        travelPurpose: e.travelPurpose,
+        statusStartDate: e.statusStartDate,
+        statusEndDate: e.statusEndDate,
         relatedLeaveId: op?.relatedLeaveId,
         relatedMissionId: op?.relatedMissionId,
-        isLocked: op?.isLocked,
-        lockReason: op?.lockReason,
+        isLocked: op?.isReturningToday ? false : Boolean(op?.isLocked || (isSpecialOverride && e.status !== "present")),
+        lockReason: isSpecialOverride && e.status !== op?.status ? (e.note || ROLLCALL_STATUS_LABELS[e.status]) : (op?.isReturningToday ? undefined : op?.lockReason),
         sourceId: op?.sourceId,
         sourceType: op?.sourceType,
+        isReturningToday: op?.isReturningToday,
+        leaveTypeLabel: op?.leaveTypeLabel,
+        leaveStartDate: op?.leaveStartDate,
+        leaveEndDate: op?.leaveEndDate,
+        missionTitle: op?.missionTitle,
+        missionDestination: op?.missionDestination,
+        missionStartDate: op?.missionStartDate,
+        missionEndDate: op?.missionEndDate,
+        isCourse: op?.isCourse,
       };
     });
 
+    let rollcallDoc = existing;
     if (existing) {
       existing.entries = rollcallEntries;
       existing.targetOfficerCount = activeOfficers.length;
+      existing.markModified("entries");
+
+      if (confirmedOfficerIds !== undefined) {
+        const { Types } = await import("mongoose");
+        existing.confirmedOfficerIds = confirmedOfficerIds.map((id) => new Types.ObjectId(id));
+        existing.markModified("confirmedOfficerIds");
+      }
+
+      if (customTables !== undefined) {
+        const typedCustomTables: ICustomRollcallTable[] = customTables.map((t) => ({
+          id: t.id,
+          name: t.name,
+          isInsideUnit: t.isInsideUnit,
+          officerIds: t.officerIds,
+          officerTasks: t.officerTasks,
+          notes: t.notes,
+        }));
+        existing.customTables = typedCustomTables;
+        existing.markModified("customTables");
+      }
 
       if (action === "submit") {
         existing.status = "submitted";
@@ -237,11 +308,25 @@ export async function POST(request: Request) {
 
       await existing.save();
     } else {
+      const typedCustomTables: ICustomRollcallTable[] = (customTables || []).map((t) => ({
+        id: t.id,
+        name: t.name,
+        isInsideUnit: t.isInsideUnit,
+        officerIds: t.officerIds,
+        officerTasks: t.officerTasks,
+        notes: t.notes,
+      }));
+
+      const { Types } = await import("mongoose");
       const rollcallData: Record<string, unknown> = {
         date: queryDate,
         status: action === "submit" ? "submitted" : "draft",
         targetOfficerCount: activeOfficers.length,
         entries: rollcallEntries,
+        customTables: typedCustomTables,
+        confirmedOfficerIds: confirmedOfficerIds
+          ? confirmedOfficerIds.map((id) => new Types.ObjectId(id))
+          : [],
       };
 
       if (action === "submit") {
@@ -249,7 +334,7 @@ export async function POST(request: Request) {
         rollcallData.submittedAt = new Date();
       }
 
-      await DailyRollcall.create(rollcallData);
+      rollcallDoc = await DailyRollcall.create(rollcallData);
     }
 
     if (action === "submit") {
@@ -257,7 +342,7 @@ export async function POST(request: Request) {
         type: "rollcall_approved",
         title: "اعتماد التمام اليومي",
         body: `تم اعتماد التمام اليومي ليوم ${date} من قبل ضابط أركان الحرب (${auth.user!.fullName})`,
-        refId: (existing?._id || "").toString(),
+        refId: rollcallDoc?._id ? rollcallDoc._id.toString() : "",
         refModel: "DailyRollcall",
       });
     }
@@ -265,6 +350,7 @@ export async function POST(request: Request) {
     await logAuditEvent({
       userId: auth.user!.id,
       userName: auth.user!.fullName,
+      targetId: rollcallDoc?._id ? rollcallDoc._id.toString() : undefined,
       action: action === "submit" ? "CREATE" : "UPDATE",
       module: "officers",
       description:

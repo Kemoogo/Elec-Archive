@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { User, LogOut, ChevronDown, Palette, History, Settings, ShieldCheck, Building2 } from "lucide-react";
+import { User, LogOut, ChevronDown, Palette, History, Settings, ShieldCheck, Building2, DatabaseBackup } from "lucide-react";
 import type { ModulePermissions } from "@/lib/auth/types";
 
 const roleLabels: Record<string, string> = {
@@ -121,6 +121,18 @@ export function UserMenu({ fullName, role, permissions: _permissions }: UserMenu
             <button
               onClick={() => {
                 setOpen(false);
+                router.push("/admin/backup");
+              }}
+              className="group flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-bold text-(--app-foreground) transition-colors hover:bg-(--app-surface-container) cursor-pointer text-right"
+            >
+              <DatabaseBackup className="w-4 h-4 text-(--app-muted-foreground) group-hover:text-(--color-primary) transition-colors" />
+              <span>النسخ الاحتياطي وتدوير النسخ</span>
+            </button>
+          )}
+          {role === "admin" && (
+            <button
+              onClick={() => {
+                setOpen(false);
                 router.push("/audit-log");
               }}
               className="group flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-bold text-(--app-foreground) transition-colors hover:bg-(--app-surface-container) cursor-pointer text-right"
@@ -142,9 +154,9 @@ export function UserMenu({ fullName, role, permissions: _permissions }: UserMenu
           <button
             onClick={handleLogout}
             disabled={loading}
-            className="group flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-bold text-red-500 transition-colors hover:bg-red-500/10 disabled:opacity-50 cursor-pointer text-right mt-1 border-t border-(--app-border)/40 pt-2"
+            className="group flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-bold text-(--app-foreground) transition-colors hover:bg-(--app-surface-container) hover:text-(--color-primary) disabled:opacity-50 cursor-pointer text-right mt-1 border-t border-(--app-border)/40 pt-2"
           >
-            <LogOut className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
+            <LogOut className="w-4 h-4 text-(--app-muted-foreground) group-hover:text-(--color-primary) transition-transform duration-200 group-hover:-translate-x-0.5" />
             <span>{loading ? "جاري الخروج..." : "تسجيل الخروج"}</span>
           </button>
         </div>

@@ -6,17 +6,17 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const TOKEN_COOKIE_NAME = "token";
 const TOKEN_EXPIRY = "8h";
 
-if (!JWT_SECRET) {
+if (!JWT_SECRET && process.env.NEXT_PHASE !== "phase-production-build") {
   throw new Error("JWT_SECRET environment variable is required");
 }
 
 export function signToken(payload: JwtPayload): string {
-  return jwt.sign(payload, JWT_SECRET as string, { expiresIn: TOKEN_EXPIRY });
+  return jwt.sign(payload, JWT_SECRET as string, { algorithm: "HS256", expiresIn: TOKEN_EXPIRY });
 }
 
 export function verifyToken(token: string): JwtPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET as string) as JwtPayload;
+    return jwt.verify(token, JWT_SECRET as string, { algorithms: ["HS256"] }) as JwtPayload;
   } catch {
     return null;
   }

@@ -4,21 +4,18 @@ import { authenticate } from "@/lib/auth/middleware";
 import { redirect } from "next/navigation";
 import { getDashboardStats } from "@/lib/medical/queries";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { Activity, Pill, Users } from "lucide-react";
-import { FolderTabs } from "@/components/ui/folder-tabs";
+import { Activity, Pill } from "lucide-react";
 import { MedicalVisit as MedicalVisitModel, IMedicalVisit } from "@/lib/db/models/MedicalVisit";
 import { Medicine as MedicineModel, IMedicine, IMedicineBatch } from "@/lib/db/models/Medicine";
 import { MedicalPatient as MedicalPatientModel } from "@/lib/db/models/MedicalPatient";
-import Link from "next/link";
-import { type Types } from "mongoose";
+import { type Types, type PipelineStage } from "mongoose";
 import type { QueryFilter } from "mongoose";
 
 import { VisitTable } from "@/components/medical/VisitTable";
 import { MedicineTable } from "@/components/medical/MedicineTable";
 import { PatientAffairsTab } from "@/components/medical/PatientAffairsTab";
-import { MedicalPageHeader } from "@/components/medical/MedicalPageHeader";
-import { SectionWrapper } from "@/components/ui/section-wrapper";
-import { cn } from "@/lib/utils";
+import { MedicalWorkspaceClient } from "@/components/medical/MedicalWorkspaceClient";
+import { escapeRegex } from "@/lib/utils";
 
 import { PopulatedVisit } from "@/lib/medical/types";
 
@@ -41,20 +38,20 @@ export default async function MedicalDashboardPage({
   }
 
   const { tab, search, fitness, rest, period, medStatus, frequency } = await searchParams;
-  const isTabView = !!tab;
 
   await connectToDatabase();
 
+  const escapedSearch = search ? escapeRegex(search) : "";
   const statsPromise = getDashboardStats();
 
   // Visit query with search and filters
   const visitQuery: QueryFilter<IMedicalVisit> = {};
-  if (search && tab === "visits") {
+  if (escapedSearch && tab === "visits") {
     // First find any patients matching the search
     const matchingPatients = await MedicalPatientModel.find({
       $or: [
-        { patientName: { $regex: search, $options: "i" } },
-        { patientId: { $regex: search, $options: "i" } },
+        { patientName: { $regex: escapedSearch, $options: "i" } },
+        { patientId: { $regex: escapedSearch, $options: "i" } },
       ],
     })
       .select("_id")
@@ -64,7 +61,7 @@ export default async function MedicalDashboardPage({
 
     visitQuery.$or = [
       { patientId: { $in: matchingPatientIds } },
-      { diagnosis: { $regex: search, $options: "i" } },
+      { diagnosis: { $regex: escapedSearch, $options: "i" } },
     ];
   }
 
@@ -100,10 +97,10 @@ export default async function MedicalDashboardPage({
 
   // Medicine query with search and filters
   const medicineQuery: QueryFilter<IMedicine> = {};
-  if (search && tab === "medicines") {
+  if (escapedSearch && tab === "medicines") {
     medicineQuery.$or = [
-      { name: { $regex: search, $options: "i" } },
-      { concentration: { $regex: search, $options: "i" } },
+      { name: { $regex: escapedSearch, $options: "i" } },
+      { concentration: { $regex: escapedSearch, $options: "i" } },
     ];
   }
 
@@ -129,8 +126,7 @@ export default async function MedicalDashboardPage({
 
   // Patient query — patients with medical data (at least one visit)
   const patientsPromise = (async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pipeline: any[] = [
+    const pipeline: PipelineStage[] = [
       // Lookup visits from medicalvisits collection
       {
         $lookup: {
@@ -152,12 +148,12 @@ export default async function MedicalDashboardPage({
     ];
 
     // Apply search filter for patients tab
-    if (search && tab === "patients") {
+    if (escapedSearch && tab === "patients") {
       pipeline.push({
         $match: {
           $or: [
-            { patientName: { $regex: search, $options: "i" } },
-            { patientId: { $regex: search, $options: "i" } },
+            { patientName: { $regex: escapedSearch, $options: "i" } },
+            { patientId: { $regex: escapedSearch, $options: "i" } },
           ],
         },
       });
@@ -217,6 +213,9 @@ export default async function MedicalDashboardPage({
     visitDate: (v.visitDate as Date).toISOString(),
     diagnosis: v.diagnosis as string,
     treatment: v.treatment as string,
+    restType: v.restType,
+    restDays: v.restDays,
+    fitnessCategory: v.fitnessCategory,
     dispensedMedicines: (v.dispensedMedicines || []).map((m) => {
       const med = m.medicineId;
       const isObject = med && typeof med === "object" && "name" in med;
@@ -225,7 +224,7 @@ export default async function MedicalDashboardPage({
         : "دواء غير معروف";
       const medicineId = isObject
         ? med._id.toString()
-        : med.toString();
+        : med ? med.toString() : "";
       return {
         medicineId,
         medicineName,
@@ -264,148 +263,66 @@ export default async function MedicalDashboardPage({
     };
   });
 
-  const cards = [
-    { label: "زيارات اليوم", value: stats.visitsToday, color: "blue" },
-    { label: "أدوية تحت الحد الأدنى", value: stats.lowStockCount, color: "orange" },
-    { label: "أدوية منتهية الصلاحية", value: stats.expiredCount, color: "red" },
-    { label: "إجمالي الأدوية", value: stats.totalMedicines, color: "green" },
-  ];
-
-  const colorClasses: Record<string, string> = {
-    blue: "bg-(--app-info)/20 border-(--app-info)/30 text-(--app-info)",
-    orange: "bg-(--app-warning)/20 border-(--app-warning)/30 text-(--app-warning)",
-    red: "bg-(--app-error)/20 border-(--app-error)/30 text-(--app-error)",
-    green: "bg-(--app-success)/20 border-(--app-success)/30 text-(--app-success)",
-  };
-
-
-
   const medicalPermission = auth.user!.permissions.medical;
 
-  const tabs = [
-    {
-      id: "visits",
-      label: "سجل الزيارات",
-      icon: <Activity className="w-[18px] h-[18px]" />,
-      content: (
-        <TabSection
-          title={search ? `نتائج البحث عن: ${search}` : "أحدث الزيارات"}
-          icon={Activity}
-        >
-          <VisitTable
-            visits={visits}
-            emptyTitle={search ? "لا توجد نتائج بحث" : "لا توجد زيارات مسجلة"}
-            emptyDescription={search ? "جرب البحث بكلمة أخرى" : "سجل أول زيارة طبية للبدء في بناء قاعدة البيانات"}
-            permissions={medicalPermission}
-          />
-        </TabSection>
-      ),
-    },
-    {
-      id: "medicines",
-      label: "مخزون الأدوية",
-      icon: <Pill className="w-[18px] h-[18px]" />,
-      content: (
-        <TabSection
-          title={search ? `نتائج البحث عن: ${search}` : "الأدوية المتاحة"}
-          icon={Pill}
-        >
-          <MedicineTable
-            medicines={medicines}
-            now={now.toISOString()}
-            emptyTitle={search ? "لا توجد نتائج بحث" : "لا توجد أدوية مسجلة"}
-            emptyDescription={search ? "جرب البحث بكلمة أخرى" : "قم بإضافة أدوية جديدة للبدء في تتبع المخزون"}
-          />
-        </TabSection>
-      ),
-    },
-    {
-      id: "patients",
-      label: "شئون المرضى",
-      icon: <Users className="w-[18px] h-[18px]" />,
-      content: (
-        <PatientAffairsTab
-          permissions={medicalPermission}
-          patients={patientsWithStats}
-          searchQuery={search || ""}
-        />
-      ),
-    },
-  ];
+  const visitsContent = (
+    <TabSection
+      title={search ? `نتائج البحث عن: ${search}` : "أحدث الزيارات"}
+      icon={Activity}
+    >
+      <VisitTable
+        visits={visits}
+        emptyTitle={search ? "لا توجد نتائج بحث" : "لا توجد زيارات مسجلة"}
+        emptyDescription={
+          search
+            ? "جرب البحث بكلمة أخرى"
+            : "سجل أول زيارة طبية للبدء في بناء قاعدة البيانات"
+        }
+        permissions={medicalPermission}
+      />
+    </TabSection>
+  );
+
+  const medicinesContent = (
+    <TabSection
+      title={search ? `نتائج البحث عن: ${search}` : "الأدوية المتاحة"}
+      icon={Pill}
+    >
+      <MedicineTable
+        medicines={medicines}
+        now={now.toISOString()}
+        emptyTitle={search ? "لا توجد نتائج بحث" : "لا توجد أدوية مسجلة"}
+        emptyDescription={
+          search
+            ? "جرب البحث بكلمة أخرى"
+            : "قم بإضافة أدوية جديدة للبدء في تتبع المخزون"
+        }
+      />
+    </TabSection>
+  );
+
+  const patientsContent = (
+    <PatientAffairsTab
+      permissions={medicalPermission}
+      patients={patientsWithStats}
+      searchQuery={search || ""}
+    />
+  );
 
   return (
     <PageContainer className="max-w-[1600px] mx-auto pb-12">
-      <MedicalPageHeader tab={tab} searchQuery={search || ""} />
-
-      {!isTabView ? (
-        <div className="space-y-8 animate-in fade-in duration-500">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {cards.map((card) => (
-              <div
-                key={card.label}
-                className={cn(
-                  "rounded-2xl border p-6 shadow-sm text-foreground transition-all hover:shadow-md",
-                  colorClasses[card.color as keyof typeof colorClasses]
-                )}
-              >
-                <div className="text-3xl font-bold mb-2">{card.value}</div>
-                <div className="text-sm font-medium">{card.label}</div>
-              </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Link href="/medical?tab=visits" className="group block h-full">
-              <SectionWrapper className="h-full flex flex-col items-center text-center gap-4 hover:shadow-2xl hover:-translate-y-1 transition-all">
-                <div className="w-16 h-16 rounded-2xl bg-(--app-info)/10 text-(--app-info) flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Activity className="w-8 h-8" />
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-(--color-primary) mb-2">سجل الزيارات</h3>
-                  <p className="text-(--app-muted-foreground)">عرض وإدارة كافة الزيارات الطبية المسجلة</p>
-                </div>
-                <div className="mt-4 px-6 py-2 rounded-xl bg-(--app-info)/10 text-(--app-info) text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity">
-                  فتح السجل
-                </div>
-              </SectionWrapper>
-            </Link>
-
-            <Link href="/medical?tab=medicines" className="group block h-full">
-              <SectionWrapper className="h-full flex flex-col items-center text-center gap-4 hover:shadow-2xl hover:-translate-y-1 transition-all">
-                <div className="w-16 h-16 rounded-2xl bg-(--app-success)/10 text-(--app-success) flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Pill className="w-8 h-8" />
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-(--color-primary) mb-2">مخزون الأدوية</h3>
-                  <p className="text-(--app-muted-foreground)">إدارة الأدوية، الشحنات، وتتبع تواريخ الصلاحية</p>
-                </div>
-                <div className="mt-4 px-6 py-2 rounded-xl bg-(--app-success)/10 text-(--app-success) text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity">
-                  فتح المخزون
-                </div>
-              </SectionWrapper>
-            </Link>
-
-            <Link href="/medical?tab=patients" className="group block h-full">
-              <SectionWrapper className="h-full flex flex-col items-center text-center gap-4 hover:shadow-2xl hover:-translate-y-1 transition-all">
-                <div className="w-16 h-16 rounded-2xl bg-(--app-info)/10 text-(--app-info) flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Users className="w-8 h-8" />
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-(--color-primary) mb-2">شئون المرضى</h3>
-                  <p className="text-(--app-muted-foreground)">البحث عن المرضى وعرض ملفات الطبية</p>
-                </div>
-                <div className="mt-4 px-6 py-2 rounded-xl bg-(--app-info)/10 text-(--app-info) text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity">
-                  فتح القسم
-                </div>
-              </SectionWrapper>
-            </Link>
-          </div>
-        </div>
-      ) : (
-        <div className="animate-tab-enter">
-          <FolderTabs tabs={tabs} initialTab={tab || "visits"} />
-        </div>
-      )}
+      <MedicalWorkspaceClient
+        activeTab={tab}
+        searchQuery={search || ""}
+        stats={stats}
+        visits={visits}
+        medicines={medicines}
+        patients={patientsWithStats}
+        permissions={medicalPermission}
+        visitsContent={visitsContent}
+        medicinesContent={medicinesContent}
+        patientsContent={patientsContent}
+      />
     </PageContainer>
   );
 }

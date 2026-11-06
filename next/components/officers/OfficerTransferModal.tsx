@@ -7,7 +7,8 @@ import { useToast } from "@/components/ui/toast";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { DateField } from "@/components/ui/date-field";
-import { FormLabel, FormSelect, FormTextarea } from "@/components/ui/form-fields";
+import { FormLabel, FormTextarea } from "@/components/ui/form-fields";
+import { CustomSelect } from "@/components/ui/custom-select";
 import { extractApiError } from "@/lib/utils";
 import { LogOut } from "lucide-react";
 
@@ -38,6 +39,13 @@ export function OfficerTransferModal({ officer, trigger }: { officer: OfficerSum
   
   const { showToast } = useToast();
   const router = useRouter();
+
+  const handleOpen = () => {
+    setAction("transfer");
+    setDate(new Date().toISOString().split("T")[0]);
+    setNotes("");
+    setOpen(true);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,7 +83,7 @@ export function OfficerTransferModal({ officer, trigger }: { officer: OfficerSum
 
   return (
     <>
-      <div onClick={() => setOpen(true)} className="cursor-pointer inline-block">
+      <div onClick={handleOpen} className="cursor-pointer inline-block">
         {trigger}
       </div>
       {open && (
@@ -84,6 +92,15 @@ export function OfficerTransferModal({ officer, trigger }: { officer: OfficerSum
           icon={<LogOut className="w-4 h-4" />}
           titleVariant="warning"
           onClose={() => setOpen(false)}
+          footer={
+            <ModalActions
+              form="officer-transfer-form"
+              submitText="تأكيد وتسجيل"
+              submitLoading={loading}
+              cancelText="إلغاء"
+              onCancel={() => setOpen(false)}
+            />
+          }
         >
           <div className="mb-6 p-4 bg-(--color-primary)/5 border border-(--color-primary)/10 shadow-sm rounded-2xl text-right flex items-center justify-between">
             <div>
@@ -97,7 +114,7 @@ export function OfficerTransferModal({ officer, trigger }: { officer: OfficerSum
             )}
           </div>
           
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form id="officer-transfer-form" onSubmit={handleSubmit} className="space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
               {/* تاريخ الحركة */}
               <DateField
@@ -109,19 +126,14 @@ export function OfficerTransferModal({ officer, trigger }: { officer: OfficerSum
               />
 
               {/* نوع الإجراء */}
-              <div className="space-y-1.5 text-right">
-                <FormLabel htmlFor="transfer-status" required>نوع الإجراء</FormLabel>
-                <FormSelect
-                  id="transfer-status"
-                  value={action}
-                  onChange={(e) => setAction(e.target.value as MovementType)}
-                  focusVariant="orange"
-                >
-                  {MOVEMENT_OPTIONS.map((r) => (
-                    <option key={r.value} value={r.value}>{r.label}</option>
-                  ))}
-                </FormSelect>
-              </div>
+              <CustomSelect
+                id="transfer-status"
+                label="نوع الإجراء"
+                value={action}
+                onChange={(val) => setAction(val as MovementType)}
+                options={MOVEMENT_OPTIONS}
+                required
+              />
             </div>
 
             {/* ملاحظات / السبب */}
@@ -132,17 +144,7 @@ export function OfficerTransferModal({ officer, trigger }: { officer: OfficerSum
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="تفاصيل إضافية حول سبب الحركة..."
-                focusVariant="orange"
                 className="h-24"
-              />
-            </div>
-            
-            <div className="pt-4">
-              <ModalActions
-                submitText="تأكيد وتسجيل"
-                submitLoading={loading}
-                cancelText="إلغاء"
-                onCancel={() => setOpen(false)}
               />
             </div>
           </form>

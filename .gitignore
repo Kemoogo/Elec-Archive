@@ -22,4 +22,7 @@ mongo_data/
 .agent
 .agents
 
+# Graphify
+graphify-out/
+
 .gitignore

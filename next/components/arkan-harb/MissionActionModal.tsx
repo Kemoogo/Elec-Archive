@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { ModalShell } from "@/components/ui/modal-shell";
+import { ModalShell, ModalHeaderCard, ModalSection, ModalBadge } from "@/components/ui/modal-shell";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { FormLabel, FormTextarea } from "@/components/ui/form-fields";
 import { DateField } from "@/components/ui/date-field";
-import { Clock, XCircle, AlertCircle } from "lucide-react";
+import { Clock, XCircle, AlertCircle, Compass, MapPin, Calendar } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { extractApiError } from "@/lib/utils";
 import { type Mission } from "./MissionsTable";
@@ -70,7 +70,7 @@ function MissionActionModalContent({
     setError("");
 
     if (!reason.trim()) {
-      setError(isPostpone ? "يرجى إدخال سبب التأجيل" : "يرجى إدخال سبب الإلغاء");
+      setError(isPostpone ? "يرجى إدخال سبب التأجيل" : "يرجى إدخال سبب إلغاء المأمورية");
       setLoading(false);
       return;
     }
@@ -125,6 +125,7 @@ function MissionActionModalContent({
       submitText={isPostpone ? "تأكيد التأجيل" : "تأكيد الإلغاء"}
       submitVariant={isPostpone ? "primary" : "destructive"}
       submitLoading={loading}
+      cancelText="إلغاء"
       onCancel={onClose}
     />
   );
@@ -133,30 +134,55 @@ function MissionActionModalContent({
     <ModalShell
       title={isPostpone ? "تأجيل المأمورية" : "إلغاء المأمورية"}
       icon={isPostpone ? <Clock className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-      titleVariant={isPostpone ? "warning" : "danger"}
+      titleVariant={isPostpone ? "default" : "danger"}
+      overlayClassName="bg-black/40"
+      panelClassName="max-w-lg border-(--app-border) shadow-depth-xl"
+      bodyClassName="p-5 space-y-4 text-right no-scrollbar"
       onClose={onClose}
       footer={footer}
-      panelClassName="max-w-[440px]"
     >
       <form id="mission-action-form" onSubmit={handleSubmit} className="space-y-4 text-right">
         {error && (
-          <div className="p-3 bg-(--app-error)/10 border border-(--app-error)/20 rounded-xl text-(--app-error) text-xs font-bold flex items-center gap-2">
+          <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-600 text-xs font-bold flex items-center gap-2">
             <AlertCircle className="h-4 w-4 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
-        <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1">
-          <p className="text-xs font-bold text-slate-400">المأمورية المستهدفة:</p>
-          <p className="text-sm font-black text-(--color-primary)">{mission.title}</p>
-          <p className="text-xs font-bold text-slate-600 dark:text-slate-300">
-            الضابط المعني: {displayOfficer}
-          </p>
-        </div>
+        {/* Standard Top Header Card */}
+        <ModalHeaderCard
+          icon={<Compass className="w-6 h-6" />}
+          title={mission.title}
+          subtitle={
+            <div className="space-y-0.5 mt-1">
+              <p className="text-xs font-bold text-(--app-muted-foreground)">
+                الضابط المكلف: <span className="text-(--color-primary) font-extrabold">{displayOfficer}</span>
+              </p>
+            </div>
+          }
+          badge={
+            mission.destination ? (
+              <ModalBadge icon={<MapPin className="w-3.5 h-3.5" />}>
+                {mission.destination}
+              </ModalBadge>
+            ) : undefined
+          }
+        />
 
+        {/* Standard Sapphire Notice for Cancellation */}
+        {!isPostpone && (
+          <div className="p-3.5 bg-(--color-primary)/5 border border-(--color-primary)/20 rounded-2xl flex items-start gap-2.5 text-right">
+            <AlertCircle className="w-4 h-4 text-(--color-primary) shrink-0 mt-0.5" />
+            <div className="text-xs font-bold text-(--color-primary) leading-relaxed">
+              تنبيه: سيتم تحويل حالة المأمورية إلى <span className="font-black">&quot;ملغاة&quot;</span> وتوثيق سبب الإلغاء بالسجلات، مع إتاحة الضابط للعودة إلى قوائم الخدمة والتمام التلقائي.
+            </div>
+          </div>
+        )}
+
+        {/* Reason Field */}
         <div className="space-y-1.5">
           <FormLabel htmlFor="reason" required>
-            {isPostpone ? "سبب التأجيل" : "سبب الإلغاء"}
+            {isPostpone ? "سبب التأجيل" : "سبب إلغاء المأمورية"}
           </FormLabel>
           <FormTextarea
             id="reason"
@@ -164,21 +190,26 @@ function MissionActionModalContent({
             rows={3}
             placeholder={
               isPostpone
-                ? "أدخل سبب تأجيل المأمورية..."
-                : "أدخل سبب إلغاء المأمورية..."
+                ? "أدخل سبب تأجيل المأمورية والملاحظات..."
+                : "أدخل سبب إلغاء المأمورية بالتفصيل..."
             }
             value={reason}
             onChange={(e) => setReason(e.target.value)}
           />
         </div>
 
+        {/* Postpone Dates Section */}
         {isPostpone && (
-          <div className="p-3 bg-purple-500/5 border border-purple-500/20 rounded-xl space-y-3">
-            <p className="text-xs font-extrabold text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5" />
-              تعديل تواريخ المأمورية المؤجلة (اختياري):
-            </p>
-            <div className="grid grid-cols-2 gap-3">
+          <ModalSection
+            variant="card"
+            title="تعديل تواريخ المأمورية المؤجلة (اختياري)"
+            badge={
+              <ModalBadge icon={<Calendar className="w-3.5 h-3.5" />}>
+                التواريخ
+              </ModalBadge>
+            }
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
               <DateField
                 id="newStartDate"
                 label="تاريخ البداية الجديد"
@@ -192,7 +223,7 @@ function MissionActionModalContent({
                 onChange={setNewEndDate}
               />
             </div>
-          </div>
+          </ModalSection>
         )}
       </form>
     </ModalShell>

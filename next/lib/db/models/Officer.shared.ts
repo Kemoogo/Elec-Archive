@@ -41,3 +41,60 @@ export const RANK_WEIGHTS: Record<string, number> = {
   first_lieutenant: 7,
   second_lieutenant: 8,
 };
+
+/**
+ * Returns the full official military rank label, including "أ ح" (أركان حرب) if applicable.
+ * Example: "عقيد أ ح" or "مقدم"
+ */
+export function formatOfficerRank(rank?: string, isArkanHarb?: boolean): string {
+  if (!rank) return "";
+  const label = RANK_LABELS[rank as OfficerRank] ?? rank;
+  return isArkanHarb ? `${label} أ ح` : label;
+}
+
+/**
+ * Formats standard officer label: "الرتبة [أ ح] / الاسم"
+ * Example: "عقيد أ ح / أحمد محمد علي"
+ */
+export function formatOfficerLabel(fullName?: string, rank?: string, isArkanHarb?: boolean): string {
+  const name = fullName || "";
+  if (!rank) return name;
+  const rankPart = formatOfficerRank(rank, isArkanHarb);
+  return rankPart ? `${rankPart} / ${name}` : name;
+}
+
+/**
+ * Unified Officer Option for Selects / Dropdowns / Modals across all features
+ */
+export interface OfficerOption {
+  id: string;
+  _id?: string;
+  fullName: string;
+  militaryId?: string;
+  seniorityNumber?: string;
+  rank?: string;
+  rankLabel?: string;
+  isArkanHarb?: boolean;
+  officerLabel?: string;
+  defaultLeaveSystem?: string;
+  isInUnit?: boolean;
+  name?: string;
+  operationalStatus?: "إجازة" | "فرقة" | "مأمورية خارجية" | "عودة إجازة";
+  operationalStatusDetails?: string;
+}
+
+/**
+ * Unified Officer Basic Information representation
+ */
+export interface OfficerBasicInfo {
+  id: string;
+  militaryId: string;
+  seniorityNumber: string;
+  fullName: string;
+  rank: OfficerRank | string;
+  rankLabel: string;
+  isArkanHarb: boolean;
+  officerLabel: string;
+  defaultLeaveSystem?: string;
+  isInUnit?: boolean;
+}

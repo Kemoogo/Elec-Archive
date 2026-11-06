@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/toast";
 import { useReactToPrint } from "react-to-print";
 import { extractApiError } from "@/lib/utils";
 import { SectionWrapper } from "@/components/ui/section-wrapper";
+import { LoadingState } from "@/components/ui/loading-state";
 import type { MedicalRecord, Visit, Medication } from "@/lib/medical/types";
 
 interface PatientProfilePageClientProps {
@@ -98,7 +99,10 @@ export function PatientProfilePageClient({
     const response = await fetch(`/api/medical/patients/${encodeURIComponent(patientId)}/record`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(saveData),
+      body: JSON.stringify({
+        ...saveData,
+        patientId: patientId.trim(),
+      }),
     });
 
     const result = await response.json();
@@ -121,24 +125,24 @@ export function PatientProfilePageClient({
     setLoading(true);
     try {
       const res = await fetch(`/api/medical/patients/${encodeURIComponent(patientId)}/record`);
-      const fullData = await res.json();
-      setData({
-        patientName: fullData.data.patientName,
-        record: fullData.data.record,
-        visits: fullData.data.visits || [],
-        medications: fullData.data.medications || [],
-      });
+      if (res.ok) {
+        const fullData = await res.json();
+        if (fullData.success && fullData.data) {
+          setData({
+            patientName: fullData.data.patientName,
+            record: fullData.data.record,
+            visits: fullData.data.visits || [],
+            medications: fullData.data.medications || [],
+          });
+        }
+      }
     } finally {
       setLoading(false);
     }
   };
 
   if (loading && !data) {
-    return (
-      <div className="flex items-center justify-center py-24">
-        <div className="text-lg font-bold text-(--app-muted-foreground)">جاري تحميل بيانات المريض...</div>
-      </div>
-    );
+    return <LoadingState message="جاري تحميل بيانات المريض..." />;
   }
 
   if (error && !data) {

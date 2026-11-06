@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   UserPlus,
   User,
-  Save,
   AlertCircle,
   Search,
   ArrowRight,
@@ -18,12 +17,14 @@ import {
   Loader2,
   Sparkles,
 } from "lucide-react";
-import { FormLabel, FormInput, FormSelect } from "@/components/ui/form-fields";
+import { FormLabel, FormInput } from "@/components/ui/form-fields";
+import { CustomSelect } from "@/components/ui/custom-select";
 import { useToast } from "@/components/ui/toast";
 import { extractApiError } from "@/lib/utils";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { DateField } from "@/components/ui/date-field";
+import { useFormDirty } from "@/lib/hooks/useFormDirty";
 
 import {
   checkSeniorityAction,
@@ -179,6 +180,10 @@ export function OfficerForm(props: OfficerFormProps) {
   const [parsedFileName, setParsedFileName] = useState<string>("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
+  const initialFormBaseline = useMemo(() => getCleanEmptyForm(), [props.initialValues, props.mode, open]);
+  const { isDirty } = useFormDirty(initialFormBaseline, form);
+  const isFormDirty = isEdit ? (isDirty || Boolean(file121)) : true;
+
   const updateField = (field: string, value: unknown) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (fieldErrors[field]) {
@@ -286,7 +291,7 @@ export function OfficerForm(props: OfficerFormProps) {
           if (ext.maritalStatus) { next.maritalStatus = ext.maritalStatus; count++; }
           if (ext.faculty) { next.faculty = ext.faculty; count++; }
           if (ext.file121IssueDate) { next.file121IssueDate = ext.file121IssueDate; }
-          if (ext.isArkanHarb !== undefined) { next.isArkanHarb = ext.isArkanHarb; count++; }
+          if (ext.isArkanHarb !== undefined) { next.isArkanHarb = Boolean(ext.isArkanHarb); count++; }
           return next;
         });
 
@@ -541,6 +546,11 @@ export function OfficerForm(props: OfficerFormProps) {
       setParsedFileName("");
       setExtractedFieldsCount(0);
       setForm(getCleanEmptyForm());
+    } else {
+      setForm(getCleanEmptyForm());
+      setFile121(null);
+      setError("");
+      setFieldErrors({});
     }
     setOpen(true);
   };
@@ -574,11 +584,11 @@ export function OfficerForm(props: OfficerFormProps) {
   const officerFormId = isEdit ? "edit-officer-form" : "create-officer-form";
   const modalFooter =
     !isEdit && step === "mode_select" ? (
-      <ModalActions className="sm:items-stretch">
-        <button type="button" onClick={resetAndClose} className="btn-secondary">
-          إلغاء
-        </button>
-      </ModalActions>
+      <ModalActions
+        readOnly={true}
+        cancelText="إلغاء"
+        onCancel={resetAndClose}
+      />
     ) : !isEdit && step === "seniority_input" ? (
       <ModalActions className="sm:items-stretch">
         <button
@@ -601,23 +611,21 @@ export function OfficerForm(props: OfficerFormProps) {
         </button>
       </ModalActions>
     ) : !isEdit && step === "returning" && existingOfficer ? (
-      <ModalActions className="sm:items-stretch">
-        <button type="button" onClick={handleReturningProceed} disabled={!returnDate} className="btn-primary">
-          <ArrowRight className="w-4 h-4" /> تحميل البيانات والمتابعة
-        </button>
-        <button type="button" onClick={resetAndClose} className="btn-secondary">
-          إلغاء
-        </button>
-      </ModalActions>
+      <ModalActions
+        submitText="تحميل البيانات والمتابعة"
+        submitDisabled={!returnDate}
+        onConfirm={handleReturningProceed}
+        onCancel={resetAndClose}
+      />
     ) : (
-      <ModalActions className="sm:items-stretch">
-        <button type="submit" form={officerFormId} disabled={loading || uploadingFile} className="btn-primary">
-          {loading || uploadingFile ? "جاري الحفظ..." : <><Save className="w-4 h-4" /> حفظ</>}
-        </button>
-        <button type="button" onClick={resetAndClose} className="btn-secondary">
-          إلغاء
-        </button>
-      </ModalActions>
+      <ModalActions
+        form={officerFormId}
+        submitText="حفظ"
+        submitLoading={loading || uploadingFile}
+        isDirty={isFormDirty}
+        cancelText="إلغاء"
+        onCancel={resetAndClose}
+      />
     );
 
   return (
@@ -764,15 +772,15 @@ export function OfficerForm(props: OfficerFormProps) {
       {/* Step 2: Returning officer */}
       {!isEdit && step === "returning" && existingOfficer && (
         <div className="space-y-4">
-          <div className="bg-(--app-warning)/10 border border-(--app-warning)/30 p-4 rounded-2xl text-right">
-            <div className="flex items-center gap-2 text-(--app-warning) font-bold text-sm mb-2">
+          <div className="bg-(--color-primary)/5 border border-(--color-primary)/20 p-4 rounded-2xl text-right">
+            <div className="flex items-center gap-2 text-(--color-primary) font-bold text-sm mb-2">
               <AlertCircle className="w-5 h-5" />
               <span>تم العثور على ضابط سابق</span>
             </div>
-            <p className="text-xs text-(--app-warning) font-bold">
+            <p className="text-xs text-(--app-foreground) font-bold">
               {RANK_OPTIONS.find((r) => r.value === existingOfficer.rank)?.label ?? existingOfficer.rank} / {existingOfficer.fullName}
             </p>
-            <p className="text-[10px] text-(--app-warning) mt-1">
+            <p className="text-[10px] text-(--app-muted-foreground) mt-1">
               قد سبق وخدم هذا الضابط في الوحدة. أدخل بيانات العودة للمتابعة.
             </p>
           </div>
@@ -784,18 +792,14 @@ export function OfficerForm(props: OfficerFormProps) {
               onChange={setReturnDate}
               required
             />
-            <div className="space-y-1.5">
-              <FormLabel htmlFor="return-reason" required>سبب العودة</FormLabel>
-              <FormSelect
-                id="return-reason"
-                value={returnReason}
-                onChange={(e) => setReturnReason(e.target.value)}
-              >
-                {RETURN_REASON_OPTIONS.map((r) => (
-                  <option key={r.value} value={r.value}>{r.label}</option>
-                ))}
-              </FormSelect>
-            </div>
+            <CustomSelect
+              id="return-reason"
+              label="سبب العودة"
+              value={returnReason}
+              onChange={setReturnReason}
+              options={RETURN_REASON_OPTIONS}
+              required
+            />
           </div>
         </div>
       )}
@@ -826,34 +830,29 @@ export function OfficerForm(props: OfficerFormProps) {
 
           <div className="grid grid-cols-2 gap-3 text-right">
             {/* الرتبة وأركان حرب */}
-            <div className="space-y-1.5">
-              <FormLabel htmlFor="officer-rank" required>الرتبة</FormLabel>
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  <FormSelect
-                    id="officer-rank"
-                    value={form.rank}
-                    onChange={(e) => updateField("rank", e.target.value)}
-                    className={fieldErrors.rank ? 'border-(--app-error) ring-1 ring-(--app-error)/30 bg-red-500/5' : ''}
-                  >
-                    {RANK_OPTIONS.map((r) => (
-                      <option key={r.value} value={r.value}>{r.label}</option>
-                    ))}
-                  </FormSelect>
-                </div>
-                
-                <div className="flex items-center gap-2 bg-(--app-surface) border border-(--app-border) rounded-xl px-3 py-2 shrink-0 h-[38px]">
-                  <label htmlFor="officer-isArkanHarb" className="text-xs font-bold text-(--app-foreground) cursor-pointer whitespace-nowrap">أ ح</label>
-                  <input
-                    id="officer-isArkanHarb"
-                    type="checkbox"
-                    checked={form.isArkanHarb}
-                    onChange={(e) => updateField("isArkanHarb", e.target.checked)}
-                    className="w-4 h-4 rounded border-(--app-border) text-(--app-info) focus:ring-(--app-info) cursor-pointer"
-                  />
-                </div>
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <CustomSelect
+                  id="officer-rank"
+                  label="الرتبة"
+                  value={form.rank}
+                  onChange={(val) => updateField("rank", val)}
+                  options={RANK_OPTIONS}
+                  error={fieldErrors.rank}
+                  required
+                />
               </div>
-              {fieldErrors.rank && <p className="text-[11px] font-bold text-(--app-error) mt-1">{fieldErrors.rank}</p>}
+              
+              <div className="flex items-center gap-2 bg-(--app-surface) border border-(--app-border) rounded-xl px-3 py-2 shrink-0 h-[38px] mb-0">
+                <label htmlFor="officer-isArkanHarb" className="text-xs font-bold text-(--app-foreground) cursor-pointer whitespace-nowrap">أ ح</label>
+                <input
+                  id="officer-isArkanHarb"
+                  type="checkbox"
+                  checked={form.isArkanHarb}
+                  onChange={(e) => updateField("isArkanHarb", e.target.checked)}
+                  className="w-4 h-4 rounded border-(--app-border) text-(--app-info) focus:ring-(--app-info) cursor-pointer"
+                />
+              </div>
             </div>
 
             {/* الاسم */}
@@ -897,7 +896,7 @@ export function OfficerForm(props: OfficerFormProps) {
                 disabled={isEdit}
                 inputMode="numeric"
                 dir="ltr"
-                className={`${fieldErrors.militaryId ? 'border-(--app-error) ring-1 ring-(--app-error)/30 bg-red-500/5' : props.highlightIncomplete && !form.militaryId ? 'border-(--app-warning)/60 bg-(--app-warning)/10' : ''}`}
+                className={`${fieldErrors.militaryId ? 'border-(--app-error) ring-1 ring-(--app-error)/30 bg-red-500/5' : props.highlightIncomplete && !form.militaryId ? 'border-(--color-primary)/50 bg-(--color-primary)/5' : ''}`}
               />
               {fieldErrors.militaryId && <p className="text-[11px] font-bold text-(--app-error) mt-1">{fieldErrors.militaryId}</p>}
             </div>
@@ -914,7 +913,7 @@ export function OfficerForm(props: OfficerFormProps) {
                 onChange={(e) => updateField("batch", e.target.value.replace(/\D/g, ''))}
                 inputMode="numeric"
                 dir="ltr"
-                className={`${fieldErrors.batch ? 'border-(--app-error) ring-1 ring-(--app-error)/30 bg-red-500/5' : props.highlightIncomplete && !form.batch ? 'border-(--app-warning)/60 bg-(--app-warning)/10' : ''}`}
+                className={`${fieldErrors.batch ? 'border-(--app-error) ring-1 ring-(--app-error)/30 bg-red-500/5' : props.highlightIncomplete && !form.batch ? 'border-(--color-primary)/50 bg-(--color-primary)/5' : ''}`}
               />
               {fieldErrors.batch && <p className="text-[11px] font-bold text-(--app-error) mt-1">{fieldErrors.batch}</p>}
             </div>
@@ -929,44 +928,32 @@ export function OfficerForm(props: OfficerFormProps) {
                 onChange={(e) => updateField("phone", e.target.value.replace(/\D/g, ''))}
                 inputMode="numeric"
                 dir="ltr"
-                className={`${fieldErrors.phone ? 'border-(--app-error) ring-1 ring-(--app-error)/30 bg-red-500/5' : props.highlightIncomplete && !form.phone ? 'border-(--app-warning)/60 bg-(--app-warning)/10' : ''}`}
+                className={`${fieldErrors.phone ? 'border-(--app-error) ring-1 ring-(--app-error)/30 bg-red-500/5' : props.highlightIncomplete && !form.phone ? 'border-(--color-primary)/50 bg-(--color-primary)/5' : ''}`}
               />
               {fieldErrors.phone && <p className="text-[11px] font-bold text-(--app-error) mt-1">{fieldErrors.phone}</p>}
             </div>
 
             {/* النوع */}
-            <div className="space-y-1.5">
-              <FormLabel htmlFor="officer-type">النوع</FormLabel>
-              <FormSelect
-                id="officer-type"
-                value={form.type}
-                onChange={(e) => updateField("type", e.target.value)}
-                className={`${fieldErrors.type ? 'border-(--app-error) ring-1 ring-(--app-error)/30 bg-red-500/5' : props.highlightIncomplete && !form.type ? 'border-(--app-warning)/60 bg-(--app-warning)/10' : ''}`}
-              >
-                <option value="">اختر النوع</option>
-                {TYPE_OPTIONS.map((t) => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
-                ))}
-              </FormSelect>
-              {fieldErrors.type && <p className="text-[11px] font-bold text-(--app-error) mt-1">{fieldErrors.type}</p>}
-            </div>
+            <CustomSelect
+              id="officer-type"
+              label="النوع"
+              value={form.type}
+              onChange={(val) => updateField("type", val)}
+              options={TYPE_OPTIONS}
+              placeholder="اختر النوع"
+              error={fieldErrors.type}
+            />
 
             {/* السلاح */}
-            <div className="space-y-1.5">
-              <FormLabel htmlFor="officer-weapon">السلاح</FormLabel>
-              <FormSelect
-                id="officer-weapon"
-                value={form.weapon}
-                onChange={(e) => updateField("weapon", e.target.value)}
-                className={`${fieldErrors.weapon ? 'border-(--app-error) ring-1 ring-(--app-error)/30 bg-red-500/5' : props.highlightIncomplete && !form.weapon ? 'border-(--app-warning)/60 bg-(--app-warning)/10' : ''}`}
-              >
-                <option value="">اختر السلاح</option>
-                {WEAPON_OPTIONS.map((w) => (
-                  <option key={w.value} value={w.value}>{w.label}</option>
-                ))}
-              </FormSelect>
-              {fieldErrors.weapon && <p className="text-[11px] font-bold text-(--app-error) mt-1">{fieldErrors.weapon}</p>}
-            </div>
+            <CustomSelect
+              id="officer-weapon"
+              label="السلاح"
+              value={form.weapon}
+              onChange={(val) => updateField("weapon", val)}
+              options={WEAPON_OPTIONS}
+              placeholder="اختر السلاح"
+              error={fieldErrors.weapon}
+            />
 
             {/* تاريخ الميلاد — custom-date with DD-MM-YYYY auto-format */}
             <DateField
@@ -1000,7 +987,7 @@ export function OfficerForm(props: OfficerFormProps) {
                 maxLength={14}
                 inputMode="numeric"
                 dir="ltr"
-                className={`${fieldErrors.nationalId ? 'border-(--app-error) ring-1 ring-(--app-error)/30 bg-red-500/5' : props.highlightIncomplete && !form.nationalId ? 'border-(--app-warning)/60 bg-(--app-warning)/10' : ''}`}
+                className={`${fieldErrors.nationalId ? 'border-(--app-error) ring-1 ring-(--app-error)/30 bg-red-500/5' : props.highlightIncomplete && !form.nationalId ? 'border-(--color-primary)/50 bg-(--color-primary)/5' : ''}`}
               />
               {fieldErrors.nationalId && <p className="text-[11px] font-bold text-(--app-error) mt-1">{fieldErrors.nationalId}</p>}
             </div>
@@ -1084,7 +1071,7 @@ export function OfficerForm(props: OfficerFormProps) {
                     <button
                       type="button"
                       onClick={handleDeleteFile121}
-                      className="btn-action-danger"
+                      className="btn-action-primary"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -1101,7 +1088,7 @@ export function OfficerForm(props: OfficerFormProps) {
                     />
                     <div className={`px-4 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-2 border ${
                       props.highlightIncomplete && !form.file121Url && !file121
-                      ? 'border-(--app-warning)/60 bg-(--app-warning)/10 text-(--app-warning)'
+                      ? 'border-(--color-primary)/50 bg-(--color-primary)/5 text-(--color-primary)'
                       : 'bg-(--app-surface-container) border-(--app-border) text-(--color-primary) hover:bg-white/10'
                     }`}>
                       Browse

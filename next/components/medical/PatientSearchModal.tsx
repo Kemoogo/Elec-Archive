@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { ModalShell } from "@/components/ui/modal-shell";
-import { Search, Users } from "lucide-react";
+import { ModalActions } from "@/components/ui/modal-actions";
+import { LoadingState } from "@/components/ui/loading-state";
+import { Search, Users, X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useDebounce } from "@/lib/hooks/useDebounce";
 
 interface PatientResult {
   patientId: string;
@@ -19,35 +22,62 @@ export function PatientSearchModal({ onClose }: PatientSearchModalProps) {
   const [results, setResults] = useState<PatientResult[]>([]);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const queryRef = query;
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  const search = async (searchQuery: string) => {
-    if (!searchQuery.trim()) {
+  const debouncedQuery = useDebounce(query, 500);
+
+  const executeSearch = useCallback(async (searchQuery: string) => {
+    const trimmed = searchQuery.trim();
+    if (trimmed.length < 2) {
       setResults([]);
+      setLoading(false);
       return;
     }
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setLoading(true);
     try {
-      const response = await fetch(`/api/medical/patients/search?q=${encodeURIComponent(searchQuery)}&limit=20`);
+      const response = await fetch(
+        `/api/medical/patients/search?q=${encodeURIComponent(trimmed)}&limit=20`,
+        { signal: controller.signal }
+      );
+      if (controller.signal.aborted) return;
       if (response.ok) {
         const data = await response.json();
         setResults(data.data.patients || []);
       }
     } catch {
-      // Silently fail
+      // Silently fail or handle abort
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    executeSearch(debouncedQuery);
+  }, [debouncedQuery, executeSearch]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      executeSearch(query);
     }
   };
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      search(queryRef);
-    }, 300);
-
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query]);
+  const handleClear = () => {
+    setQuery("");
+    setResults([]);
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+  };
 
   return (
     <>
@@ -58,23 +88,48 @@ export function PatientSearchModal({ onClose }: PatientSearchModalProps) {
         overlayClassName="bg-black/40"
         panelClassName="max-h-[85vh] max-w-lg border-(--app-border) shadow-depth-xl"
         bodyClassName="p-6 no-scrollbar"
+        footer={
+          <ModalActions
+            onCancel={onClose}
+            cancelText="إغلاق"
+            readOnly={true}
+          />
+        }
       >
         <div className="space-y-4">
           <div className="relative">
+            <button
+              type="button"
+              onClick={() => executeSearch(query)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-(--app-muted-foreground) hover:text-(--color-primary) transition-colors cursor-pointer"
+              title="بحث (Enter)"
+            >
+              <Search className="w-4 h-4" />
+            </button>
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="ابحث برقم المريض أو الاسم..."
-              className="w-full px-4 py-3 pr-10 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-(--app-foreground) focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-right"
+              onKeyDown={handleKeyDown}
+              placeholder="ابحث برقم المريض أو الاسم (حرفين على الأقل)..."
+              className="w-full px-4 py-3 pr-10 pl-9 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-(--app-foreground) focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-right"
               dir="rtl"
               autoFocus
             />
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-(--app-muted-foreground)" />
+            {query && (
+              <button
+                type="button"
+                onClick={handleClear}
+                className="absolute left-3 top-1/2 -translate-y-1/2 p-0.5 hover:bg-(--app-border) rounded-md text-(--app-muted-foreground) hover:text-(--color-primary) transition-colors cursor-pointer"
+                title="مسح النص"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
 
           {loading && (
-            <div className="text-center py-4 text-sm text-(--app-muted-foreground)">جاري البحث...</div>
+            <LoadingState message="جاري البحث..." variant="inline" className="py-6" />
           )}
 
           {!loading && query.trim() && results.length === 0 && (

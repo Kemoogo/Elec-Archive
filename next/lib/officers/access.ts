@@ -1,13 +1,12 @@
 import type { AuthUser } from "@/lib/auth/types";
-
-import { canViewModule, canEditModule } from "@/lib/auth/authorization";
+import { hasModuleAccess } from "@/lib/auth/rbac";
 
 export function canViewOfficers(user: AuthUser): boolean {
-  return canViewModule(user, "officers") || canViewModule(user, "arkan_harb");
+  return hasModuleAccess(user, "officers", "view") || hasModuleAccess(user, "arkan_harb", "view");
 }
 
 export function canEditOfficers(user: AuthUser): boolean {
-  return canEditModule(user, "officers") || canEditModule(user, "arkan_harb");
+  return hasModuleAccess(user, "officers", "edit") || hasModuleAccess(user, "arkan_harb", "edit");
 }
 
 export function canViewCommanderRollcall(user: AuthUser): boolean {

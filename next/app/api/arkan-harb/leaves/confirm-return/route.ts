@@ -14,7 +14,12 @@ export async function POST(request: Request) {
   const auth = await authenticate();
   if (!auth.success) return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
 
-  if (!canEditModule(auth.user!, "arkan_harb")) {
+  const hasPermission =
+    auth.user?.role === "commander" ||
+    auth.user?.role === "admin" ||
+    canEditModule(auth.user!, "arkan_harb") ||
+    canEditModule(auth.user!, "officers");
+  if (!hasPermission) {
     return NextResponse.json({ success: false, error: errors.insufficientPermissions }, { status: 403 });
   }
 
@@ -49,7 +54,7 @@ export async function POST(request: Request) {
     await logAuditEvent({
       userId: auth.user!.id,
       userName: auth.user!.fullName,
-      action: "STATUS_CHANGE",
+      action: "UPDATE",
       module: "arkan_harb",
       description: `تأكيد عودة الضابط من الإجازة بنجاح`,
       targetId: leave._id.toString(),

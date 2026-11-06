@@ -133,6 +133,20 @@ export async function POST(request: Request) {
 
     const data = parsed.data;
 
+    // Verify officer is active and in-unit
+    const officer = await Officer.findOne({
+      _id: data.officerId,
+      isInUnit: true,
+      employmentStatus: "active",
+    }).select("rank fullName").lean();
+
+    if (!officer) {
+      return NextResponse.json(
+        { success: false, error: "الضابط غير موجود أو خارج قوة الوحدة (مؤرشف)" },
+        { status: 400 },
+      );
+    }
+
     // 5. Create promotion
     const promotion = await Promotion.create({
       officerId: data.officerId,
@@ -149,10 +163,7 @@ export async function POST(request: Request) {
     await Officer.findByIdAndUpdate(data.officerId, { rank: data.toRank });
 
     // 7. Audit
-    const officer = await Officer.findById(data.officerId).select("rank fullName").lean();
-    const officerDisplayName = officer 
-      ? `${RANK_LABELS[officer.rank as OfficerRank]} / ${officer.fullName}` 
-      : data.officerId;
+    const officerDisplayName = `${RANK_LABELS[officer.rank as OfficerRank]} / ${officer.fullName}`;
     
     const fromRankLabel = RANK_LABELS[data.fromRank as OfficerRank] || data.fromRank;
     const toRankLabel = RANK_LABELS[data.toRank as OfficerRank] || data.toRank;

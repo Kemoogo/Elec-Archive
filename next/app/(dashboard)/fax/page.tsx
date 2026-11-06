@@ -5,6 +5,7 @@ import { Fax } from "@/lib/db/models/Fax";
 import { faxListQuerySchema } from "@/lib/validations/fax";
 import { buildFaxListSort } from "@/lib/fax/queries";
 import { FaxPageClient } from "@/components/fax/FaxPageClient";
+import { escapeRegex } from "@/lib/utils";
 import type { Types } from "mongoose";
 
 interface FaxListPageProps {
@@ -19,7 +20,7 @@ export default async function FaxListPage({ searchParams }: FaxListPageProps) {
 
   const faxPermission = auth.user!.permissions.fax;
   if (faxPermission === "none") {
-    redirect("/dashboard");
+    redirect("/");
   }
 
   await connectToDatabase();
@@ -35,7 +36,7 @@ export default async function FaxListPage({ searchParams }: FaxListPageProps) {
 
   if (status) query.status = status;
   if (search) {
-    const searchRegex = { $regex: search, $options: "i" };
+    const searchRegex = { $regex: escapeRegex(search), $options: "i" };
     query.$or = [
       { faxNumber: searchRegex },
       { subject: searchRegex },
@@ -49,10 +50,18 @@ export default async function FaxListPage({ searchParams }: FaxListPageProps) {
     query.date = dateQuery;
   }
   if (forwardedToMe) {
-    query.$or = [
-      { forwardedToId: auth.user!.id, status: "forwarded" },
-      { forwardedToDepartment: auth.user!.department, status: "forwarded" },
-    ];
+    const forwardedCondition = {
+      $or: [
+        { forwardedToId: auth.user!.id, status: "forwarded" },
+        { forwardedToDepartment: auth.user!.department, status: "forwarded" },
+      ],
+    };
+    if (query.$or) {
+      query.$and = [{ $or: query.$or }, forwardedCondition];
+      delete query.$or;
+    } else {
+      query.$and = [forwardedCondition];
+    }
   }
 
   const sortObj = buildFaxListSort(sort);
@@ -71,7 +80,7 @@ export default async function FaxListPage({ searchParams }: FaxListPageProps) {
   const totalPages = Math.ceil(total / limit);
 
   const serializedFaxes = faxes.map((fax) => {
-    const uploadedBy = fax.uploadedBy as { _id: Types.ObjectId; fullName: string };
+    const uploadedBy = fax.uploadedBy as { _id: Types.ObjectId; fullName: string } | null | undefined;
     return {
       _id: (fax._id as Types.ObjectId).toString(),
       faxNumber: fax.faxNumber,
@@ -80,8 +89,8 @@ export default async function FaxListPage({ searchParams }: FaxListPageProps) {
       subject: fax.subject,
       status: fax.status,
       uploadedBy: {
-        _id: uploadedBy._id.toString(),
-        fullName: uploadedBy.fullName,
+        _id: uploadedBy?._id?.toString() ?? "",
+        fullName: uploadedBy?.fullName ?? "مستخدم محذوف",
       },
       createdAt: (fax.createdAt as Date)?.toISOString() ?? new Date().toISOString(),
     };

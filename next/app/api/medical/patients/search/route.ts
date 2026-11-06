@@ -51,8 +51,15 @@ export async function GET(request: Request) {
     }
 
     const { q, limit } = parsed.data;
+    const trimmedQ = q.trim();
+    if (trimmedQ.length < 2) {
+      return NextResponse.json({
+        success: true,
+        data: { patients: [] },
+      });
+    }
 
-    const escapedSearch = escapeRegex(q);
+    const escapedSearch = escapeRegex(trimmedQ);
     const searchRegex = { $regex: escapedSearch, $options: "i" };
 
     const patients = await MedicalPatient.find({
@@ -67,7 +74,7 @@ export async function GET(request: Request) {
       userName: auth.user!.fullName,
       action: "VIEW",
       module: "medical",
-      description: `بحث عن مرضى: "${q}"`,
+      description: `بحث عن مرضى: "${trimmedQ}"`,
       ipAddress: ip,
     });
 

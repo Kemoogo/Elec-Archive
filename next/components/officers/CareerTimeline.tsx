@@ -13,6 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionWrapper } from "@/components/ui/section-wrapper";
+import { formatDateDisplay } from "@/lib/utils/date-display";
 
 export type TimelineEventType = "join" | "promotion" | "mission" | "transfer" | "termination" | "return" | "death" | "retirement";
 
@@ -43,7 +44,7 @@ const EVENT_CONFIG: Record<TimelineEventType, { icon: React.ElementType, color: 
   },
   promotion: { 
     icon: TrendingUp, 
-    color: "bg-(--app-warning)", 
+    color: "bg-(--color-primary)", 
     label: "ترقية" 
   },
   mission: { 
@@ -73,7 +74,7 @@ const EVENT_CONFIG: Record<TimelineEventType, { icon: React.ElementType, color: 
   },
   retirement: { 
     icon: XCircle, 
-    color: "bg-(--app-warning)", 
+    color: "bg-(--color-primary)", 
     label: "تقاعد" 
   },
 };
@@ -120,7 +121,7 @@ export function CareerTimeline({ events, officerName }: CareerTimelineProps) {
                       {config.label}
                     </span>
                     {event.badge && (
-                      <span className="px-2.5 py-1 rounded-md bg-(--app-warning)/10 text-(--app-warning) text-xs font-bold border border-(--app-warning)/20">
+                      <span className="px-2.5 py-1 rounded-md bg-(--color-primary)/10 text-(--color-primary) text-xs font-bold border border-(--color-primary)/20">
                         {event.badge}
                       </span>
                     )}
@@ -147,16 +148,16 @@ export function CareerTimeline({ events, officerName }: CareerTimelineProps) {
                 </div>
 
                 <div className="flex flex-col items-end shrink-0 pt-1">
-                  <div className="flex items-center gap-2 text-(--app-muted-foreground) font-mono text-xs bg-(--app-surface-container) px-3 py-1.5 rounded-lg border border-(--app-border)">
-                    <Calendar className="h-3.5 w-3.5" />
-                    <span dir="ltr" suppressHydrationWarning>
-                      {new Date(event.date).toLocaleDateString("ar-EG", { year: 'numeric', month: 'long', day: 'numeric' })}
+                  <div className="flex items-center gap-2 text-(--app-muted-foreground) font-mono text-xs bg-(--app-surface-container) px-3 py-1.5 rounded-lg border border-(--app-border)" dir="rtl">
+                    <Calendar className="h-3.5 w-3.5 shrink-0" />
+                    <span suppressHydrationWarning>
+                      {formatDateDisplay(event.date)}
                     </span>
                     {event.endDate && (
                       <>
                         <span className="opacity-30 mx-1">/</span>
-                        <span dir="ltr" suppressHydrationWarning>
-                          {new Date(event.endDate).toLocaleDateString("ar-EG", { year: 'numeric', month: 'long', day: 'numeric' })}
+                        <span suppressHydrationWarning>
+                          {formatDateDisplay(event.endDate)}
                         </span>
                       </>
                     )}

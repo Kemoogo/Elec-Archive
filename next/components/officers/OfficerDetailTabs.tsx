@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { User, Calendar, History, Briefcase, Filter } from "lucide-react";
+import { User, Calendar, History, Briefcase, Filter, Compass } from "lucide-react";
 import { FolderTabs } from "@/components/ui/folder-tabs";
 import { ModernPageHeader as PageHeader, SecondaryHeaderBtn } from "@/components/layout/ModernPageHeader";
 
@@ -11,6 +11,7 @@ interface OfficerDetailTabsProps {
   officerLabel: string;
   basicInfo: React.ReactNode;
   leaves: React.ReactNode;
+  missionsHistory?: React.ReactNode;
   careerTimeline: React.ReactNode;
   positionHistory: React.ReactNode;
   actions?: React.ReactNode;
@@ -31,6 +32,11 @@ const TAB_META: Record<
     description: "سجل متابعة وتتبع الإجازات الرسمية والانقطاعات الحالية والسابقة",
     icon: <Calendar className="w-6 h-6" />,
   },
+  missions: {
+    name: "سجل المأموريات",
+    description: "سجل المأموريات الميدانية والمهام الرسمية والفرق والدورات الخارجية",
+    icon: <Compass className="w-6 h-6" />,
+  },
   career: {
     name: "السجل المهني",
     description: "السجل المهني، الترقيات، التنقلات والمشاركات والمهام العسكرية",
@@ -47,6 +53,7 @@ export function OfficerDetailTabs({
   officerLabel,
   basicInfo,
   leaves,
+  missionsHistory,
   careerTimeline,
   positionHistory,
   actions,
@@ -109,6 +116,12 @@ export function OfficerDetailTabs({
       content: leaves,
     },
     {
+      id: "missions",
+      label: "سجل المأموريات",
+      icon: <Compass className="h-[18px] w-[18px]" />,
+      content: missionsHistory,
+    },
+    {
       id: "career",
       label: "السجل المهني",
       icon: <History className="h-[18px] w-[18px]" />,
@@ -135,9 +148,9 @@ export function OfficerDetailTabs({
               شئون الضباط
             </Link>
             <span className="text-(--app-muted-foreground)/50 font-semibold">-</span>
-            <span>{officerLabel}</span>
-            <span className="text-(--app-muted-foreground)/50 font-semibold">-</span>
             <span className="text-(--color-primary)">{currentMeta.name}</span>
+            <span className="text-(--app-muted-foreground)/50 font-semibold">-</span>
+            <span>{officerLabel}</span>
           </span>
         }
         description={currentDescription}

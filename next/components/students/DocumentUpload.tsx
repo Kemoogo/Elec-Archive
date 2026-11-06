@@ -96,7 +96,7 @@ export function DocumentUpload({ studentId }: DocumentUploadProps) {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="rounded-md bg-(--app-accent) px-4 py-2 text-sm text-(--app-accent-foreground) font-medium hover:bg-(--app-accent)/90"
+        className="btn-primary"
       >
         رفع مستند
       </button>
@@ -127,7 +127,7 @@ export function DocumentUpload({ studentId }: DocumentUploadProps) {
             type="file"
             accept=".pdf,.jpg,.jpeg,.png"
             onChange={handleFileChange}
-            className="w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-foreground) file:mr-4 file:rounded-md file:border-0 file:bg-(--app-accent) file:text-(--app-accent-foreground) file:font-medium"
+            className="w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-foreground) file:mr-4 file:rounded-md file:border-0 file:bg-(--color-primary) file:text-white file:font-medium"
           />
         </div>
         {error && <p className="text-sm text-(--app-error)">{error}</p>}
@@ -140,14 +140,14 @@ export function DocumentUpload({ studentId }: DocumentUploadProps) {
               setName("");
               setFile(null);
             }}
-            className="rounded-md border border-(--app-border) px-4 py-2 text-sm text-foreground hover:bg-white/10"
+            className="btn-secondary"
           >
             إلغاء
           </button>
           <button
             type="submit"
             disabled={isUploading}
-            className="rounded-md bg-(--app-accent) px-4 py-2 text-sm text-(--app-accent-foreground) font-medium hover:bg-(--app-accent)/90 disabled:opacity-50"
+            className="btn-primary disabled:opacity-50"
           >
             {isUploading ? "جاري الرفع..." : "رفع"}
           </button>

@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useState, useRef, useEffect } from "react";
+import { ReactNode, useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ArrowRight, LayoutDashboard, Search, X } from "lucide-react";
 
@@ -18,13 +18,15 @@ export interface HeaderAction {
   href?: string;
   onClick?: () => void;
   disabled?: boolean;
+  /** Optional hover tooltip */
+  title?: string;
 }
 
 /** Primary (filled) button for the page header */
-export function PrimaryHeaderBtn({ label, icon, href, onClick, disabled }: HeaderAction) {
+export function PrimaryHeaderBtn({ label, icon, href, onClick, disabled, title }: HeaderAction) {
   if (href) {
     return (
-      <Link href={href} className="btn-primary">
+      <Link href={href} title={title} className="btn-primary">
         {icon}
         <span>{label}</span>
       </Link>
@@ -35,7 +37,8 @@ export function PrimaryHeaderBtn({ label, icon, href, onClick, disabled }: Heade
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="btn-primary disabled:opacity-60 disabled:cursor-not-allowed"
+      title={title}
+      className="btn-primary disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
     >
       {icon}
       <span>{label}</span>
@@ -44,10 +47,10 @@ export function PrimaryHeaderBtn({ label, icon, href, onClick, disabled }: Heade
 }
 
 /** Secondary (outline/ghost) button for the page header */
-export function SecondaryHeaderBtn({ label, icon, href, onClick, disabled }: HeaderAction) {
+export function SecondaryHeaderBtn({ label, icon, href, onClick, disabled, title }: HeaderAction) {
   if (href) {
     return (
-      <Link href={href} className="btn-secondary">
+      <Link href={href} title={title} className="btn-secondary">
         {icon}
         <span>{label}</span>
       </Link>
@@ -58,7 +61,8 @@ export function SecondaryHeaderBtn({ label, icon, href, onClick, disabled }: Hea
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="btn-secondary disabled:opacity-60 disabled:cursor-not-allowed"
+      title={title}
+      className="btn-secondary disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
     >
       {icon}
       <span>{label}</span>
@@ -104,17 +108,20 @@ export function ModernPageHeader({
   searchPlaceholder = "بحث...",
 }: ModernPageHeaderProps) {
   const [isSearchOpen, setIsSearchOpen] = useState(Boolean(searchQuery));
+  const [inputValue, setInputValue] = useState(searchQuery);
+  const lastCommittedRef = useRef(searchQuery);
   const inputRef = useRef<HTMLInputElement>(null);
   const displaySubtitle = subtitle || description;
   const displayActions = actions || action;
 
-  const [prevSearchQuery, setPrevSearchQuery] = useState(searchQuery);
-  if (searchQuery !== prevSearchQuery) {
-    setPrevSearchQuery(searchQuery);
+  // Synchronize internal input value if external searchQuery prop updates (e.g. URL change, reset)
+  useEffect(() => {
+    setInputValue(searchQuery);
+    lastCommittedRef.current = searchQuery;
     if (searchQuery && !isSearchOpen) {
       setIsSearchOpen(true);
     }
-  }
+  }, [searchQuery, isSearchOpen]);
 
   /* Auto-focus input when search opens */
   useEffect(() => {
@@ -124,9 +131,55 @@ export function ModernPageHeader({
     }
   }, [isSearchOpen]);
 
+  const commitSearch = useCallback(
+    (queryToCommit: string) => {
+      const trimmed = queryToCommit.trim();
+      // Ignore single character to avoid excessive database table scans
+      if (trimmed.length === 1) return;
+      if (trimmed === lastCommittedRef.current) return;
+      lastCommittedRef.current = trimmed;
+      onSearchChange?.(trimmed);
+    },
+    [onSearchChange]
+  );
+
+  // Debounced search: triggers 500ms after user stops typing (for queries >= 2 chars)
+  useEffect(() => {
+    if (!inputValue.trim()) return;
+    if (inputValue.trim().length < 2) return;
+    if (inputValue.trim() === lastCommittedRef.current) return;
+
+    const timer = setTimeout(() => {
+      commitSearch(inputValue);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [inputValue, commitSearch]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const nextVal = e.target.value;
+    setInputValue(nextVal);
+    // When cleared completely, immediately reset search without delay
+    if (!nextVal.trim() && lastCommittedRef.current !== "") {
+      lastCommittedRef.current = "";
+      onSearchChange?.("");
+    }
+  };
+
+  const handleClear = () => {
+    setInputValue("");
+    if (lastCommittedRef.current !== "") {
+      lastCommittedRef.current = "";
+      onSearchChange?.("");
+    }
+    inputRef.current?.focus();
+  };
+
   const handleToggleSearch = () => {
     if (isSearchOpen) {
-      if (searchQuery) {
+      setInputValue("");
+      if (lastCommittedRef.current !== "") {
+        lastCommittedRef.current = "";
         onSearchChange?.("");
       }
       setIsSearchOpen(false);
@@ -135,8 +188,20 @@ export function ModernPageHeader({
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      commitSearch(inputValue);
+      inputRef.current?.blur();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      handleClear();
+      setIsSearchOpen(false);
+    }
+  };
+
   return (
-    <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-6 py-4 bg-(--color-surface) rounded-2xl shadow-sm border border-(--color-border) mb-6">
+    <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-6 py-4 bg-(--color-surface) rounded-2xl shadow-sm border border-(--color-border) mb-6 print:hidden">
       {/* Icon + Title */}
       <div className="flex items-center gap-4 flex-1 min-w-0 group">
         <div className="bg-(--color-primary) p-3 rounded-xl text-white shadow-md shadow-blue-900/10 flex items-center justify-center shrink-0 transition-all duration-300 group-hover:scale-105 group-hover:rotate-3 group-hover:shadow-lg">
@@ -174,21 +239,29 @@ export function ModernPageHeader({
               }`}
             >
               <div className="w-[200px] sm:w-[240px] relative">
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-(--app-muted-foreground) pointer-events-none" />
+                <button
+                  type="button"
+                  onClick={() => commitSearch(inputValue)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-(--app-muted-foreground) hover:text-(--color-primary) transition-colors cursor-pointer"
+                  title="بحث (Enter)"
+                >
+                  <Search className="w-4 h-4" />
+                </button>
                 <input
                   ref={inputRef}
                   type="text"
                   tabIndex={isSearchOpen ? 0 : -1}
-                  value={searchQuery}
-                  onChange={(e) => onSearchChange?.(e.target.value)}
+                  value={inputValue}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
                   placeholder={searchPlaceholder}
                   className="w-full pr-9 pl-8 py-2 bg-(--app-surface-container) border border-(--app-border)/60 rounded-xl text-sm font-bold text-(--color-primary) placeholder:text-(--app-muted-foreground)/60 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-xs"
                   dir="rtl"
                 />
-                {searchQuery && (
+                {inputValue && (
                   <button
                     type="button"
-                    onClick={() => onSearchChange?.("")}
+                    onClick={handleClear}
                     className="absolute left-2.5 top-1/2 -translate-y-1/2 p-0.5 hover:bg-(--app-border) rounded-md text-(--app-muted-foreground) hover:text-(--color-primary) transition-colors cursor-pointer"
                     title="مسح النص"
                   >

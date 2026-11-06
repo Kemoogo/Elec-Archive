@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { ModalActions } from "@/components/ui/modal-actions";
-import { Settings2, Trash2, Save } from "lucide-react";
+import { Settings2, AlertTriangle } from "lucide-react";
 import { FormLabel, FormInput } from "@/components/ui/form-fields";
 import { useToast } from "@/components/ui/toast";
 import { extractApiError } from "@/lib/utils";
@@ -30,7 +30,7 @@ export function EditMedicineButton({ medicine }: EditMedicineButtonProps) {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="btn-action-info"
+        className="btn-action-primary"
         title="تعديل البيانات"
       >
         <Settings2 className="w-4 h-4" />
@@ -56,6 +56,7 @@ function EditMedicineModal({
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [error, setError] = useState("");
 
   const [form, setForm] = useState({
@@ -95,11 +96,8 @@ function EditMedicineModal({
     }
   };
 
-  const handleDelete = async () => {
-    if (!confirm("هل أنت متأكد من حذف هذا الدواء نهائياً؟ لا يمكن التراجع عن هذا الإجراء.")) {
-      return;
-    }
-
+  const handleConfirmDelete = async () => {
+    setShowDeleteConfirm(false);
     setDeleteLoading(true);
     setError("");
 
@@ -127,40 +125,22 @@ function EditMedicineModal({
   };
 
   const footer = (
-    <ModalActions className="sm:items-stretch w-full">
-      <button
-        type="submit"
-        form="edit-medicine-form"
-        className="btn-primary"
-        disabled={loading || deleteLoading}
-      >
-        <Save className="w-4 h-4" />
-        {loading ? "جاري الحفظ..." : "حفظ التعديلات"}
-      </button>
-      
-      <button
-        type="button"
-        onClick={handleDelete}
-        className="btn-destructive"
-        disabled={loading || deleteLoading}
-      >
-        <Trash2 className="w-4 h-4" />
-        {deleteLoading ? "جاري الحذف..." : "حذف"}
-      </button>
-
-      <button
-        type="button"
-        onClick={onClose}
-        className="btn-secondary"
-        disabled={loading || deleteLoading}
-      >
-        إلغاء
-      </button>
-    </ModalActions>
+    <ModalActions
+      form="edit-medicine-form"
+      submitText="حفظ التعديلات"
+      submitLoading={loading}
+      submitDisabled={deleteLoading}
+      destructiveText="حذف"
+      destructiveLoading={deleteLoading}
+      destructiveDisabled={loading}
+      onDestructive={() => setShowDeleteConfirm(true)}
+      onCancel={onClose}
+    />
   );
 
   return (
-    <ModalShell
+    <>
+      <ModalShell
       title={`تعديل بيانات: ${medicine.name}`}
       icon={<Settings2 className="w-4 h-4" />}
       onClose={onClose}
@@ -232,5 +212,37 @@ function EditMedicineModal({
         </div>
       </form>
     </ModalShell>
+
+    {showDeleteConfirm && (
+      <ModalShell
+        title="تأكيد حذف الدواء"
+        icon={<AlertTriangle className="w-4 h-4 text-(--app-error)" />}
+        titleVariant="danger"
+        onClose={() => setShowDeleteConfirm(false)}
+        overlayClassName="bg-black/40"
+        panelClassName="max-w-md border-(--app-border) shadow-depth-xl"
+        bodyClassName="p-6 space-y-3"
+        footer={
+          <ModalActions
+            submitText="تأكيد الحذف"
+            submitVariant="destructive"
+            submitLoading={deleteLoading}
+            onConfirm={handleConfirmDelete}
+            cancelText="إلغاء"
+            onCancel={() => setShowDeleteConfirm(false)}
+          />
+        }
+      >
+        <div className="text-right space-y-2">
+          <p className="text-sm font-bold text-(--app-foreground)">
+            هل أنت متأكد من حذف هذا الدواء نهائياً؟
+          </p>
+          <p className="text-xs font-bold text-(--app-muted-foreground)">
+            سيتم حذف الدواء ({medicine.name}) ولا يمكن التراجع عن هذا الإجراء.
+          </p>
+        </div>
+      </ModalShell>
+    )}
+  </>
   );
 }

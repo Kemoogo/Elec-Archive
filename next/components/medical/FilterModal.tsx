@@ -5,7 +5,43 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { SlidersHorizontal, RotateCcw } from "lucide-react";
-import { FormLabel, FormSelect } from "@/components/ui/form-fields";
+import { CustomSelect, type CustomSelectOption } from "@/components/ui/custom-select";
+
+const FITNESS_FILTER_OPTIONS: CustomSelectOption[] = [
+  { value: "all", label: "الكل" },
+  { value: "fit", label: "لائق طبياً" },
+  { value: "class_a", label: "لياقة فئة أ" },
+  { value: "class_b", label: "لياقة فئة ب" },
+  { value: "class_c", label: "لياقة فئة ج" },
+  { value: "temporary_unfit", label: "غير لائق مؤقتاً" },
+];
+
+const REST_FILTER_OPTIONS: CustomSelectOption[] = [
+  { value: "all", label: "الكل" },
+  { value: "none", label: "لا يوجد" },
+  { value: "ward", label: "راحة بالعنبر" },
+  { value: "home", label: "راحة منزلية" },
+  { value: "exemption", label: "إعفاء مجهود" },
+];
+
+const PERIOD_FILTER_OPTIONS: CustomSelectOption[] = [
+  { value: "all", label: "الكل" },
+  { value: "today", label: "زيارات اليوم" },
+  { value: "week", label: "خلال هذا الأسبوع" },
+  { value: "month", label: "خلال هذا الشهر" },
+];
+
+const MED_STATUS_FILTER_OPTIONS: CustomSelectOption[] = [
+  { value: "all", label: "الكل" },
+  { value: "valid", label: "متوفر وصالح" },
+  { value: "low_stock", label: "تحت الحد الأدنى (مخزون حرج)" },
+  { value: "expired", label: "منتهي الصلاحية" },
+];
+
+const FREQUENCY_FILTER_OPTIONS: CustomSelectOption[] = [
+  { value: "all", label: "الكل" },
+  { value: "frequent", label: "حالات متكررة التردد (أكثر من 3 زيارات)" },
+];
 
 interface FilterModalProps {
   tab: string;
@@ -74,86 +110,74 @@ export function FilterModal({ tab, onClose }: FilterModalProps) {
       panelClassName="max-h-[85vh] max-w-md border-(--app-border) shadow-depth-xl"
       bodyClassName="p-6 no-scrollbar"
       footer={
-        <ModalActions className="sm:items-stretch w-full">
-          <button
-            type="button"
-            onClick={handleApply}
-            className="btn-primary"
-          >
-            تطبيق الفلترة
-          </button>
-          <button
-            type="button"
-            onClick={handleReset}
-            className="btn-secondary"
-          >
-            <RotateCcw className="w-4 h-4" />
-            <span>إعادة ضبط</span>
-          </button>
-        </ModalActions>
+        <ModalActions
+          startSlot={
+            <button
+              type="button"
+              onClick={handleReset}
+              className="btn-secondary text-xs flex items-center gap-1.5 cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>إعادة ضبط</span>
+            </button>
+          }
+          submitText="تطبيق الفلترة"
+          onConfirm={handleApply}
+          cancelText="إلغاء"
+          onCancel={onClose}
+        />
       }
     >
       <div className="space-y-4 text-right" dir="rtl">
         {tab === "visits" && (
           <>
             {/* اللياقة الطبية */}
-            <div className="space-y-1.5">
-              <FormLabel htmlFor="filter-fitness">اللياقة الطبية</FormLabel>
-              <FormSelect id="filter-fitness" value={fitness} onChange={(e) => setFitness(e.target.value)}>
-                <option value="all">الكل</option>
-                <option value="fit">لائق طبياً</option>
-                <option value="class_a">لياقة فئة أ</option>
-                <option value="class_b">لياقة فئة ب</option>
-                <option value="class_c">لياقة فئة ج</option>
-                <option value="temporary_unfit">غير لائق مؤقتاً</option>
-              </FormSelect>
-            </div>
+            <CustomSelect
+              id="filter-fitness"
+              label="اللياقة الطبية"
+              value={fitness}
+              onChange={setFitness}
+              options={FITNESS_FILTER_OPTIONS}
+            />
 
             {/* نوع الراحة الطبية */}
-            <div className="space-y-1.5">
-              <FormLabel htmlFor="filter-rest">نوع الراحة الطبية</FormLabel>
-              <FormSelect id="filter-rest" value={rest} onChange={(e) => setRest(e.target.value)}>
-                <option value="all">الكل</option>
-                <option value="none">لا يوجد</option>
-                <option value="ward">راحة بالعنبر</option>
-                <option value="home">راحة منزلية</option>
-                <option value="exemption">إعفاء مجهود</option>
-              </FormSelect>
-            </div>
+            <CustomSelect
+              id="filter-rest"
+              label="نوع الراحة الطبية"
+              value={rest}
+              onChange={setRest}
+              options={REST_FILTER_OPTIONS}
+            />
 
             {/* الفترة الزمنية */}
-            <div className="space-y-1.5">
-              <FormLabel htmlFor="filter-period">الفترة الزمنية للزيارة</FormLabel>
-              <FormSelect id="filter-period" value={period} onChange={(e) => setPeriod(e.target.value)}>
-                <option value="all">الكل</option>
-                <option value="today">زيارات اليوم</option>
-                <option value="week">خلال هذا الأسبوع</option>
-                <option value="month">خلال هذا الشهر</option>
-              </FormSelect>
-            </div>
+            <CustomSelect
+              id="filter-period"
+              label="الفترة الزمنية للزيارة"
+              value={period}
+              onChange={setPeriod}
+              options={PERIOD_FILTER_OPTIONS}
+            />
           </>
         )}
 
         {tab === "medicines" && (
-          <div className="space-y-1.5">
-            <FormLabel htmlFor="filter-medstatus">حالة توفر الدواء والمخزون</FormLabel>
-            <FormSelect id="filter-medstatus" value={medStatus} onChange={(e) => setMedStatus(e.target.value)}>
-              <option value="all">الكل</option>
-              <option value="valid">متوفر وصالح</option>
-              <option value="low_stock">تحت الحد الأدنى (مخزون حرج)</option>
-              <option value="expired">منتهي الصلاحية</option>
-            </FormSelect>
-          </div>
+          <CustomSelect
+            id="filter-medstatus"
+            label="حالة توفر الدواء والمخزون"
+            value={medStatus}
+            onChange={setMedStatus}
+            options={MED_STATUS_FILTER_OPTIONS}
+          />
         )}
 
         {tab === "patients" && (
-          <div className="space-y-1.5">
-            <FormLabel htmlFor="filter-frequency">معدل التردد المرجعي</FormLabel>
-            <FormSelect id="filter-frequency" value={frequency} onChange={(e) => setFrequency(e.target.value)}>
-              <option value="all">الكل</option>
-              <option value="frequent">حالات متكررة التردد (أكثر من 3 زيارات)</option>
-            </FormSelect>
-          </div>
+          <CustomSelect
+            id="filter-frequency"
+            label="معدل التردد المرجعي"
+            value={frequency}
+            onChange={setFrequency}
+            options={FREQUENCY_FILTER_OPTIONS}
+          />
         )}
       </div>
     </ModalShell>

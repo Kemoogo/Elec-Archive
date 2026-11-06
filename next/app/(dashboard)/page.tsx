@@ -10,8 +10,10 @@ import { Student } from "@/lib/db/models/Student";
 import { ArkanHarbSummaryCard } from "@/components/dashboard/ArkanHarbSummaryCard";
 import { DashboardCard } from "@/components/dashboard/DashboardCard";
 import { headers } from "next/headers";
+import { canViewModule } from "@/lib/auth/authorization";
+import type { AuthUser } from "@/lib/auth/types";
 
-async function getDashboardData(userRole: string, department: string, canViewArkanHarb: boolean) {
+async function getDashboardData(user: AuthUser) {
   await connectToDatabase();
 
   const today = new Date();
@@ -19,101 +21,71 @@ async function getDashboardData(userRole: string, department: string, canViewArk
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  const isAdminOrCommander = userRole === "admin" || userRole === "commander";
+  const canFax = canViewModule(user, "fax");
+  const canOfficers = canViewModule(user, "officers");
+  const canArkanHarb = canViewModule(user, "arkan_harb");
+  const canMedical = canViewModule(user, "medical");
+  const canEducation = canViewModule(user, "education");
+  const canStudents = canViewModule(user, "students");
+
+  const [
+    faxTuple,
+    todayRollcall,
+    activeMissionsCount,
+    medTuple,
+    coursesCount,
+    studentsCount,
+  ] = await Promise.all([
+    canFax
+      ? Promise.all([
+          Fax.countDocuments({ status: "pending" }),
+          Fax.countDocuments(),
+        ]).catch(() => null)
+      : Promise.resolve(null),
+    canOfficers || canArkanHarb
+      ? DailyRollcall.findOne({ date: { $gte: today, $lt: tomorrow } }).lean().catch(() => null)
+      : Promise.resolve(null),
+    canArkanHarb
+      ? Mission.countDocuments({
+          status: { $in: ["scheduled", "ongoing"] },
+          startDate: { $lte: new Date() },
+        }).catch(() => 0)
+      : Promise.resolve(null),
+    canMedical
+      ? Promise.all([
+          Medicine.countDocuments({ batches: { $elemMatch: { quantity: { $gt: 0 }, expiryDate: { $lt: new Date() } } } }),
+          Medicine.countDocuments({ $expr: { $lt: ["$totalQuantity", "$minThreshold"] } }),
+        ]).catch(() => null)
+      : Promise.resolve(null),
+    canEducation
+      ? Course.countDocuments({ status: { $in: ["ongoing", "upcoming"] } }).catch(() => null)
+      : Promise.resolve(null),
+    canStudents
+      ? Student.countDocuments({ status: "active" }).catch(() => null)
+      : Promise.resolve(null),
+  ]);
 
   const data = {
-    faxes: null as { pendingCount: number; totalCount: number } | null,
-    rollcall: null as {
-      todaySubmitted: boolean;
-      presentCount: number;
-      absentCount: number;
-    } | null,
-    arkanHarb: null as {
-        rollcallSubmitted: boolean;
-        activeCount: number;
-    } | null,
-    medical: null as { expiredCount: number; lowStockCount: number } | null,
-    courses: null as { activeCount: number } | null,
-    students: null as { totalCount: number } | null,
+    faxes: faxTuple ? { pendingCount: faxTuple[0], totalCount: faxTuple[1] } : null,
+    rollcall: canOfficers
+      ? todayRollcall
+        ? {
+            todaySubmitted: todayRollcall.status === "submitted",
+            presentCount: (todayRollcall.entries || []).filter((e: { status: string }) => e.status === "present").length,
+            absentCount: (todayRollcall.entries || []).filter((e: { status: string }) => e.status === "absent").length,
+          }
+        : { todaySubmitted: false, presentCount: 0, absentCount: 0 }
+      : null,
+    arkanHarb: canArkanHarb
+      ? {
+          rollcallSubmitted: todayRollcall?.status === "submitted",
+          activeCount: activeMissionsCount ?? 0,
+        }
+      : null,
+    medical: medTuple ? { expiredCount: medTuple[0], lowStockCount: medTuple[1] } : null,
+    courses: coursesCount !== null ? { activeCount: coursesCount } : null,
+    students: studentsCount !== null ? { totalCount: studentsCount } : null,
   };
-
-  try {
-    if (isAdminOrCommander || department === "fax") {
-      const pendingCount = await Fax.countDocuments({ status: "pending" });
-      const totalCount = await Fax.countDocuments();
-      data.faxes = { pendingCount, totalCount };
-    }
-  } catch {
-    // graceful per-card failure
-  }
-
-  try {
-    if (isAdminOrCommander || department === "officers") {
-      const todayRollcall = await DailyRollcall.findOne({
-        date: { $gte: today, $lt: tomorrow },
-      });
-
-      if (todayRollcall) {
-        const entries = todayRollcall.entries;
-        data.rollcall = {
-          todaySubmitted: todayRollcall.status === "submitted",
-          presentCount: entries.filter((e: { status: string }) => e.status === "present").length,
-          absentCount: entries.filter((e: { status: string }) => e.status === "absent").length,
-        };
-      } else {
-        data.rollcall = { todaySubmitted: false, presentCount: 0, absentCount: 0 };
-      }
-    }
-  } catch {
-    // graceful per-card failure
-  }
-
-  try {
-    if (isAdminOrCommander || canViewArkanHarb) {
-      const todayRollcall = await DailyRollcall.findOne({
-        date: { $gte: today, $lt: tomorrow },
-      });
-      const activeMissionsCount = await Mission.countDocuments({ 
-          status: { $in: ["scheduled", "ongoing"] },
-          startDate: { $lte: new Date() }
-      });
-      // Simplified active count for demo purposes
-      data.arkanHarb = {
-        rollcallSubmitted: todayRollcall?.status === "submitted",
-        activeCount: activeMissionsCount,
-      };
-    }
-  } catch {
-    // graceful
-  }
-
-  try {
-    if (isAdminOrCommander || department === "medical") {
-      const expiredCount = await Medicine.countDocuments({ "batches.expiryDate": { $lt: new Date() } });
-      const lowStockCount = await Medicine.countDocuments({ $expr: { $lt: ["$totalQuantity", "$minThreshold"] } });
-      data.medical = { expiredCount, lowStockCount };
-    }
-  } catch {
-    // graceful per-card failure
-  }
-
-  try {
-    if (isAdminOrCommander || department === "education") {
-      const activeCount = await Course.countDocuments({ status: { $in: ["ongoing", "upcoming"] } });
-      data.courses = { activeCount };
-    }
-  } catch {
-    // graceful per-card failure
-  }
-
-  try {
-    if (isAdminOrCommander || department === "students") {
-      const totalCount = await Student.countDocuments();
-      data.students = { totalCount };
-    }
-  } catch {
-    // graceful per-card failure
-  }
 
   return data;
 }
@@ -134,7 +106,7 @@ export default async function DashboardPage() {
   }
 
   if (user.role === "commander") {
-    const data = await getDashboardData(user.role, user.department, true);
+    const data = await getDashboardData(user);
 
     return (
       <div className="space-y-8">
@@ -189,7 +161,7 @@ export default async function DashboardPage() {
             title="الطلبة"
             count={data.students?.totalCount ?? null}
             subtitle="إجمالي الطلبة"
-            color="yellow"
+            color="blue"
             icon="🎓"
             href="/students"
           />
@@ -217,7 +189,7 @@ export default async function DashboardPage() {
       redirect(`/${assignedModules[0]}`);
     }
 
-    const data = await getDashboardData(user.role, user.department, canViewArkanHarb);
+    const data = await getDashboardData(user);
 
     const moduleCards: {
       module: string;
@@ -263,7 +235,7 @@ export default async function DashboardPage() {
         moduleCards.push({
           module: "students",
           title: "الطلبة",
-          color: "yellow",
+          color: "blue",
           icon: "🎓",
           count: data.students.totalCount,
           subtitle: "إجمالي",

@@ -54,6 +54,27 @@ export async function PATCH(
     const data = parsed.data;
     const now = new Date();
 
+    const { Officer } = await import("@/lib/db/models/Officer");
+    const checkIds = [
+      data.primaryOfficerId && data.primaryOfficerId.trim() !== "" ? data.primaryOfficerId.trim() : null,
+      ...(data.substituteOfficerIds || []).map((id) => (id && id.trim() !== "" ? id.trim() : null)),
+    ].filter(Boolean) as string[];
+
+    if (checkIds.length > 0) {
+      const validOfficers = await Officer.find({
+        _id: { $in: checkIds },
+        isInUnit: true,
+        employmentStatus: "active",
+      }).select("_id").lean();
+
+      if (validOfficers.length !== checkIds.length) {
+        return NextResponse.json(
+          { success: false, error: "لا يمكن تسكين ضباط منقولين أو خارج الوحدة في وظائف أو تكليفات" },
+          { status: 400 }
+        );
+      }
+    }
+
     if (data.positionTitle !== undefined) position.positionTitle = data.positionTitle;
     if (data.department !== undefined) position.department = data.department;
     if (data.orderNumber !== undefined) position.orderNumber = data.orderNumber;

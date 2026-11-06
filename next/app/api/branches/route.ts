@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { authenticate } from "@/lib/auth/middleware";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Branch } from "@/lib/db/models/Branch";
-import { createBranchSchema } from "@/validations/department";
+import { createBranchSchema } from "@/lib/validations/department";
 import { logAuditEvent } from "@/lib/auth/audit";
 
 export async function GET() {

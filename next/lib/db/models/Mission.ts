@@ -6,7 +6,8 @@ import {
   MISSION_TYPES,
   MISSION_TYPE_LABELS,
   type MissionStatus,
-  type MissionType 
+  type MissionType,
+  type IMissionClearanceDoc,
 } from "./Mission.shared";
 
 export { 
@@ -15,7 +16,8 @@ export {
   MISSION_TYPES,
   MISSION_TYPE_LABELS,
   type MissionStatus,
-  type MissionType 
+  type MissionType,
+  type IMissionClearanceDoc,
 };
 
 export interface IMission extends Document {
@@ -31,12 +33,27 @@ export interface IMission extends Document {
   statusReason?: string;
   resultSummary?: string;
   linkedFaxId?: string;
+  linkedFax?: Types.ObjectId;
+  referenceLetterNumber?: string;
+  travelOrderNumber?: string;
+  transportationMean?: string;
+  authorizedWeapons?: string;
+  clearanceDocuments?: IMissionClearanceDoc[];
   completedAt?: Date;
   createdBy: Types.ObjectId;
   updatedBy: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
+
+const MissionClearanceDocSchema = new Schema<IMissionClearanceDoc>(
+  {
+    name: { type: String, required: true, trim: true },
+    fileUrl: { type: String, required: true, trim: true },
+    uploadedAt: { type: Date, default: Date.now },
+  },
+  { _id: false },
+);
 
 const MissionSchema = new Schema<IMission>(
   {
@@ -61,6 +78,12 @@ const MissionSchema = new Schema<IMission>(
     statusReason: { type: String, trim: true },
     resultSummary: { type: String, trim: true },
     linkedFaxId: { type: String, trim: true },
+    linkedFax: { type: Schema.Types.ObjectId, ref: "Fax" },
+    referenceLetterNumber: { type: String, trim: true },
+    travelOrderNumber: { type: String, trim: true },
+    transportationMean: { type: String, trim: true },
+    authorizedWeapons: { type: String, trim: true },
+    clearanceDocuments: [MissionClearanceDocSchema],
     completedAt: { type: Date },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
     updatedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
@@ -82,6 +105,8 @@ MissionSchema.pre("validate", function () {
 MissionSchema.index({ officerId: 1, startDate: -1 });
 // Filter missions by lifecycle status (e.g. all active missions)
 MissionSchema.index({ status: 1 });
+// Index on linkedFax for fast reverse lookup
+MissionSchema.index({ linkedFax: 1 });
 
 export const Mission =
   models.Mission ?? model<IMission>("Mission", MissionSchema);

@@ -13,18 +13,18 @@ interface DashboardCardProps {
 
 const colorClasses: Record<string, string> = {
   blue: "text-(--color-primary)",
-  green: "text-(--app-success)",
+  green: "text-(--color-primary)",
   purple: "text-(--app-info)",
-  yellow: "text-(--app-warning)",
-  red: "text-(--app-error)",
+  yellow: "text-(--color-primary)",
+  red: "text-(--app-muted-foreground)",
 };
 
 const iconBgClasses: Record<string, string> = {
   blue: "bg-(--color-primary)/10 dark:bg-(--color-primary)/20",
-  green: "bg-(--app-success)/10 dark:bg-(--app-success)/20",
+  green: "bg-(--color-primary)/10 dark:bg-(--color-primary)/20",
   purple: "bg-(--app-info)/10",
-  yellow: "bg-(--app-warning)/10",
-  red: "bg-(--app-error)/10 dark:bg-(--app-error)/20",
+  yellow: "bg-(--color-primary)/10 dark:bg-(--color-primary)/20",
+  red: "bg-(--app-surface-container)",
 };
 
 export function DashboardCard({

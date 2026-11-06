@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { ModalShell } from "@/components/ui/modal-shell";
+import { ModalActions } from "@/components/ui/modal-actions";
 import { 
   FileText, 
   User, 
   MapPin, 
   Calendar, 
-  Trash2, 
   Clock, 
   AlertCircle,
   FileCheck
@@ -15,6 +15,7 @@ import {
 import { getMissionStatusLabel } from "@/lib/utils/status-badge";
 import { useToast } from "@/components/ui/toast";
 import { extractApiError } from "@/lib/utils";
+import { formatDateDisplay as formatCentralDate } from "@/lib/utils/date-display";
 import { type Mission } from "./MissionsTable";
 
 interface MissionDetailModalProps {
@@ -28,14 +29,7 @@ interface MissionDetailModalProps {
 
 function formatDateDisplay(date: Date | string | null | undefined): string {
   if (!date) return "—";
-  if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}/.exec(date)) {
-    const [year, month, day] = date.split('T')[0].split('-').map(Number);
-    const d = new Date(year, month - 1, day);
-    return d.toLocaleDateString("ar-EG");
-  }
-  const d = typeof date === "string" ? new Date(date) : date;
-  if (isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("ar-EG");
+  return formatCentralDate(date) || "—";
 }
 
 export function MissionDetailModal({
@@ -50,6 +44,14 @@ export function MissionDetailModal({
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const { showToast } = useToast();
+
+  const [prevMissionKey, setPrevMissionKey] = useState<string | null>(null);
+  const currentMissionKey = isOpen && mission ? mission.id : null;
+  if (currentMissionKey !== prevMissionKey) {
+    setPrevMissionKey(currentMissionKey);
+    setShowConfirmDelete(false);
+    setDeleteError("");
+  }
 
   if (!isOpen || !mission) return null;
 
@@ -92,42 +94,21 @@ export function MissionDetailModal({
   };
 
   const footer = (
-    <div className="flex items-center justify-between w-full gap-3">
-      <div>
-        {isAdmin && !showConfirmDelete && (
-          <button
-            type="button"
-            onClick={() => setShowConfirmDelete(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-extrabold text-red-600 dark:text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl transition-all cursor-pointer"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>حذف المأمورية (إدارة)</span>
-          </button>
-        )}
-      </div>
-
-      <div className="flex items-center gap-2">
-        {onEdit && (
-          <button
-            type="button"
-            onClick={() => {
+    <ModalActions
+      mode="view"
+      destructiveText={isAdmin && !showConfirmDelete ? "حذف المأمورية" : undefined}
+      onDestructive={isAdmin && !showConfirmDelete ? () => setShowConfirmDelete(true) : undefined}
+      submitText={onEdit && !showConfirmDelete ? "تعديل" : undefined}
+      onConfirm={
+        onEdit && !showConfirmDelete
+          ? () => {
               onClose();
               onEdit(mission);
-            }}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-extrabold text-(--app-foreground) bg-(--app-surface-container) hover:bg-(--app-border)/60 border border-(--app-border) rounded-xl transition-all cursor-pointer"
-          >
-            <span>تعديل</span>
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={onClose}
-          className="btn-secondary text-xs"
-        >
-          <span>إلغاء</span>
-        </button>
-      </div>
-    </div>
+            }
+          : undefined
+      }
+      onCancel={onClose}
+    />
   );
 
   return (
@@ -247,15 +228,71 @@ export function MissionDetailModal({
           </div>
         )}
 
+        {/* Military Travel Order Details */}
+        {(mission.travelOrderNumber || mission.transportationMean || mission.authorizedWeapons) && (
+          <div className="p-3 bg-(--app-surface-container) border border-(--app-border) rounded-2xl space-y-2">
+            <div className="flex items-center justify-between text-xs font-black text-(--color-primary)">
+              <span>بيانات أمر التحرك وخط السير</span>
+              {mission.travelOrderNumber && (
+                <span className="font-mono text-[11px] bg-(--color-primary)/10 text-(--color-primary) px-2 py-0.5 rounded-md border border-(--color-primary)/20">
+                  {mission.travelOrderNumber}
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-xs font-bold text-(--app-muted-foreground)">
+              <div>وسيلة الانتقال: <span className="text-(--app-foreground)">{mission.transportationMean || "ـ"}</span></div>
+              <div>التسليح المصرح: <span className="text-(--app-foreground)">{mission.authorizedWeapons || "ـ"}</span></div>
+            </div>
+          </div>
+        )}
+
         {/* Linked Fax if present */}
-        {mission.linkedFaxId && (
-          <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl space-y-1">
-            <span className="text-[11px] font-bold text-blue-700 dark:text-blue-300 block">
-              رقم الفاكس / المستند المرتبط:
-            </span>
-            <span className="text-xs font-mono font-extrabold text-blue-600 dark:text-blue-400">
-              {mission.linkedFaxId}
-            </span>
+        {(mission.linkedFaxId || mission.linkedFax) && (
+          <div className="p-3 bg-(--color-primary)/5 border border-(--color-primary)/20 rounded-xl flex items-center justify-between gap-3">
+            <div>
+              <span className="text-[11px] font-bold text-(--app-muted-foreground) block">
+                رقم الفاكس / المستند المرتبط:
+              </span>
+              <span className="text-xs font-mono font-extrabold text-(--color-primary)">
+                {mission.linkedFaxId || "فاكس معتمد"}
+              </span>
+            </div>
+            {mission.linkedFax && (
+              <a
+                href={`/fax/${typeof mission.linkedFax === "object" ? mission.linkedFax._id : mission.linkedFax}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-(--color-primary) text-white text-xs font-black hover:bg-(--color-primary-hover) transition-all cursor-pointer shadow-sm"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>عرض الفاكس المرفق</span>
+              </a>
+            )}
+          </div>
+        )}
+
+        {/* Clearance Documents (T018) */}
+        {mission.clearanceDocuments && mission.clearanceDocuments.length > 0 && (
+          <div className="space-y-1.5">
+            <span className="text-xs font-bold text-(--app-muted-foreground) block">مستندات إخلاء الطرف وإنجاز المأمورية:</span>
+            <div className="space-y-1.5">
+              {mission.clearanceDocuments.map((doc, idx) => (
+                <div key={idx} className="p-2.5 bg-(--app-surface-container) border border-(--app-border) rounded-xl flex items-center justify-between text-xs font-bold">
+                  <div className="flex items-center gap-2">
+                    <FileCheck className="w-4 h-4 text-(--app-success)" />
+                    <span className="text-(--app-foreground)">{doc.fileName || doc.name || `مستند إخلاء الطرف #${idx + 1}`}</span>
+                  </div>
+                  <a
+                    href={doc.fileUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-(--color-primary) hover:underline text-xs font-black"
+                  >
+                    معاينة المستند
+                  </a>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

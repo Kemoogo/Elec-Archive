@@ -48,17 +48,17 @@ export function getPositionStatusLabel(status: string): string {
 export function getStatusBadgeClass(status: string): string {
   switch (status) {
     case "scheduled":
-      return "bg-(--app-info)/20 text-(--app-foreground)";
+      return "bg-(--app-info)/10 text-(--app-info) border border-(--app-info)/20";
     case "active":
-      return "bg-(--app-success)/10 text-(--app-success)";
+      return "bg-(--color-primary)/10 text-(--color-primary) border border-(--color-primary)/20";
     case "completed":
     case "ended":
-      return "bg-(--app-surface-container) text-(--app-foreground)";
+      return "bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)";
     case "cancelled":
-      return "bg-(--app-error)/20 text-(--app-error)";
+      return "bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)";
     case "postponed":
-      return "bg-purple-500/20 text-purple-700 dark:text-purple-300";
+      return "bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)";
     default:
-      return "bg-(--app-surface-container) text-(--app-foreground)";
+      return "bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)";
   }
 }

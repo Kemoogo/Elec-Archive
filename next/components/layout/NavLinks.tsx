@@ -37,6 +37,7 @@ const iconMap: Record<string, typeof Home> = {
   "/education": BookOpen,
   "/arkan-harb": Swords,
   "/arkan-harb/rollcall": ClipboardList,
+  "/arkan-harb?tab=rollcall": ClipboardList,
   "/arkan-harb/leaves": ScrollText,
   "/arkan-harb/missions": FileText,
   "/arkan-harb/positions": Shield,

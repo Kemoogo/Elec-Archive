@@ -39,6 +39,18 @@ export function StudentForm({ mode, initialData, onSuccess }: StudentFormProps) 
   );
   const [notes, setNotes] = useState(initialData?.notes ?? "");
 
+  const resetForm = () => {
+    setStudentId(initialData?.studentId ?? "");
+    setFullName(initialData?.fullName ?? "");
+    setEnrollDate(
+      initialData?.enrollDate
+        ? new Date(initialData.enrollDate).toISOString().split("T")[0]
+        : new Date().toISOString().split("T")[0],
+    );
+    setNotes(initialData?.notes ?? "");
+    setError("");
+  };
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
@@ -50,9 +62,11 @@ export function StudentForm({ mode, initialData, onSuccess }: StudentFormProps) 
 
     if (mode === "create") {
       body.studentId = studentId;
-    }
-    if (notes) {
-      body.notes = notes;
+      if (notes.trim()) {
+        body.notes = notes.trim();
+      }
+    } else {
+      body.notes = notes.trim();
     }
 
     startTransition(async () => {
@@ -78,6 +92,7 @@ export function StudentForm({ mode, initialData, onSuccess }: StudentFormProps) 
 
         setIsOpen(false);
         if (mode === "create") {
+          resetForm();
           showToast("تم إضافة الطالب بنجاح", "success");
           router.push(`/students/${data.data._id}`);
         } else {
@@ -96,7 +111,10 @@ export function StudentForm({ mode, initialData, onSuccess }: StudentFormProps) 
     return (
       <>
          <button
-           onClick={() => setIsOpen(true)}
+           onClick={() => {
+             resetForm();
+             setIsOpen(true);
+           }}
            className="btn-primary"
          >
            <>
@@ -109,25 +127,20 @@ export function StudentForm({ mode, initialData, onSuccess }: StudentFormProps) 
             title={mode === "create" ? "إضافة طالب جديد" : "تعديل بيانات الطالب"}
             icon={<GraduationCap className="w-4 h-4" />}
             panelClassName="max-w-[480px]"
-            onClose={() => setIsOpen(false)}
+            onClose={() => {
+              setIsOpen(false);
+              resetForm();
+            }}
             footer={
-              <ModalActions>
-                <button
-                  type="submit"
-                  form={formId}
-                  disabled={isPending}
-                  className="rounded-md bg-(--app-accent) px-4 py-2 text-sm font-medium text-(--app-accent-foreground) hover:bg-(--app-accent)/90 disabled:opacity-50"
-                >
-                  {isPending ? "جاري الحفظ..." : "إضافة"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="rounded-md border border-(--app-border) px-4 py-2 text-sm text-foreground hover:bg-white/10"
-                >
-                  إلغاء
-                </button>
-              </ModalActions>
+              <ModalActions
+                form={formId}
+                submitText="إضافة"
+                submitLoading={isPending}
+                onCancel={() => {
+                  setIsOpen(false);
+                  resetForm();
+                }}
+              />
             }
           >
             <form id={formId} onSubmit={handleSubmit} className="space-y-4">
@@ -168,7 +181,7 @@ export function StudentForm({ mode, initialData, onSuccess }: StudentFormProps) 
       <button
         type="submit"
         disabled={isPending}
-        className="rounded-md bg-(--app-accent) px-4 py-2 text-sm text-(--app-accent-foreground) font-medium hover:bg-(--app-accent)/90 disabled:opacity-50"
+        className="btn-primary disabled:opacity-50"
       >
         {isPending ? "جاري الحفظ..." : "حفظ التعديلات"}
       </button>

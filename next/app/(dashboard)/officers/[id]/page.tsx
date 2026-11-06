@@ -24,12 +24,15 @@ import { LeaveRecordTab } from "@/components/officers/tabs/LeaveRecordTab";
 import { CareerTimeline } from "@/components/officers/CareerTimeline";
 import { PageContainer } from "@/components/layout/PageContainer";
 import Link from "next/link";
-import { ChevronLeft, User, Shield, Calendar, Phone, CreditCard, IdCard, History, LucideIcon, Hash, Tag, Swords, GraduationCap, Award, Activity, BookOpen, Users } from "lucide-react";
+import { ChevronLeft, User, Shield, Calendar, Phone, CreditCard, IdCard, History, LucideIcon, Hash, Tag, Swords, GraduationCap, Award, Activity, BookOpen, Users, Briefcase } from "lucide-react";
 
 import { OfficerDetailTabs } from "@/components/officers/OfficerDetailTabs";
 import { PositionHistory } from "@/components/officers/PositionHistory";
+import { OfficerMissionsTab } from "@/components/officers/tabs/OfficerMissionsTab";
+import type { Mission as MissionType } from "@/components/arkan-harb/MissionsTable";
 import { SectionWrapper } from "@/components/ui/section-wrapper";
 import { MonoBadge } from "@/components/ui/mono-badge";
+import { formatDateDisplay } from "@/lib/utils/date-display";
 
 
 interface InfoItemProps {
@@ -144,6 +147,87 @@ export default async function OfficerDetailPage({
   const { originalJoinDate, isRejoined } = getOriginalJoinDate(officer.joinDate, movements as unknown as Parameters<typeof getOriginalJoinDate>[1]);
   const currentJoinDate = new Date(officer.joinDate);
 
+  // Dynamically resolve current position from PositionAssignment
+  interface LeanPositionItem {
+    primaryOfficerId?: { toString(): string } | null;
+    substituteOfficerIds?: Array<{ toString(): string }>;
+    positionTitle: string;
+  }
+  const positionsList = positionAssignments as unknown as LeanPositionItem[];
+  const activePrimaryPositions = positionsList.filter(
+    (p) => p.primaryOfficerId?.toString() === id
+  );
+  const activeSubPositions = positionsList.filter(
+    (p) => p.substituteOfficerIds?.some((subId) => subId?.toString() === id)
+  );
+
+  let dynamicCurrentPosition = "غير مسكن على وظيفة";
+  if (activePrimaryPositions.length > 0) {
+    dynamicCurrentPosition = activePrimaryPositions.map((p) => p.positionTitle).join("، ");
+  } else if (activeSubPositions.length > 0) {
+    dynamicCurrentPosition = activeSubPositions.map((p) => `${p.positionTitle} (احتياط)`).join("، ");
+  }
+
+  interface LeanMissionClearanceDoc {
+    name?: string;
+    fileName?: string;
+    fileUrl: string;
+    uploadedAt?: Date;
+  }
+  interface LeanMissionItem {
+    _id: { toString(): string };
+    officerId: { toString(): string };
+    title: string;
+    description?: string;
+    destination?: string;
+    startDate?: Date;
+    endDate?: Date | null;
+    status: MissionType["status"];
+    statusReason?: string;
+    resultSummary?: string;
+    missionType?: MissionType["missionType"];
+    travelOrderNumber?: string;
+    transportationMean?: string;
+    authorizedWeapons?: string;
+    linkedFax?: { toString(): string };
+    clearanceDocuments?: LeanMissionClearanceDoc[];
+    completedAt?: Date;
+    createdBy?: { toString(): string };
+    createdAt?: Date;
+  }
+
+  const missionsList = missions as unknown as LeanMissionItem[];
+  const serializedMissions: MissionType[] = missionsList.map((m) => ({
+    id: m._id.toString(),
+    officerId: m.officerId.toString(),
+    officerName: detail.fullName,
+    officerRankLabel: detail.rankLabel,
+    officerLabel: detail.officerLabel,
+    officerMilitaryId: detail.militaryId,
+    title: m.title,
+    description: m.description,
+    destination: m.destination,
+    startDate: m.startDate ? m.startDate.toISOString() : "",
+    endDate: m.endDate ? m.endDate.toISOString() : null,
+    status: m.status,
+    statusReason: m.statusReason,
+    resultSummary: m.resultSummary,
+    missionType: m.missionType,
+    travelOrderNumber: m.travelOrderNumber,
+    transportationMean: m.transportationMean,
+    authorizedWeapons: m.authorizedWeapons,
+    linkedFaxId: m.linkedFax?.toString(),
+    clearanceDocuments: m.clearanceDocuments?.map((doc) => ({
+      name: doc.fileName || doc.name || "",
+      fileName: doc.fileName || doc.name || "",
+      fileUrl: doc.fileUrl,
+      uploadedAt: doc.uploadedAt ? doc.uploadedAt.toISOString() : undefined,
+    })),
+    completedAt: m.completedAt ? m.completedAt.toISOString() : undefined,
+    createdBy: m.createdBy?.toString() || "",
+    createdAt: m.createdAt ? m.createdAt.toISOString() : "",
+  }));
+
   const basicInfoTab = (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div className="lg:col-span-2 space-y-8">
@@ -189,9 +273,10 @@ export default async function OfficerDetailPage({
           <InfoItem icon={CreditCard} label="الرقم العسكري" value={detail.militaryId} mono />
           <InfoItem icon={Hash} label="رقم الأقدمية" value={detail.seniorityNumber} mono />
           <InfoItem icon={IdCard} label="الرقم القومى" value={detail.nationalId || "---"} mono />
+          <InfoItem icon={Briefcase} label="الوظيفة والمسؤولية الحالية" value={dynamicCurrentPosition} />
           <InfoItem icon={Phone} label="رقم الهاتف" value={detail.phone || "---"} mono />
           <InfoItem icon={User} label="العمر" value={age ? `${age} عام` : "---"} mono />
-          <InfoItem icon={History} label="تاريخ الميلاد" value={detail.birthDate ? new Date(detail.birthDate).toLocaleDateString("ar-EG") : "---"} mono />
+          <InfoItem icon={History} label="تاريخ الميلاد" value={detail.birthDate ? formatDateDisplay(detail.birthDate) : "---"} mono />
           <InfoItem
             icon={Shield}
             label="الحالة الحالية"
@@ -199,16 +284,16 @@ export default async function OfficerDetailPage({
           />
           <InfoItem icon={Tag} label="الدفعة" value={detail.batch || "---"} mono />
           <InfoItem icon={GraduationCap} label="الكلية / المعهد" value={detail.faculty || "---"} />
-          <InfoItem icon={Award} label="تاريخ التخرج" value={detail.graduationDate ? new Date(detail.graduationDate).toLocaleDateString("ar-EG") : "---"} mono />
+          <InfoItem icon={Award} label="تاريخ التخرج" value={detail.graduationDate ? formatDateDisplay(detail.graduationDate) : "---"} mono />
           <InfoItem icon={User} label="التصنيف" value={detail.typeLabel || "---"} />
           <InfoItem icon={Swords} label="السلاح" value={detail.weaponLabel || "---"} />
           <InfoItem icon={Activity} label="فصيلة الدم" value={detail.bloodType || "---"} mono />
           <InfoItem icon={BookOpen} label="الديانة" value={detail.religion || "---"} />
           <InfoItem icon={Users} label="الحالة الاجتماعية" value={detail.maritalStatus || "---"} />
-          <InfoItem icon={Calendar} label="تاريخ الانضمام للوحدة" value={currentJoinDate.toLocaleDateString("ar-EG")} mono />
+          <InfoItem icon={Calendar} label="تاريخ الانضمام للوحدة" value={formatDateDisplay(currentJoinDate)} mono />
 
           {isRejoined && originalJoinDate && (
-            <InfoItem icon={History} label="تاريخ أول انضمام" value={originalJoinDate.toLocaleDateString("ar-EG")} mono />
+            <InfoItem icon={History} label="تاريخ أول انضمام" value={formatDateDisplay(originalJoinDate)} mono />
           )}
         </div>
       </div>
@@ -227,6 +312,14 @@ export default async function OfficerDetailPage({
   );
 
   const leavesTab = <LeaveRecordTab officerId={id} initialData={serializedLeaves} />;
+
+  const missionsTab = (
+    <OfficerMissionsTab
+      officerId={id}
+      officerName={detail.fullName}
+      missions={serializedMissions}
+    />
+  );
 
   const careerTab = (
     <div className="space-y-8">
@@ -250,6 +343,7 @@ export default async function OfficerDetailPage({
         officerLabel={detail.officerLabel}
         basicInfo={basicInfoTab}
         leaves={leavesTab}
+        missionsHistory={missionsTab}
         careerTimeline={careerTab}
         positionHistory={<PositionHistory officerId={id} initialData={serializedPositions} />}
         actions={canEdit ? (

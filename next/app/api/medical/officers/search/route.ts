@@ -51,13 +51,20 @@ export async function GET(request: Request) {
     }
 
     const { q, limit } = parsed.data;
+    const trimmedQ = q.trim();
+    if (trimmedQ.length < 2) {
+      return NextResponse.json({
+        success: true,
+        data: { officers: [] },
+      });
+    }
 
-    const escapedSearch = escapeRegex(q);
+    const escapedSearch = escapeRegex(trimmedQ);
     const searchRegex = { $regex: escapedSearch, $options: "i" };
 
     // Find any rank enum values whose Arabic labels match the search query
     const matchedRanks = Object.entries(RANK_LABELS)
-      .filter(([_, label]) => label.includes(q.trim()))
+      .filter(([_, label]) => label.includes(trimmedQ))
       .map(([rank]) => rank);
 
     const searchConditions: Record<string, unknown>[] = [
@@ -83,7 +90,7 @@ export async function GET(request: Request) {
       userName: auth.user!.fullName,
       action: "VIEW",
       module: "medical",
-      description: `بحث طبي عن ضباط: "${q}"`,
+      description: `بحث طبي عن ضباط: "${trimmedQ}"`,
       ipAddress: ip,
     });
 

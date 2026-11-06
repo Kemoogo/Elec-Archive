@@ -1,7 +1,7 @@
 import { Schema, model, models, type Document, type Types } from "mongoose";
 
 export type AuditAction = "CREATE" | "UPDATE" | "DELETE" | "VIEW" | "LOGIN" | "LOGIN_FAILED" | "LOGOUT" | "LOCK" | "UNLOCK";
-export type AuditModule = "auth" | "users" | "fax" | "officers" | "medical" | "students" | "education" | "notifications" | "arkan_harb" | "app_ideas";
+export type AuditModule = "auth" | "users" | "fax" | "officers" | "medical" | "students" | "education" | "notifications" | "arkan_harb" | "app_ideas" | "backup";
 
 export interface IAuditLog extends Document {
   userId: Types.ObjectId;
@@ -26,7 +26,7 @@ const AuditLogSchema = new Schema<IAuditLog>(
     module: {
       type: String,
       required: true,
-      enum: ["auth", "users", "fax", "officers", "medical", "students", "education", "notifications", "arkan_harb", "app_ideas"],
+      enum: ["auth", "users", "fax", "officers", "medical", "students", "education", "notifications", "arkan_harb", "app_ideas", "backup"],
     },
     targetId: { type: Schema.Types.ObjectId },
     description: { type: String, required: true, trim: true },

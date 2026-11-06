@@ -3,7 +3,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { User } from "@/lib/db/models/User";
 import { authenticate } from "@/lib/auth/middleware";
 import { logAuditEvent } from "@/lib/auth/audit";
-import { changePasswordSchema } from "@/validations/auth";
+import { changePasswordSchema } from "@/lib/validations/auth";
 import { errors } from "@/lib/auth/errors";
 import { handleApiError } from "@/lib/utils/api-error";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";

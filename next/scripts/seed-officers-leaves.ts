@@ -1,15 +1,22 @@
 /**
- * Seed Script: Officers & Leaves
+ * Seed Script: Officers & Leaves (Egyptian Armed Forces)
  *
- * Generates realistic Arabic dummy data for Officers and Leave records.
+ * Generates realistic Egyptian dummy data for Officers, Service History movements, and Leave records.
+ *
+ * Requirements:
+ *   - Egyptian names (quadruple/triple Arabic Egyptian names).
+ *   - Egyptian Armed Forces ranks, weapons, and positions.
+ *   - Compatible with existing database records:
+ *       * Total in-unit officers: 25 (the 4 existing officers + 21 newly seeded in-unit officers).
+ *       * Former officers: 80 officers with various exit forms:
+ *           - Transfer from unit (نقل من الوحدة)
+ *           - Retirement / End of service (تقاعد / إنهاء خدمة)
+ *           - Termination (رفد / إنهاء خدمة)
+ *           - Associated ServiceHistory movement records for every departure.
  *
  * Usage:
- *   npx tsx scripts/seed-officers-leaves.ts          # Add to existing data
- *   npx tsx scripts/seed-officers-leaves.ts --clear   # Clear + replace all data
- *
- * Prerequisites:
- *   - Admin user must exist (run seed-admin.ts first)
- *   - MONGODB_URI env variable must be set (use --env-file=.env with tsx)
+ *   npx tsx scripts/seed-officers-leaves.ts          # Seed matching the exact targets
+ *   npx tsx scripts/seed-officers-leaves.ts --clear   # Clear seeded extra data and reseed
  */
 import { Types } from "mongoose";
 import { connectToDatabase } from "../lib/db/connect";
@@ -27,55 +34,97 @@ import {
   type LeaveType,
   type LeaveStatus,
 } from "../lib/db/models/Leave";
+import { ServiceHistory } from "../lib/db/models/ServiceHistory";
 import { User } from "../lib/db/models";
 
-// ── Realistic Arabic first names ──
+// ── Authentic Egyptian First, Middle & Family Names ──
 const FIRST_NAMES = [
-  "أحمد", "محمد", "علي", "عمر", "خالد", "محمود", "عبدالله", "ناصر",
-  "فهد", "سعود", "بدر", "تركي", "فيصل", "سعد", "عبدالعزيز", "ماجد",
-  "ياسر", "هاني", "وائل", "سمير", "جابر", "حسن", "حسين", "إبراهيم",
-  "راشد", "سلطان", "صالح", "طلال", "عبدالرحمن", "نايف", "بندر", "مشعل",
-  "أيمن", "تامر", "جمال", "حامد", "رامي", "زياد", "سامي", "شادي",
-  "عادل", "غسان", "فارس", "قصي", "كمال", "مازن", "نضال", "هشام",
+  "أحمد", "محمد", "محمود", "علي", "عمر", "خالد", "عمرو", "طارق",
+  "حسام", "إسلام", "إبراهيم", "كريم", "مصطفى", "شريف", "يوسف", "تامر",
+  "هاني", "سامح", "ماجد", "وائل", "ياسر", "أشرف", "أيمن", "عادل",
+  "هشام", "مدحت", "زياد", "رامي", "وليد", "معتز", "عصام",
+  "علاء", "بهاء", "ضياء", "صلاح", "نبيل", "سمير", "كمال", "سعيد",
 ];
 
-const LAST_NAMES = [
-  "القحطاني", "العتيبي", "الزهراني", "الغامدي", "الشهري", "الدوسري",
-  "المطيري", "الشمري", "العنزي", "الحربي", "الجهني", "البلوي",
-  "السلمي", "الثبيتي", "القرني", "الشمراني", "الغامدي",
-  "البيشي", "الصاعدي", "العمري", "الحازمي", "المالكي", "الصيعري",
-  "الذيباني", "الجابري", "القثامي", "الربيعي", "الهذلي", "السبيعي",
-  "العصيمي", "الشيباني", "الحجي", "البقمي", "الثقفي", "الغفيلي",
-  "الزامل", "المنصور", "العبداللطيف", "الحقباني", "العريني", "الوهيبي",
+const MIDDLE_NAMES = [
+  "عبد الرحمن", "عبد العزيز", "عبد الله", "عبد المنعم", "عبد الفتاح", "عبد الحميد",
+  "محمد", "أحمد", "محمود", "إبراهيم", "علي", "حسن", "حسين", "مصطفى",
+  "فاروق", "عثمان", "توفيق", "صلاح", "فتحي", "رفعت", "شوقي", "فؤاد",
+  "عزت", "ممدوح", "رشاد", "أنور", "جلال", "رشدي", "سامي", "سليمان",
 ];
 
-const BATCHES = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"];
-const UNITS = [
-  "اللواء الأول", "اللواء الثاني", "اللواء الثالث", "كتيبة الإشارة", "كتيبة المركبات",
-  "كتيبة المدرعات", "كتيبة المشاه", "قاعدة الملك خالد", "قاعدة الملك فيصل", "كلية الملك عبدالعزيز الحربية",
-  "إدارة شؤون الضباط", "هيئة العمليات", "هيئة الإمداد", "مركز التدريب", "قيادة المنطقة الشرقية",
-  "قيادة المنطقة الغربية", "قيادة المنطقة الشمالية", "قيادة المنطقة الجنوبية",
+const FAMILY_NAMES = [
+  "الشاذلي", "الطنطاوي", "السيسي", "المنشاوي", "درويش", "الجرف", "أبو قريش",
+  "الصاوي", "البدري", "المهدي", "العوضي", "الخولي", "الشرقاوي", "البحيري",
+  "الصعيدي", "الديب", "النجار", "الحداد", "الشناوي", "القاضي", "الفقي",
+  "العسال", "الغمري", "الفيومي", "الدسوقي", "السنوسي", "المصري", "شاهين",
+  "زايد", "بركات", "منصور", "علام", "غنيم", "عمران", "زهران", "عفيفي",
+  "سليمان", "خليل", "حجازي", "الرافعي", "مهران", "زكي", "يونس", "شعلان",
 ];
 
-const POSITIONS = [
-  "قائد اللواء", "نائب قائد اللواء", "ركن عمليات", "ركن إمداد", "ركن استخبارات",
-  "قائد الكتيبة", "نائب قائد الكتيبة", "قائد السرية", "ضابط عمليات", "ضابط إمداد",
-  "ضابط تدريب", "ضابط شؤون ضباط", "ضابط إشارة", "ضابط مدفعية", "ضابط استخبارات",
-  "مدير الإدارة", "رئيس قسم", "ضابط أركان", "مساعد قائد", "ضابط احتياط",
+const FACULTIES = [
+  "الكلية الحربية",
+  "الكلية الفنية العسكرية",
+  "كلية الدفاع الجوي",
+  "المعهد الفني للقوات المسلحة",
+  "كلية الهندسة جامعة القاهرة",
+  "كلية الهندسة جامعة عين شمس",
+  "كلية التجارة جامعة الإسكندرية",
+  "كلية الحقوق جامعة المنصورة",
+];
+
+// Egyptian Armed Forces Units
+const EGYPTIAN_UNITS = [
+  "إدارة الإشارة",
+  "إدارة المركبات",
+  "إدارة المدرعات",
+  "سلاح المشاة",
+  "الفرقة السادسة المدرعة",
+  "الفرقة التاسعة المدرعة",
+  "الفرقة الثامنة عشر مشاة ميكانيكي",
+  "لواء الإشارة الميداني",
+  "فوج اللاسلكي التكتيكي",
+  "مركز العمليات الرئيسي",
+  "منطقة القناة العسكرية",
+  "المنطقة المركزية العسكرية",
+  "المنطقة الشمالية العسكرية",
+  "المنطقة الغربية العسكرية",
+  "المنطقة الجنوبية العسكرية",
+  "مركز تدريب المشتركة",
+];
+
+// Egyptian Military Positions
+const EGYPTIAN_POSITIONS = [
+  "قائد الوحدة",
+  "رئيس أركان الوحدة",
+  "نائب قائد الوحدة",
+  "رئيس فرع العمليات",
+  "رئيس فرع التدريب",
+  "رئيس فرع الإمداد والتموين",
+  "رئيس فرع شئون الضباط",
+  "قائد كتيبة إشارة",
+  "قائد كتيبة مشاة",
+  "قائد سرية قيادة",
+  "ضابط أمن الوحدة",
+  "ضابط إشارة الوحدة",
+  "ضابط إمداد ونقل",
+  "ضابط عمليات واستطلاع",
+  "ضابط نظم ومعلومات",
+  "رئيس قسم الميزانية",
+  "ضابط نوبتجي الوحدة",
 ];
 
 // ── Helpers ──
 
-/** Weighted random rank distribution: more lower ranks, fewer high ranks */
 function randomRank(): OfficerRank {
   const r = Math.random();
-  if (r < 0.20) return "second_lieutenant";
-  if (r < 0.35) return "first_lieutenant";
-  if (r < 0.55) return "captain";
-  if (r < 0.70) return "major";
+  if (r < 0.15) return "second_lieutenant";
+  if (r < 0.30) return "first_lieutenant";
+  if (r < 0.50) return "captain";
+  if (r < 0.68) return "major";
   if (r < 0.82) return "lieutenant_colonel";
-  if (r < 0.90) return "colonel";
-  if (r < 0.96) return "brigadier";
+  if (r < 0.92) return "colonel";
+  if (r < 0.97) return "brigadier";
   return "major_general";
 }
 
@@ -96,22 +145,11 @@ function pick<T>(arr: readonly T[]): T {
 }
 
 const BATCH_SIZE = 50;
-const COUNT_OFFICERS = 30;
 const shouldClear = process.argv.includes("--clear");
 
-// ── Main ──
-
 async function seed() {
-  console.log("🚀 Starting officers & leaves seeding...");
+  console.log("🚀 Starting Egyptian Armed Forces officers & leaves seeding...");
   await connectToDatabase();
-
-  // ── Optional: Clear existing data ──
-  if (shouldClear) {
-    console.log("⚠️  --clear flag detected. Deleting existing officers and leaves...");
-    const deletedOfficers = await Officer.deleteMany({});
-    const deletedLeaves = await Leave.deleteMany({});
-    console.log(`   Deleted ${deletedOfficers.deletedCount} officers and ${deletedLeaves.deletedCount} leaves.`);
-  }
 
   // ── Find admin user ──
   const admin = await User.findOne({ role: "admin" }).lean();
@@ -120,160 +158,448 @@ async function seed() {
     process.exit(1);
   }
   const adminId = admin._id as Types.ObjectId;
-  console.log(`👤 Using admin: ${admin.fullName}`);
+  console.log(`👤 Using admin: ${admin.fullName} (${admin._id})`);
 
-  // ── Step 1: Seed Officers ──
-  const existingCount = await Officer.countDocuments();
-  console.log(`\n📋 Seeding ${COUNT_OFFICERS} Officers (${existingCount} existing)...`);
+  // Detect existing officers
+  const existingOfficers = await Officer.find().lean();
+  console.log(`📋 Found ${existingOfficers.length} existing officers in database.`);
 
   const usedMilitaryIds = new Set<string>();
   const usedSeniorityNumbers = new Set<string>();
   const usedNationalIds = new Set<string>();
 
-  // Load existing IDs if not clearing (to avoid collisions)
-  if (!shouldClear) {
-    const existingOfficers = await Officer.find().select("militaryId seniorityNumber nationalId").lean();
-    for (const o of existingOfficers) {
+  for (const o of existingOfficers) {
+    usedMilitaryIds.add(o.militaryId);
+    usedSeniorityNumbers.add(o.seniorityNumber);
+    if (o.nationalId) usedNationalIds.add(o.nationalId);
+  }
+
+  // Count how many are currently in unit
+  const existingInUnit = existingOfficers.filter((o) => o.isInUnit);
+  const existingOutUnit = existingOfficers.filter((o) => !o.isInUnit);
+  console.log(`   - Existing In Unit: ${existingInUnit.length}`);
+  console.log(`   - Existing Outside Unit: ${existingOutUnit.length}`);
+
+  // Target:
+  // In-Unit Total: 25 (the 4 existing officers + 21 newly seeded in-unit officers)
+  // Out-Unit / Former Total: 80 (80 former officers with various departure types)
+  const targetInUnitTotal = 25;
+  const targetOutUnitTotal = 80;
+
+  // If --clear was passed, remove only officers that are NOT part of the original 4 protected officers
+  if (shouldClear) {
+    console.log("⚠️ --clear flag detected: Removing seeded officers while keeping original base officers...");
+    const originalMilitaryIds = ["159709", "132488", "100300", "101300"];
+    const deletedOfficers = await Officer.deleteMany({ militaryId: { $nin: originalMilitaryIds } });
+    console.log(`   Deleted ${deletedOfficers.deletedCount} non-original officers.`);
+
+    // Also remove leaves of non-original officers
+    const remainingOfficers = await Officer.find().lean();
+    const remainingOfficerIds = remainingOfficers.map((o) => o._id);
+    await Leave.deleteMany({ officerId: { $nin: remainingOfficerIds } });
+    await ServiceHistory.deleteMany({ officerId: { $nin: remainingOfficerIds } });
+
+    // Refresh sets
+    usedMilitaryIds.clear();
+    usedSeniorityNumbers.clear();
+    usedNationalIds.clear();
+
+    for (const o of remainingOfficers) {
       usedMilitaryIds.add(o.militaryId);
       usedSeniorityNumbers.add(o.seniorityNumber);
       if (o.nationalId) usedNationalIds.add(o.nationalId);
     }
   }
 
-  const officers: Array<{
-    militaryId: string;
-    seniorityNumber: string;
-    fullName: string;
-    rank: OfficerRank;
-    batch: string;
-    type: OfficerType;
-    weapon: OfficerWeapon;
-    phone: string;
-    nationalId: string;
-    unit: string;
-    position: string;
-    employmentStatus: "active" | "inactive" | "retired";
-    isInUnit: boolean;
-    joinDate: Date;
-    birthDate: Date;
-    isArkanHarb: boolean;
-  }> = [];
+  // Recalculate remaining to generate
+  const currentInUnitCount = (await Officer.countDocuments({ isInUnit: true })) || 0;
+  const currentOutUnitCount = (await Officer.countDocuments({ isInUnit: false })) || 0;
 
-  for (let i = 0; i < COUNT_OFFICERS; i++) {
-    const firstName = pick(FIRST_NAMES);
-    const lastName = pick(LAST_NAMES);
-    const fullName = `${firstName} ${lastName}`;
-    const rank = randomRank();
+  const neededInUnit = Math.max(0, targetInUnitTotal - currentInUnitCount);
+  const neededOutUnit = Math.max(0, targetOutUnitTotal - currentOutUnitCount);
+
+  console.log(`\n🎯 Targets configured:`);
+  console.log(`   - Target In-Unit: ${targetInUnitTotal} (Current: ${currentInUnitCount}, Needed: ${neededInUnit})`);
+  console.log(`   - Target Former/Out: ${targetOutUnitTotal} (Current: ${currentOutUnitCount}, Needed: ${neededOutUnit})`);
+
+  if (neededInUnit === 0 && neededOutUnit === 0) {
+    console.log("✅ Targets already satisfied! Nothing to generate. Pass --clear to recreate seeded data.");
+    process.exit(0);
+  }
+
+  // ── Rank Configuration & Military Seniority Mapping ──
+  // In the Egyptian Armed Forces:
+  // - Higher Rank (الأعلى رتبة) = Older / Earlier Batch (دفعة أصغر، مثلاً 85 أقدم من 118)
+  // - Smaller Seniority Number = More senior (أقدمية أصغر مثل 30000 أقدم من 90000)
+  // - Smaller Military ID = Joined earlier (رقم عسكري أصغر مثل 100000 أقدم من 200000)
+  // - Older Joining / Graduation / Birth years.
+  interface RankMetadata {
+    rank: OfficerRank;
+    batchMin: number;
+    batchMax: number;
+    seniorityMin: number;
+    seniorityMax: number;
+    militaryIdMin: number;
+    militaryIdMax: number;
+    joinYearMin: number;
+    joinYearMax: number;
+    birthAgeAtJoin: [number, number];
+  }
+
+  const RANK_TIERS: Record<OfficerRank, RankMetadata> = {
+    major_general: {
+      rank: "major_general",
+      batchMin: 78,
+      batchMax: 84,
+      seniorityMin: 28000,
+      seniorityMax: 32500,
+      militaryIdMin: 100000,
+      militaryIdMax: 105000,
+      joinYearMin: 1985,
+      joinYearMax: 1991,
+      birthAgeAtJoin: [21, 23],
+    },
+    brigadier: {
+      rank: "brigadier",
+      batchMin: 85,
+      batchMax: 90,
+      seniorityMin: 32600,
+      seniorityMax: 36000,
+      militaryIdMin: 105100,
+      militaryIdMax: 115000,
+      joinYearMin: 1992,
+      joinYearMax: 1997,
+      birthAgeAtJoin: [21, 23],
+    },
+    colonel: {
+      rank: "colonel",
+      batchMin: 91,
+      batchMax: 96,
+      seniorityMin: 36100,
+      seniorityMax: 41000,
+      militaryIdMin: 115100,
+      militaryIdMax: 125000,
+      joinYearMin: 1998,
+      joinYearMax: 2003,
+      birthAgeAtJoin: [21, 23],
+    },
+    lieutenant_colonel: {
+      rank: "lieutenant_colonel",
+      batchMin: 97,
+      batchMax: 102,
+      seniorityMin: 41100,
+      seniorityMax: 46000,
+      militaryIdMin: 125100,
+      militaryIdMax: 139000,
+      joinYearMin: 2004,
+      joinYearMax: 2009,
+      birthAgeAtJoin: [21, 23],
+    },
+    major: {
+      rank: "major",
+      batchMin: 103,
+      batchMax: 107,
+      seniorityMin: 46100,
+      seniorityMax: 50000,
+      militaryIdMin: 140000,
+      militaryIdMax: 154000,
+      joinYearMin: 2010,
+      joinYearMax: 2014,
+      birthAgeAtJoin: [21, 23],
+    },
+    captain: {
+      rank: "captain",
+      batchMin: 108,
+      batchMax: 112,
+      seniorityMin: 50100,
+      seniorityMax: 55000,
+      militaryIdMin: 155000,
+      militaryIdMax: 169000,
+      joinYearMin: 2015,
+      joinYearMax: 2019,
+      birthAgeAtJoin: [21, 23],
+    },
+    first_lieutenant: {
+      rank: "first_lieutenant",
+      batchMin: 113,
+      batchMax: 116,
+      seniorityMin: 55100,
+      seniorityMax: 61000,
+      militaryIdMin: 170000,
+      militaryIdMax: 185000,
+      joinYearMin: 2020,
+      joinYearMax: 2023,
+      birthAgeAtJoin: [21, 23],
+    },
+    second_lieutenant: {
+      rank: "second_lieutenant",
+      batchMin: 117,
+      batchMax: 120,
+      seniorityMin: 61100,
+      seniorityMax: 68000,
+      militaryIdMin: 186000,
+      militaryIdMax: 205000,
+      joinYearMin: 2024,
+      joinYearMax: 2025,
+      birthAgeAtJoin: [21, 23],
+    },
+  };
+
+  // Helper generator for unique Egyptian officer attributes
+  function generateEgyptianOfficerData(isInUnit: boolean, formerReason?: "transfer" | "retirement" | "termination", forcedRank?: OfficerRank) {
+    const fName = pick(FIRST_NAMES);
+    const mName = pick(MIDDLE_NAMES);
+    const mName2 = pick(MIDDLE_NAMES);
+    const lName = pick(FAMILY_NAMES);
+    const fullName = `${fName} ${mName} ${mName2} ${lName}`;
+
+    // Select rank (if former officer with retirement, prioritize older senior ranks)
+    let rank: OfficerRank;
+    if (forcedRank) {
+      rank = forcedRank;
+    } else if (!isInUnit && formerReason === "retirement") {
+      rank = pick(["colonel", "brigadier", "major_general"]);
+    } else {
+      rank = randomRank();
+    }
+
+    const tier = RANK_TIERS[rank];
     const type = randomEnum(OFFICER_TYPES);
     const weapon = randomEnum(OFFICER_WEAPONS);
-    const isArkanHarb = Math.random() < 0.12;
+    const isArkanHarb = ["major", "lieutenant_colonel", "colonel", "brigadier", "major_general"].includes(rank)
+      ? Math.random() < 0.35
+      : false;
 
-    // Generate unique military ID (7 digits)
+    // Military ID: strictly correlated to the rank tier (smaller = senior)
     let militaryId: string;
+    let attempts = 0;
     do {
-      militaryId = String(randomInt(1000000, 9999999));
+      militaryId = String(randomInt(tier.militaryIdMin, tier.militaryIdMax));
+      attempts++;
+      if (attempts > 500) {
+        militaryId = String(randomInt(100000, 999999));
+      }
     } while (usedMilitaryIds.has(militaryId));
     usedMilitaryIds.add(militaryId);
 
-    // Seniority number (unique)
+    // Seniority number: strictly correlated to the rank tier (smaller = senior)
     let seniorityNumber: string;
+    attempts = 0;
     do {
-      seniorityNumber = String(randomInt(2000000, 9999999));
+      seniorityNumber = String(randomInt(tier.seniorityMin, tier.seniorityMax));
+      attempts++;
+      if (attempts > 500) {
+        seniorityNumber = String(randomInt(25000, 99000));
+      }
     } while (usedSeniorityNumbers.has(seniorityNumber));
     usedSeniorityNumbers.add(seniorityNumber);
 
-    // National ID (14 digits, unique)
+    // Military batch: strictly correlated to the rank tier (smaller = older batch)
+    const batch = String(randomInt(tier.batchMin, tier.batchMax));
+
+    // Service Join Date correlated with the batch & rank tier
+    const joinYear = randomInt(tier.joinYearMin, tier.joinYearMax);
+    const joinMonth = randomInt(5, 7); // Usually July/June graduation & commission in Egypt
+    const joinDay = randomInt(1, 25);
+    const joinDate = new Date(joinYear, joinMonth, joinDay);
+
+    // Birth Date correlated with join year (~21-23 years old at commission)
+    const birthYear = joinYear - randomInt(tier.birthAgeAtJoin[0], tier.birthAgeAtJoin[1]);
+    const birthMonth = randomInt(0, 11);
+    const birthDay = randomInt(1, 28);
+    const birthDate = new Date(birthYear, birthMonth, birthDay);
+
+    // Egyptian National ID: 14 digits
+    // Century: '2' for 1900-1999, '3' for 2000+
     let nationalId: string;
+    attempts = 0;
     do {
-      nationalId = String(randomInt(10000000000000, 29999999999999));
-    } while (usedNationalIds.has(nationalId));
+      const century = birthYear < 2000 ? "2" : "3";
+      const yy = String(birthYear % 100).padStart(2, "0");
+      const mm = String(birthMonth + 1).padStart(2, "0");
+      const dd = String(birthDay).padStart(2, "0");
+      const govCode = String(randomInt(1, 28)).padStart(2, "0");
+      const seq = String(randomInt(1000, 9999));
+      nationalId = `${century}${yy}${mm}${dd}${govCode}${seq}`;
+      attempts++;
+    } while (usedNationalIds.has(nationalId) && attempts < 100);
     usedNationalIds.add(nationalId);
 
-    // Join date: between 1995 and 2024
-    const joinDate = randomDate(new Date(1995, 0, 1), new Date(2024, 5, 1));
+    // Egyptian Mobile Phone: 010, 011, 012, 015 + 8 digits
+    const prefix = pick(["010", "011", "012", "015"]);
+    const phone = `${prefix}${String(randomInt(10000000, 99999999))}`;
 
-    // Birth date: 20-50 years before join date
-    const birthDate = new Date(joinDate);
-    birthDate.setFullYear(birthDate.getFullYear() - randomInt(22, 45));
+    const graduationDate = new Date(joinDate);
 
-    // Employment status: 85% active, 10% retired, 5% inactive
-    const statusRoll = Math.random();
-    const employmentStatus = statusRoll < 0.85 ? "active" : statusRoll < 0.95 ? "retired" : "inactive";
+    // Default leave system
+    const defaultLeaveSystem = pick(["field", "weekly_rest", "daily_sleep"]);
 
-    officers.push({
+    // Employment status based on formerReason
+    let employmentStatus: "active" | "inactive" | "retired" = "active";
+    if (!isInUnit) {
+      if (formerReason === "transfer") {
+        employmentStatus = "active"; // active in Egyptian Armed Forces, but transferred outside our unit
+      } else if (formerReason === "retirement") {
+        employmentStatus = "retired";
+      } else {
+        employmentStatus = "inactive"; // terminated / other
+      }
+    }
+
+    return {
       militaryId,
       seniorityNumber,
       fullName,
       rank,
-      batch: pick(BATCHES),
+      batch,
       type,
       weapon,
-      phone: `05${String(randomInt(10000000, 59999999))}`,
+      phone,
       nationalId,
-      unit: pick(UNITS),
-      position: pick(POSITIONS),
+      unit: isInUnit ? "الوحدة الحالية" : pick(EGYPTIAN_UNITS),
+      position: pick(EGYPTIAN_POSITIONS),
       employmentStatus,
-      isInUnit: Math.random() > 0.15,
+      isInUnit,
       joinDate,
       birthDate,
+      graduationDate,
+      bloodType: pick(["A+", "B+", "O+", "AB+", "O-", "A-"]),
+      religion: Math.random() < 0.94 ? "مسلم" : "مسيحي",
+      maritalStatus: pick(["أعزب", "متزوج", "يعول"]),
+      faculty: pick(FACULTIES),
       isArkanHarb,
+      defaultLeaveSystem,
+      formerReason,
+    };
+  }
+
+  // 1. Generate new In-Unit Officers (Target: exactly 25 in unit with the 4 existing)
+  const newInUnitDocs: Array<ReturnType<typeof generateEgyptianOfficerData>> = [];
+  for (let i = 0; i < neededInUnit; i++) {
+    newInUnitDocs.push(generateEgyptianOfficerData(true));
+  }
+
+  // 2. Generate new Former / Out-of-Unit Officers (Target: exactly 80 with various departure types)
+  // Distribution among the 80:
+  // - 50 Transfers (نقل من الوحدة)
+  // - 22 Retirements / Normal End of Service (تقاعد / إنهاء خدمة)
+  // - 8 Terminations / Resignations (رفد / إنهاء خدمة)
+  const newOutUnitDocs: Array<ReturnType<typeof generateEgyptianOfficerData>> = [];
+  for (let i = 0; i < neededOutUnit; i++) {
+    let reason: "transfer" | "retirement" | "termination";
+    if (i < 50) {
+      reason = "transfer";
+    } else if (i < 72) {
+      reason = "retirement";
+    } else {
+      reason = "termination";
+    }
+    newOutUnitDocs.push(generateEgyptianOfficerData(false, reason));
+  }
+
+  // Insert In-Unit Officers
+  if (newInUnitDocs.length > 0) {
+    const insertedInUnit = await Officer.insertMany(newInUnitDocs);
+    console.log(`✅ Inserted ${insertedInUnit.length} in-unit officers.`);
+
+    // Create ServiceHistory 'join' record for new in-unit officers
+    const serviceHistoriesInUnit = insertedInUnit.map((off) => ({
+      officerId: off._id,
+      type: "join" as const,
+      action: "join" as const,
+      date: off.joinDate,
+      notes: "انضمام للوحدة والخدمة العسكرية",
+      createdBy: adminId,
+      updatedBy: adminId,
+    }));
+    await ServiceHistory.insertMany(serviceHistoriesInUnit);
+  }
+
+  // Insert Out-Unit Officers and create their Service History
+  if (newOutUnitDocs.length > 0) {
+    const insertedOutUnit = await Officer.insertMany(newOutUnitDocs);
+    console.log(`✅ Inserted ${insertedOutUnit.length} former / out-of-unit officers.`);
+
+    // Create initial join + subsequent departure service history
+    const serviceHistoriesOutUnit: Array<{
+      officerId: Types.ObjectId;
+      type: "join" | "leave" | "return";
+      action: "join" | "transfer" | "retirement" | "termination";
+      date: Date;
+      notes: string;
+      createdBy: Types.ObjectId;
+      updatedBy: Types.ObjectId;
+    }> = [];
+
+    insertedOutUnit.forEach((off, idx) => {
+      const data = newOutUnitDocs[idx];
+      const leaveDate = new Date(off.joinDate);
+      leaveDate.setFullYear(leaveDate.getFullYear() + randomInt(2, 8));
+      if (leaveDate > new Date()) {
+        leaveDate.setFullYear(new Date().getFullYear() - 1);
+      }
+
+      // Initial Join
+      serviceHistoriesOutUnit.push({
+        officerId: off._id as Types.ObjectId,
+        type: "join",
+        action: "join",
+        date: off.joinDate,
+        notes: "انضمام سابق للوحدة",
+        createdBy: adminId,
+        updatedBy: adminId,
+      });
+
+      // Departure
+      const actionType = data.formerReason || "transfer";
+      const notes =
+        actionType === "transfer"
+          ? `نقل من الوحدة إلى ${off.unit}`
+          : actionType === "retirement"
+          ? "بلوغ السن القانوني للتقاعد وإنهاء الخدمة العسكرية بالوحدة"
+          : "إنهاء خدمة / شطب من سجلات الوحدة";
+
+      serviceHistoriesOutUnit.push({
+        officerId: off._id as Types.ObjectId,
+        type: "leave",
+        action: actionType,
+        date: leaveDate,
+        notes,
+        createdBy: adminId,
+        updatedBy: adminId,
+      });
     });
+
+    await ServiceHistory.insertMany(serviceHistoriesOutUnit);
   }
 
-  // Insert officers in batches
-  for (let i = 0; i < officers.length; i += BATCH_SIZE) {
-    const batch = officers.slice(i, i + BATCH_SIZE);
-    await Officer.insertMany(batch);
-    console.log(`   Inserted officers ${i + 1}–${Math.min(i + BATCH_SIZE, officers.length)}`);
-  }
+  // ── Step 3: Seed Leaves for In-Unit Officers ──
+  console.log(`\n📋 Seeding realistic Egyptian Armed Forces leaves for active in-unit officers...`);
 
-  const allOfficers = await Officer.find().lean();
-  console.log(`✅ ${allOfficers.length} total officers in database.`);
+  const currentInUnitOfficers = await Officer.find({ isInUnit: true }).lean();
 
-  // ── Step 2: Seed Leaves ──
-  console.log(`\n📋 Seeding Leaves for ${allOfficers.length} officers...`);
-
-  const LEAVE_REASONS: Record<string, string[]> = {
-    annual: ["إجازة سنوية", "إجازة دورية", "إجازة اعتيادية"],
-    sick: ["وعكة صحية", "مرض", "إجراء طبي", "علاج طبيعي"],
-    emergency: ["ظرف عائلي طارئ", "حالة وفاة", "حالة طارئة"],
-    rest: ["إجازة راحة", "راحة بعد مأمورية", "راحة تعويضية"],
-    overnight: ["مبيت خارج المعسكر", "مبيت"],
-    field: ["إجازة ميدانية", "ميداني"],
-    casual: ["إجازة عارضة", "إذن خروج", "إذن"],
+  const LEAVE_REASONS: Record<LeaveType, string[]> = {
+    annual: ["إجازة سنوية اعتيادية", "إجازة دورية", "إجازة سنوية عن العام الحالي"],
+    field: ["إجازة ميدانية نظامية", "ميداني دوري بعد انتهاء المشروع", "إجازة ميدانية"],
+    weekly_rest: ["راحة أسبوعية", "راحة مجمعة عن تدريب الأسبوع", "راحة نظامية"],
+    daily_sleep: ["مبيت عائلي مصدق", "مبيت يومي حسب النوبتجية", "مبيت معتاد"],
+    medical: ["وعكة صحية وعيادة خارجية", "كشف طبي بمستشفى القوات المسلحة", "إجراء فحوصات طبية"],
+    casual: ["ظرف عائلي طارئ", "إجازة عارضة طارئة", "إذن خروج طارئ"],
+    permission: ["إذن خروج رسمي لقضاء مصلحة", "إذن لقضاء مهمة خاصة", "إذن تصديق قائد"],
+    rest: ["بدل راحة نظير نوبتجية", "بدل راحة عن خدمة إضافية", "بدل راحة مصدق"],
   };
 
   const LEAVE_DURATIONS: Record<LeaveType, [number, number]> = {
-    annual: [3, 30],
-    sick: [1, 14],
-    emergency: [3, 10],
-    rest: [1, 5],
-    overnight: [1, 2],
-    field: [1, 4],
-    casual: [1, 3],
+    annual: [3, 14],
+    field: [3, 7],
+    weekly_rest: [2, 4],
+    daily_sleep: [1, 1],
+    medical: [2, 10],
+    casual: [1, 2],
+    permission: [1, 1],
+    rest: [1, 2],
   };
 
-  // Weighted leaf type distribution
-  function randomLeaveType(): LeaveType {
-    const r = Math.random();
-    if (r < 0.60) return "annual";
-    if (r < 0.75) return "sick";
-    if (r < 0.83) return "emergency";
-    if (r < 0.90) return "rest";
-    if (r < 0.95) return "overnight";
-    if (r < 0.98) return "field";
-    return "casual";
-  }
-
-  function randomLeaveStatus(): LeaveStatus {
-    const r = Math.random();
-    if (r < 0.15) return "draft";
-    if (r < 0.55) return "approved";
-    if (r < 0.90) return "closed";
-    return "cancelled";
-  }
-
-  let totalLeaves = 0;
   const leavesToInsert: Array<{
     officerId: Types.ObjectId;
     category: LeaveCategory;
@@ -287,65 +613,57 @@ async function seed() {
   }> = [];
 
   const now = new Date();
-  const twoYearsAgo = new Date(now.getFullYear() - 2, now.getMonth(), 1);
+  const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), 1);
 
-  for (const officer of allOfficers) {
-    const numLeaves = randomInt(1, 3);
+  for (const officer of currentInUnitOfficers) {
+    const numLeaves = randomInt(2, 4);
     const officerId = officer._id as Types.ObjectId;
 
     for (let l = 0; l < numLeaves; l++) {
-      const type = randomLeaveType();
-      const category: LeaveCategory = Math.random() < 0.92 ? "leave" : "absence";
+      const type = pick(["annual", "field", "weekly_rest", "casual", "medical"] as LeaveType[]);
       const [minDur, maxDur] = LEAVE_DURATIONS[type];
       const durationDays = randomInt(minDur, maxDur);
-      const startDate = randomDate(twoYearsAgo, now);
+      const startDate = randomDate(oneYearAgo, now);
       const endDate = new Date(startDate);
       endDate.setDate(endDate.getDate() + durationDays);
 
       leavesToInsert.push({
         officerId,
-        category,
+        category: "leave",
         type,
         startDate,
         endDate,
-        reason: pick(LEAVE_REASONS[type] ?? ["إجازة"]),
-        status: randomLeaveStatus(),
+        reason: pick(LEAVE_REASONS[type]),
+        status: pick(["approved", "closed", "closed", "approved"]),
         createdBy: adminId,
         updatedBy: adminId,
       });
-
-      totalLeaves++;
     }
   }
 
-  // Insert leaves in batches
   for (let i = 0; i < leavesToInsert.length; i += BATCH_SIZE) {
     const batch = leavesToInsert.slice(i, i + BATCH_SIZE);
     await Leave.insertMany(batch);
   }
 
-  console.log(`✅ ${totalLeaves} leaves seeded successfully.`);
+  console.log(`✅ Inserted ${leavesToInsert.length} leaves for in-unit officers.`);
 
-  // ── Summary ──
-  console.log(`\n📊 Summary:`);
-  console.log(`   Officers: ${allOfficers.length}`);
-  console.log(`   Leaves: ${totalLeaves}`);
-  console.log(`   Avg leaves per officer: ${(totalLeaves / allOfficers.length).toFixed(1)}`);
+  // ── Final Audit & Verification ──
+  const finalInUnit = await Officer.countDocuments({ isInUnit: true });
+  const finalOutUnit = await Officer.countDocuments({ isInUnit: false });
+  const finalTotal = await Officer.countDocuments();
+  const finalHistoryCount = await ServiceHistory.countDocuments();
+  const finalLeavesCount = await Leave.countDocuments();
 
-  console.log(`\n📝 Sample Officers:`);
-  const sampleOfficers = await Officer.find().sort({ createdAt: -1 }).limit(5).lean();
-  for (const o of sampleOfficers) {
-    console.log(`   ${o.fullName} | رتبة: ${o.rank} | عسكري: ${o.militaryId} | وحدة: ${o.unit ?? "—"}`);
-  }
+  console.log(`\n==============================================`);
+  console.log(`🏁 SEEDING SUMMARY (EGYPTIAN ARMED FORCES):`);
+  console.log(`   - In-Unit Officers: ${finalInUnit} (Target: 25)`);
+  console.log(`   - Former / Out-of-Unit Officers: ${finalOutUnit} (Target: 80)`);
+  console.log(`   - Total Officers: ${finalTotal}`);
+  console.log(`   - Total Service History Movements: ${finalHistoryCount}`);
+  console.log(`   - Total Leaves: ${finalLeavesCount}`);
+  console.log(`==============================================\n`);
 
-  console.log(`\n📝 Sample Leaves:`);
-  const sampleLeaves = await Leave.find().populate("officerId", "fullName").sort({ createdAt: -1 }).limit(5).lean();
-  for (const l of sampleLeaves) {
-    const officerName = (l.officerId as { fullName?: string } | null)?.fullName ?? "غير معروف";
-    console.log(`   ${officerName} | ${l.type} | ${l.startDate.toISOString().slice(0, 10)} → ${l.endDate.toISOString().slice(0, 10)} | ${l.status}`);
-  }
-
-  console.log(`\n✅ Seeding complete!`);
   process.exit(0);
 }
 

@@ -87,7 +87,7 @@ function FolderTabsContent({
     }
     if (syncWithUrl) {
       startTransition(() => {
-        const params = new URLSearchParams(searchParams.toString());
+        const params = new URLSearchParams();
         params.set("tab", val);
         router.push(`${pathname}?${params.toString()}`, { scroll: false });
       });

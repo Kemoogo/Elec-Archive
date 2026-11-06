@@ -1,3 +1,5 @@
+import { formatDateDisplay } from "@/lib/utils/date-display";
+
 interface FaxThreadProps {
   relatedFaxes: Array<{
     _id: string;
@@ -35,7 +37,7 @@ export function FaxThread({ relatedFaxes, currentFaxId }: FaxThreadProps) {
             <div className="flex items-center justify-between">
               <span className="font-medium text-(--app-foreground)">{fax.faxNumber}</span>
               <span className="text-sm text-(--app-muted-foreground)">
-                {new Date(fax.date).toLocaleDateString("ar-EG")}
+                {formatDateDisplay(fax.date)}
               </span>
             </div>
             <p className="mt-1 text-sm text-foreground">{fax.subject}</p>

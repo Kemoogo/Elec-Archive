@@ -15,7 +15,7 @@ const moduleLabels: Record<keyof ModulePermissions, string> = {
   fax: "الفاكس",
   officers: "الضباط",
   medical: "الطبي",
-  students: "الطلبة",
+  students: "شئون الطلاب",
   education: "التعليم",
   arkan_harb: "أركان حرب",
 };
@@ -75,14 +75,15 @@ export function AuthenticatedNavbar({ user, accessibleModules }: AuthenticatedNa
 
             {/* Right Action Icons & User Control */}
             <div className="hidden md:flex items-center gap-2.5">
+              <NotificationBell />
               <ThemeToggle />
-              {user.role === "commander" && <NotificationBell />}
               <UserMenu fullName={user.fullName} role={user.role} permissions={user.permissions} />
             </div>
 
             {/* Mobile Drawer Trigger */}
             <div className="flex items-center gap-2 md:hidden">
-              {user.role === "commander" && <NotificationBell />}
+              <NotificationBell />
+              <ThemeToggle />
               <MobileDrawer navItems={navItems} user={user} />
             </div>
           </div>

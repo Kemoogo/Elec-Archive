@@ -6,10 +6,14 @@ import {
   EMPLOYMENT_STATUSES,
   OFFICER_TYPES,
   OFFICER_WEAPONS,
+  formatOfficerRank,
+  formatOfficerLabel,
   type OfficerRank,
   type EmploymentStatus,
   type OfficerType,
   type OfficerWeapon,
+  type OfficerOption,
+  type OfficerBasicInfo,
 } from "./Officer.shared";
 
 export {
@@ -19,10 +23,14 @@ export {
   EMPLOYMENT_STATUSES,
   OFFICER_TYPES,
   OFFICER_WEAPONS,
+  formatOfficerRank,
+  formatOfficerLabel,
   type OfficerRank,
   type EmploymentStatus,
   type OfficerType,
   type OfficerWeapon,
+  type OfficerOption,
+  type OfficerBasicInfo,
 };
 
 export const EMPLOYMENT_LABELS: Record<EmploymentStatus, string> = {
@@ -131,13 +139,14 @@ const OfficerSchema = new Schema<IOfficer>(
     file121IssueDate: { type: String, trim: true },
     photoUrl: { type: String, trim: true },
     isArkanHarb: { type: Boolean, default: false },
-    defaultLeaveSystem: { type: String, default: "field" },
+    defaultLeaveSystem: { type: String },
   },
   { timestamps: true },
 );
 
 OfficerSchema.index({ fullName: 1 });
 OfficerSchema.index({ employmentStatus: 1, fullName: 1 });
+OfficerSchema.index({ isInUnit: 1, employmentStatus: 1, seniorityNumber: 1, fullName: 1 });
 OfficerSchema.index({ createdAt: -1 });
 
 OfficerSchema.pre("validate", function (this: IOfficer) {

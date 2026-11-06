@@ -7,6 +7,7 @@ import { ModernPageHeader as PageHeader } from "@/components/layout/ModernPageHe
 import { History, SlidersHorizontal, X } from "lucide-react";
 import { AuditLogTable } from "@/components/dashboard/AuditLogTable";
 import { DateField } from "@/components/ui/date-field";
+import { CustomSelect, type CustomSelectOption } from "@/components/ui/custom-select";
 
 const actionLabels: Record<string, string> = {
   CREATE: "إنشاء",
@@ -30,6 +31,16 @@ const moduleLabels: Record<string, string> = {
   education: "التعليم",
   arkan_harb: "أركان حرب",
 };
+
+const ACTION_OPTIONS: CustomSelectOption[] = [
+  { value: "", label: "جميع العمليات" },
+  ...Object.entries(actionLabels).map(([key, label]) => ({ value: key, label })),
+];
+
+const MODULE_OPTIONS: CustomSelectOption[] = [
+  { value: "", label: "جميع الوحدات" },
+  ...Object.entries(moduleLabels).map(([key, label]) => ({ value: key, label })),
+];
 
 export function AuditLogPageClient() {
   const router = useRouter();
@@ -93,39 +104,29 @@ export function AuditLogPageClient() {
 
       {showFilters && (
         <div className="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 p-5 bg-(--app-surface-container) border border-(--app-border) rounded-2xl animate-in fade-in slide-in-from-top-4 duration-300">
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-black text-(--color-muted) px-1">العملية</label>
-            <select
-              value={filterAction}
-              onChange={(e) => {
-                setFilterAction(e.target.value);
-                applyFilters({ action: e.target.value });
-              }}
-              className="btn-filter-sm"
-            >
-              <option value="">جميع العمليات</option>
-              {Object.entries(actionLabels).map(([key, label]) => (
-                <option key={key} value={key}>{label}</option>
-              ))}
-            </select>
-          </div>
+          <CustomSelect
+            id="audit-action-filter"
+            label="العملية"
+            value={filterAction}
+            onChange={(val) => {
+              setFilterAction(val);
+              applyFilters({ action: val });
+            }}
+            options={ACTION_OPTIONS}
+            placeholder="جميع العمليات"
+          />
 
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-black text-(--color-muted) px-1">الوحدة</label>
-            <select
-              value={filterModule}
-              onChange={(e) => {
-                setFilterModule(e.target.value);
-                applyFilters({ module: e.target.value });
-              }}
-              className="btn-filter-sm"
-            >
-              <option value="">جميع الوحدات</option>
-              {Object.entries(moduleLabels).map(([key, label]) => (
-                <option key={key} value={key}>{label}</option>
-              ))}
-            </select>
-          </div>
+          <CustomSelect
+            id="audit-module-filter"
+            label="الوحدة"
+            value={filterModule}
+            onChange={(val) => {
+              setFilterModule(val);
+              applyFilters({ module: val });
+            }}
+            options={MODULE_OPTIONS}
+            placeholder="جميع الوحدات"
+          />
 
           <DateField
             id="startDate"
@@ -150,7 +151,7 @@ export function AuditLogPageClient() {
           <div className="flex items-end">
             <button
               onClick={clearFilters}
-              className="w-full h-[38px] flex items-center justify-center gap-2 rounded-xl border border-(--app-error)/20 bg-(--app-error)/5 text-(--app-error) text-xs font-black hover:bg-(--app-error)/10 transition-all shadow-sm"
+              className="btn-secondary w-full h-[38px] flex items-center justify-center gap-2 text-xs font-bold"
             >
               <X className="w-4 h-4" />
               مسح الفلاتر

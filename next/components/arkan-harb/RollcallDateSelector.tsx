@@ -5,7 +5,7 @@ import { DateField } from "@/components/ui/date-field";
 export function RollcallDateSelector({ initialDate }: { initialDate: string }) {
   const handleChange = (newDate: string) => {
     if (newDate && newDate.length === 10) {
-      window.location.href = `/arkan-harb/rollcall?date=${newDate}`;
+      window.location.href = `/arkan-harb?tab=rollcall&date=${newDate}`;
     }
   };
 

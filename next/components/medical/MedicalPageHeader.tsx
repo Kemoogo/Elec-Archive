@@ -20,31 +20,36 @@ export function MedicalPageHeader({ tab, searchQuery }: MedicalPageHeaderProps) 
   const { replace } = useRouter();
 
   const [showFilters, setShowFilters] = useState(false);
+  const currentTabParam = searchParams.get("tab") || tab || "";
+  const patientIdParam = searchParams.get("patientId");
 
   const [localSearch, setLocalSearch] = useState(searchQuery);
   const [prevSearchQuery, setPrevSearchQuery] = useState(searchQuery);
+  const [prevTabParam, setPrevTabParam] = useState(currentTabParam);
 
-  if (searchQuery !== prevSearchQuery) {
+  if (currentTabParam !== prevTabParam) {
+    setPrevTabParam(currentTabParam);
+    setLocalSearch(searchParams.get("search") || "");
+  } else if (searchQuery !== prevSearchQuery) {
     setPrevSearchQuery(searchQuery);
     setLocalSearch(searchQuery);
   }
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      const params = new URLSearchParams(searchParams.toString());
-      if (localSearch) {
-        params.set("search", localSearch);
-      } else {
-        params.delete("search");
-      }
+    const currentUrlSearch = searchParams.get("search") || "";
+    const trimmed = localSearch.trim();
+    if (trimmed.length === 1) return; // Ignore single-character searches to reduce server load
+    if (trimmed === currentUrlSearch) return;
 
-      const newUrl = `${pathname}?${params.toString()}`;
-      if (params.get("search") !== searchParams.get("search")) {
-        replace(newUrl, { scroll: false });
-      }
-    }, 300);
+    const params = new URLSearchParams(searchParams.toString());
+    if (trimmed) {
+      params.set("search", trimmed);
+    } else {
+      params.delete("search");
+    }
 
-    return () => clearTimeout(timer);
+    const newUrl = `${pathname}?${params.toString()}`;
+    replace(newUrl, { scroll: false });
   }, [localSearch, pathname, replace, searchParams]);
 
   const handleSearch = (term: string) => {
@@ -88,6 +93,10 @@ export function MedicalPageHeader({ tab, searchQuery }: MedicalPageHeaderProps) 
       {tab === "medicines" && <NewMedicineButton />}
     </div>
   );
+
+  if (patientIdParam) {
+    return null;
+  }
 
   return (
     <>

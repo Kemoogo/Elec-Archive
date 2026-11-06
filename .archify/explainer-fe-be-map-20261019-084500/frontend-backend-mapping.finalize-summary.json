@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "explainer",
+  "quality": "showcase",
+  "specification": {
+    "path": "/home/karim/projects/Elec-Archive/.archify/explainer-fe-be-map-20261019-084500/candidate.archify.md",
+    "sha256": "1f8caf6496802851001013e99b0f6bdc3dbbc025fce95fb884fc2491e722e5d4",
+    "bytes": 20840
+  },
+  "artifact": {
+    "path": "/home/karim/projects/Elec-Archive/.archify/explainer-fe-be-map-20261019-084500/frontend-backend-mapping.html",
+    "sha256": "95721c471c4e6d58e51fe990f7b2f6bf7917bad70c7ed7f80f93083bbc61b128",
+    "bytes": 1057715
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "not-run"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/home/karim/projects/Elec-Archive/.archify/explainer-fe-be-map-20261019-084500/frontend-backend-mapping.finalize.json",
+    "summaryReceipt": "/home/karim/projects/Elec-Archive/.archify/explainer-fe-be-map-20261019-084500/frontend-backend-mapping.finalize-summary.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2146,
+  "browserCheck": {
+    "requested": false,
+    "ran": false
+  }
+}

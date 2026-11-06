@@ -5,6 +5,7 @@ import { canEditModule } from "@/lib/auth/authorization";
 import { logAuditEvent } from "@/lib/auth/audit";
 import { errors } from "@/lib/auth/errors";
 import { Mission, type MissionStatus } from "@/lib/db/models/Mission";
+import { Leave } from "@/lib/db/models/Leave";
 import { handleApiError } from "@/lib/utils/api-error";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
 import { updateMissionSchema } from "@/lib/validations/arkan-harb";
@@ -51,8 +52,37 @@ export async function PATCH(
       return NextResponse.json({ success: false, error: "المأمورية غير موجودة" }, { status: 404 });
     }
 
-    // 5. Parse + Validate body
-    const body: unknown = await request.json();
+    const contentType = request.headers.get("content-type") || "";
+    let body: Record<string, unknown> = {};
+
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await request.formData();
+      const clearanceFile = formData.get("clearanceFile");
+      if (clearanceFile instanceof File && clearanceFile.size > 0) {
+        const { saveUploadedFile } = await import("@/lib/uploads");
+        const uploadRes = await saveUploadedFile(clearanceFile, "missions");
+        if (!uploadRes.success) {
+          return NextResponse.json(
+            { success: false, error: uploadRes.error || "فشل رفع مستند إخلاء الطرف" },
+            { status: 400 },
+          );
+        }
+        mission.clearanceDocuments = mission.clearanceDocuments || [];
+        mission.clearanceDocuments.push({
+          name: clearanceFile.name,
+          fileUrl: uploadRes.filePath || "",
+          uploadedAt: new Date(),
+        });
+      }
+      for (const [key, value] of formData.entries()) {
+        if (key !== "clearanceFile") {
+          body[key] = value;
+        }
+      }
+    } else {
+      body = (await request.json()) as Record<string, unknown>;
+    }
+
     const parsed = updateMissionSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
@@ -77,7 +107,42 @@ export async function PATCH(
       }
     }
 
+    // RULE: Only internal daily missions are permitted during leave.
+    // External multiday missions / courses are strictly prohibited during active leave unless the leave is interrupted/cut first.
+    const effectiveType = data.missionType ?? mission.missionType ?? "external_multiday";
+    const effectiveStatus = data.status ?? mission.status;
+
+    if (effectiveType !== "internal_daily" && effectiveStatus !== "cancelled") {
+      const targetStart = data.startDate ? new Date(data.startDate) : mission.startDate;
+      const rawEnd = data.endDate !== undefined ? (data.endDate ? new Date(data.endDate) : null) : mission.endDate;
+      const targetEnd = rawEnd
+        ? new Date(rawEnd)
+        : new Date(targetStart.getFullYear(), targetStart.getMonth(), targetStart.getDate(), 23, 59, 59, 999);
+
+      const overlappingLeave = await Leave.findOne({
+        officerId: mission.officerId,
+        status: { $in: ["approved", "extension_pending"] },
+        startDate: { $lte: targetEnd },
+        $or: [
+          { actualReturnDate: { $gte: targetStart } },
+          { actualReturnDate: { $exists: false }, endDate: { $gte: targetStart } },
+          { actualReturnDate: null, endDate: { $gte: targetStart } },
+        ],
+      }).lean();
+
+      if (overlappingLeave) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "لا يمكن تكليف الضابط بمأمورية خارجية أو فرقة أثناء الإجازة، يجب قطع الإجازة أولاً.",
+          },
+          { status: 400 },
+        );
+      }
+    }
+
     // 7. Apply updates
+    if (data.missionType !== undefined) mission.missionType = data.missionType;
     if (data.title !== undefined) mission.title = data.title;
     if (data.description !== undefined) mission.description = data.description;
     if (data.destination !== undefined) mission.destination = data.destination;
@@ -110,6 +175,16 @@ export async function PATCH(
     if (data.statusReason !== undefined) mission.statusReason = data.statusReason;
     if (data.resultSummary !== undefined) mission.resultSummary = data.resultSummary;
     if (data.linkedFaxId !== undefined) mission.linkedFaxId = data.linkedFaxId;
+    if (data.travelOrderNumber !== undefined) mission.travelOrderNumber = data.travelOrderNumber;
+    if (data.transportationMean !== undefined) mission.transportationMean = data.transportationMean;
+    if (data.authorizedWeapons !== undefined) mission.authorizedWeapons = data.authorizedWeapons;
+    if (data.clearanceDocuments !== undefined) {
+      mission.clearanceDocuments = data.clearanceDocuments.map((d) => ({
+        name: d.name,
+        fileUrl: d.fileUrl,
+        uploadedAt: d.uploadedAt ? new Date(d.uploadedAt) : new Date(),
+      }));
+    }
 
     await mission.save();
 

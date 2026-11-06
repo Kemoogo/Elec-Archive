@@ -6,9 +6,30 @@ import { Officer, RANK_LABELS, type IOfficer, type OfficerRank } from "@/lib/db/
 import { canEditOfficers } from "@/lib/officers/access";
 import { logAuditEvent } from "@/lib/auth/audit";
 import { createOfficerSchema, patchOfficerSchema } from "@/lib/validations/officers";
-import { join } from "path";
+import { resolve, sep } from "path";
 import { writeFile, unlink, mkdir } from "fs/promises";
 import { existsSync } from "fs";
+
+export interface Extracted121Data {
+  fullName?: string;
+  seniorityNumber?: string;
+  militaryId?: string;
+  nationalId?: string;
+  batch?: string;
+  phone?: string;
+  birthDate?: string;
+  graduationDate?: string;
+  bloodType?: string;
+  religion?: string;
+  maritalStatus?: string;
+  faculty?: string;
+  rank?: string;
+  weapon?: string;
+  type?: string;
+  isArkanHarb?: boolean;
+  file121IssueDate?: string;
+  [key: string]: string | boolean | undefined;
+}
 
 export async function checkSeniorityAction(seniorityNumber: string) {
   try {
@@ -64,6 +85,9 @@ export async function checkSeniorityAction(seniorityNumber: string) {
   }
 }
 
+const MILITARY_ID_REGEX = /^\d{4,20}$/;
+const MAX_PDF_SIZE = 20 * 1024 * 1024; // 20 MB
+
 export async function uploadOfficerFile121Action(formData: FormData) {
   console.log("DEBUG: uploadOfficerFile121Action started");
   try {
@@ -78,9 +102,18 @@ export async function uploadOfficerFile121Action(formData: FormData) {
     const file = formData.get("file") as File;
     console.log("DEBUG: File received:", file?.name, file?.size, file?.type, "id:", id, "reqMilitaryId:", reqMilitaryId);
 
-    if (!file || (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith('.pdf'))) {
-      console.log("DEBUG: File type validation failed");
+    if (!file || (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf"))) {
       return { success: false, error: "يُرجى رفع ملف PDF فقط" };
+    }
+
+    if (file.size > MAX_PDF_SIZE) {
+      return { success: false, error: "حجم الملف يتجاوز الحد المسموح (20 ميجابايت)" };
+    }
+
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    if (buffer.subarray(0, 5).toString("ascii") !== "%PDF-") {
+      return { success: false, error: "الملف المرفوع ليس ملف PDF صالحاً" };
     }
 
     await connectToDatabase();
@@ -92,7 +125,7 @@ export async function uploadOfficerFile121Action(formData: FormData) {
       if (!reqMilitaryId) {
         return { success: false, error: "الرقم العسكري مطلوب لرفع الملف للضابط الجديد" };
       }
-      militaryId = reqMilitaryId;
+      militaryId = reqMilitaryId.trim();
     } else {
       officer = await Officer.findById(id);
       if (!officer) {
@@ -101,31 +134,35 @@ export async function uploadOfficerFile121Action(formData: FormData) {
       militaryId = officer.militaryId;
     }
 
-    const targetDir = join(process.cwd(), "public", "uploads", "officers");
+    if (!MILITARY_ID_REGEX.test(militaryId)) {
+      return { success: false, error: "الرقم العسكري غير صالح لتسمية الملف" };
+    }
+
+    const targetDir = resolve(process.cwd(), "public", "uploads", "officers");
     if (!existsSync(targetDir)) {
       await mkdir(targetDir, { recursive: true });
     }
 
     // Rename to militaryId.pdf
     const fileName = `${militaryId}.pdf`;
-    const filePath = join(targetDir, fileName);
+    const filePath = resolve(targetDir, fileName);
+    if (!filePath.startsWith(targetDir + sep)) {
+      return { success: false, error: "مسار الملف غير صالح" };
+    }
 
     // If officer had a file with different path, remove it (cleanup)
     if (officer?.file121Url) {
-       const oldPath = join(process.cwd(), "public", officer.file121Url);
-       if (existsSync(oldPath)) {
-         try { await unlink(oldPath); } catch (e) { console.error("Error deleting old file:", e); }
-       }
+      const oldPath = resolve(process.cwd(), "public", officer.file121Url.replace(/^\/+/, ""));
+      if (oldPath.startsWith(targetDir + sep) && existsSync(oldPath)) {
+        try { await unlink(oldPath); } catch (e) { console.error("Error deleting old file:", e); }
+      }
     }
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
     await writeFile(filePath, buffer);
 
     const relativeUrl = `/uploads/officers/${fileName}`;
     if (officer) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const updateFields: Record<string, any> = {
+      const updateFields: Record<string, string | Date | undefined> = {
         file121Url: relativeUrl,
         file121UpdatedAt: new Date(),
       };
@@ -139,6 +176,17 @@ export async function uploadOfficerFile121Action(formData: FormData) {
       }
 
       await Officer.findByIdAndUpdate(id, { $set: updateFields });
+
+      await logAuditEvent({
+        userId: auth.user!.id,
+        userName: auth.user!.fullName,
+        action: "UPDATE",
+        module: "officers",
+        targetId: id,
+        description: `رفع وتحديث ملف 121 للضابط: ${officer.fullName}`,
+        ipAddress: "Server Action",
+      });
+
       revalidatePath("/officers");
     }
 
@@ -163,12 +211,26 @@ export async function deleteOfficerFile121Action(id: string) {
       return { success: false, error: "لا يوجد ملف للحذف" };
     }
 
-    const filePath = join(process.cwd(), "public", officer.file121Url);
-    if (existsSync(filePath)) {
+    const expectedDir = resolve(process.cwd(), "public", "uploads", "officers");
+    const filePath = resolve(process.cwd(), "public", officer.file121Url.replace(/^\/+/, ""));
+    if (filePath.startsWith(expectedDir + sep) && existsSync(filePath)) {
       await unlink(filePath);
     }
 
-    await Officer.findByIdAndUpdate(id, { $unset: { file121Url: "" } });
+    await Officer.findByIdAndUpdate(id, {
+      $unset: { file121Url: "", file121UpdatedAt: "", file121IssueDate: "" },
+    });
+
+    await logAuditEvent({
+      userId: auth.user!.id,
+      userName: auth.user!.fullName,
+      action: "UPDATE",
+      module: "officers",
+      targetId: id,
+      description: `حذف ملف 121 للضابط: ${officer.fullName}`,
+      ipAddress: "Server Action",
+    });
+
     revalidatePath("/officers");
 
     return { success: true };
@@ -312,6 +374,41 @@ export async function saveOfficerAction(id: string | null, data: Record<string, 
             updatedBy: auth.user!.id,
           });
         }
+
+        if (body.isInUnit === false && oldStatus !== false) {
+          const { PositionAssignment } = await import("@/lib/db/models/PositionAssignment");
+          const departureDate = new Date((data.movement as { date?: string } | undefined)?.date || Date.now());
+
+          await PositionAssignment.updateMany(
+            { primaryOfficerId: id },
+            {
+              $set: {
+                primaryOfficerId: null,
+                primaryStartDate: null,
+                "assignmentHistory.$[elem].endDate": departureDate,
+                "assignmentHistory.$[elem].notes": "تم إخلاء المنصب لمغادرة الضابط الوحدة",
+                updatedBy: auth.user!.id,
+              },
+            },
+            { arrayFilters: [{ "elem.officerId": id, "elem.role": "primary", "elem.endDate": null }] }
+          );
+
+          await PositionAssignment.updateMany(
+            { substituteOfficerIds: id },
+            {
+              $pull: {
+                substituteOfficerIds: id,
+                substituteStartDates: { officerId: id },
+              },
+              $set: {
+                "assignmentHistory.$[elem].endDate": departureDate,
+                "assignmentHistory.$[elem].notes": "تم إلغاء التكليف كبديل لمغادرة الضابط الوحدة",
+                updatedBy: auth.user!.id,
+              },
+            },
+            { arrayFilters: [{ "elem.officerId": id, "elem.role": "substitute", "elem.endDate": null }] }
+          );
+        }
       }
       if (body.joinDate !== undefined) updateData.joinDate = new Date(body.joinDate);
       if (body.birthDate !== undefined) updateData.birthDate = body.birthDate ? new Date(body.birthDate) : undefined;
@@ -349,16 +446,7 @@ export async function saveOfficerAction(id: string | null, data: Record<string, 
 
 export async function parseOfficer121PdfAction(formData: FormData) {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let auth: { success: boolean; user?: any } = { success: false };
-    try {
-      auth = await authenticate();
-    } catch {
-      if (process.env.NODE_ENV === "development" || process.env.CLI_TEST === "true") {
-        auth = { success: true, user: { role: "admin" } };
-      }
-    }
-
+    const auth = await authenticate();
     if (!auth.success || !canEditOfficers(auth.user!)) {
       return { success: false, error: "غير مصرح لك بإجراء هذه العملية" };
     }
@@ -368,12 +456,18 @@ export async function parseOfficer121PdfAction(formData: FormData) {
       return { success: false, error: "لم يتم تحديد أي ملف" };
     }
 
+    if (file.size > MAX_PDF_SIZE) {
+      return { success: false, error: "حجم الملف يتجاوز الحد المسموح (20 ميجابايت)" };
+    }
+
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    if (buffer.subarray(0, 5).toString("ascii") !== "%PDF-") {
+      return { success: false, error: "الملف المرفوع ليس ملف PDF صالحاً" };
+    }
 
-    if (typeof global.DOMMatrix === "undefined") {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (global as any).DOMMatrix = class DOMMatrix {
+    if (typeof (globalThis as unknown as { DOMMatrix?: unknown }).DOMMatrix === "undefined") {
+      (globalThis as unknown as { DOMMatrix: unknown }).DOMMatrix = class DOMMatrix {
         a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
         constructor(_init?: unknown) {}
       };
@@ -384,19 +478,27 @@ export async function parseOfficer121PdfAction(formData: FormData) {
 
     const acroMap: Record<string, string> = {};
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    function render_page(pageData: any) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return pageData.getAnnotations().then(function(annotations: any[]) {
+    interface PdfAnnotation {
+      fieldName?: string;
+      fieldValue?: unknown;
+    }
+    interface PdfTextItem {
+      str: string;
+    }
+    interface PdfPageData {
+      getAnnotations: () => Promise<PdfAnnotation[]>;
+      getTextContent: () => Promise<{ items: PdfTextItem[] }>;
+    }
+
+    function render_page(pageData: PdfPageData) {
+      return pageData.getAnnotations().then(function(annotations: PdfAnnotation[]) {
         annotations.forEach((ann) => {
           if (ann.fieldName && ann.fieldValue) {
             acroMap[ann.fieldName] = String(ann.fieldValue).trim();
           }
         });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return pageData.getTextContent().then((textContent: any) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          return textContent.items.map((item: any) => item.str).join(" ");
+        return pageData.getTextContent().then((textContent) => {
+          return textContent.items.map((item) => item.str).join(" ");
         });
       });
     }
@@ -417,8 +519,7 @@ export async function parseOfficer121PdfAction(formData: FormData) {
       };
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const extracted: Record<string, any> = {};
+    const extracted: Extracted121Data = {};
 
     // --- PHASE 1: ACROFORM MAPPING (Highest Precision) ---
     if (acroMap.off_name) {

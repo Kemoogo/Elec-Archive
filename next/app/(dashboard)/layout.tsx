@@ -55,13 +55,11 @@ export default async function DashboardLayout({
 
   const user = result.user!;
 
-  // Trigger daily rollcall reminder check (Sun-Thu, 09:00+)
+  // Trigger daily rollcall reminder check (Sun-Thu, 09:00+) non-blockingly
   if (user.role === "admin" || (user.permissions && user.permissions.arkan_harb !== "none")) {
-    try {
-      await checkDailyRollcallReminder();
-    } catch (error) {
+    void checkDailyRollcallReminder().catch((error) => {
       console.error("Failed to check daily rollcall reminder:", error);
-    }
+    });
   }
 
   const accessCheck = checkRouteAccess(pathname, user.role, user.permissions);

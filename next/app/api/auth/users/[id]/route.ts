@@ -3,10 +3,11 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { User } from "@/lib/db/models/User";
 import { requireAdmin } from "@/lib/auth/middleware";
 import { logAuditEvent } from "@/lib/auth/audit";
-import { updateUserSchema } from "@/validations/auth";
+import { updateUserSchema } from "@/lib/validations/auth";
 import { errors } from "@/lib/auth/errors";
 import { handleApiError } from "@/lib/utils/api-error";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
+import { signToken, setTokenCookie } from "@/lib/auth/jwt";
 import { UpdateQuery } from "mongoose";
 
 export async function GET(
@@ -105,6 +106,22 @@ export async function PATCH(
       );
     }
 
+    const targetUser = await User.findById(id);
+    if (!targetUser) {
+      return NextResponse.json({ success: false, error: "المستخدم غير موجود" }, { status: 404 });
+    }
+
+    const effectiveRole = parsed.data.role ?? targetUser.role;
+    if (effectiveRole === "viewer") {
+      const permsToCheck = parsed.data.permissions ?? targetUser.permissions;
+      if (permsToCheck && Object.values(permsToCheck).some((p) => p === "edit")) {
+        return NextResponse.json(
+          { success: false, error: "المستخدم بدور مستعرض (viewer) لا يمكن أن يمتلك صلاحية تعديل (edit)" },
+          { status: 400 }
+        );
+      }
+    }
+
     const updateData: Record<string, unknown> = {};
     const incData: Record<string, number> = {};
     let shouldIncrementTokenVersion = false;
@@ -147,6 +164,15 @@ export async function PATCH(
         { success: false, error: errors.userNotFound },
         { status: 404 },
       );
+    }
+
+    if (id === auth.user!.id && shouldIncrementTokenVersion) {
+      const newToken = signToken({
+        userId: user._id.toString(),
+        role: user.role,
+        tokenVersion: user.tokenVersion,
+      });
+      await setTokenCookie(newToken);
     }
 
     const changes = Object.keys(updateData).filter((k) => k !== "password").join(", ");

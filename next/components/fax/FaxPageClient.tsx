@@ -8,6 +8,14 @@ import { ModernPageHeader as PageHeader, PrimaryHeaderBtn } from "@/components/l
 import { FileText, Plus, Calendar, X } from "lucide-react";
 import { DateField } from "@/components/ui/date-field";
 import { Paginator } from "@/components/ui/paginator";
+import { CustomSelect, type CustomSelectOption } from "@/components/ui/custom-select";
+
+const FAX_STATUS_OPTIONS: CustomSelectOption[] = [
+  { value: "", label: "جميع الحالات" },
+  { value: "pending", label: "معلق" },
+  { value: "forwarded", label: "موجّه" },
+  { value: "closed", label: "مغلق" },
+];
 
 interface SerializedFax {
   _id: string;
@@ -72,8 +80,10 @@ export function FaxPageClient({
   );
 
   const handleSearchChange = (query: string) => {
-    setSearchQuery(query);
-    applyFilters({ search: query });
+    const trimmed = query.trim();
+    if (trimmed.length === 1) return;
+    setSearchQuery(trimmed);
+    applyFilters({ search: trimmed });
   };
 
   const handleStatusChange = (status: string) => {
@@ -111,16 +121,13 @@ export function FaxPageClient({
         searchPlaceholder="بحث برقم الفاكس أو الموضوع..."
         action={
           <div className="flex items-center gap-2">
-            <select
+            <CustomSelect
               value={statusFilter}
-              onChange={(e) => handleStatusChange(e.target.value)}
-              className="btn-secondary-sm"
-            >
-              <option value="">جميع الحالات</option>
-              <option value="pending">معلق</option>
-              <option value="forwarded">موجّه</option>
-              <option value="closed">مغلق</option>
-            </select>
+              onChange={handleStatusChange}
+              options={FAX_STATUS_OPTIONS}
+              placeholder="جميع الحالات"
+              containerClassName="w-36"
+            />
 
             <button
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
@@ -161,7 +168,7 @@ export function FaxPageClient({
           </div>
           <button
             onClick={clearFilters}
-            className="mr-auto flex items-center gap-1 text-xs font-bold text-(--app-error) hover:text-(--app-error) transition-colors"
+            className="mr-auto flex items-center gap-1 text-xs font-bold text-(--app-muted-foreground) hover:text-(--color-primary) transition-colors"
           >
             <X className="w-3 h-3" />
             مسح الفلاتر

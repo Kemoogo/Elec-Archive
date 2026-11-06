@@ -5,6 +5,7 @@ import MainTable, { TableColumn } from "@/components/ui/Table";
 import { Activity } from "lucide-react";
 import { EditVisitModal } from "./EditVisitModal";
 import { ViewVisitModal } from "./ViewVisitModal";
+import { formatDateDisplay } from "@/lib/utils/date-display";
 
 interface DispensedMedicine {
   medicineId: string;
@@ -56,7 +57,7 @@ export function VisitTable({ visits, emptyTitle, emptyDescription, permissions }
         <button
           type="button"
           onClick={() => setViewVisitId(row._id)}
-          className="hover:underline hover:text-(--app-info) cursor-pointer border-none bg-transparent text-inherit"
+          className="font-black text-xs text-(--color-primary) hover:underline hover:text-(--app-info) cursor-pointer border-none bg-transparent text-right transition-colors"
         >
           {val as string}
         </button>
@@ -66,7 +67,7 @@ export function VisitTable({ visits, emptyTitle, emptyDescription, permissions }
       header: "تاريخ الزيارة",
       accessor: "visitDate",
       minWidth: hasLongDiagnosis,
-      render: (val) => <span className="font-mono">{new Date(val as string).toLocaleDateString("ar-EG")}</span>,
+      render: (val) => <span className="font-mono text-xs text-(--app-muted-foreground)">{formatDateDisplay(val as string)}</span>,
     },
     {
       header: "التشخيص",
@@ -79,7 +80,7 @@ export function VisitTable({ visits, emptyTitle, emptyDescription, permissions }
         if (words.length > 4) {
           const truncated = words.slice(0, 4).join(" ") + "...";
           return (
-            <span title={text} className="cursor-help hover:text-(--app-info) transition-colors">
+            <span title={text} className="cursor-default hover:text-(--app-info) transition-colors">
               {truncated}
             </span>
           );
@@ -110,7 +111,7 @@ export function VisitTable({ visits, emptyTitle, emptyDescription, permissions }
               : `${days} يوم`;
 
         return (
-          <span title={labels[type] || "راحة طبية"} className="cursor-help hover:text-(--app-info) font-bold">
+          <span title={labels[type] || "راحة طبية"} className="cursor-default hover:text-(--app-info) font-bold">
             {restLabel}
           </span>
         );
@@ -135,7 +136,7 @@ export function VisitTable({ visits, emptyTitle, emptyDescription, permissions }
           .join("\n");
 
         return (
-          <span title={tooltipText} className="cursor-help hover:text-(--app-info) font-bold">
+          <span title={tooltipText} className="cursor-default hover:text-(--app-info) font-bold">
             {label}
           </span>
         );
@@ -148,7 +149,7 @@ export function VisitTable({ visits, emptyTitle, emptyDescription, permissions }
         <button
           type="button"
           onClick={() => setSelectedVisitId(row._id)}
-          className="text-xs font-bold text-(--app-info) hover:underline cursor-pointer border-none bg-transparent"
+          className="text-xs font-black text-(--color-primary) hover:underline hover:text-(--app-info) cursor-pointer border-none bg-transparent"
         >
           تعديل
         </button>

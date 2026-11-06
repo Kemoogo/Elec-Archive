@@ -6,6 +6,7 @@ import { extractApiError } from "@/lib/utils";
 import { CreateUserModal } from "./create-user-modal";
 import { EditUserModal } from "./edit-user-modal";
 import MainTable, { TableColumn } from "@/components/ui/Table";
+import { LoadingState } from "@/components/ui/loading-state";
 import { Pencil, UserCheck, Unlock, Lock, UserX } from "lucide-react";
 
 interface UserSummary {
@@ -84,35 +85,41 @@ export const UserManagement = forwardRef<{ openCreateModal: () => void }, UserMa
     }
   }, [onShowCreate]);
 
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchUsers = useCallback(async (search = "") => {
+    const trimmed = search.trim();
+    if (trimmed.length === 1) return; // Ignore single-character searches
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       setLoading(true);
-      const url = search
-        ? `/api/auth/users?search=${encodeURIComponent(search)}`
+      const url = trimmed
+        ? `/api/auth/users?search=${encodeURIComponent(trimmed)}`
         : "/api/auth/users";
-      const res = await fetch(url);
+      const res = await fetch(url, { signal: controller.signal });
       const data = await res.json();
+      if (controller.signal.aborted) return;
       if (data.success) {
         setUsers(data.users);
       }
     } catch {
+      if (controller.signal.aborted) return;
       showToast("فشل في تحميل المستخدمين", "error");
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
     }
   }, [showToast]);
 
-  // Debounced search: fires 350ms after last keystroke
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      fetchUsers(searchQuery);
-    }, 350);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
+    fetchUsers(searchQuery);
   }, [searchQuery, fetchUsers]);
 
   useEffect(() => {
@@ -134,7 +141,7 @@ export const UserManagement = forwardRef<{ openCreateModal: () => void }, UserMa
       }
 
       showToast("تم تعطيل المستخدم بنجاح", "success");
-      fetchUsers();
+      fetchUsers(searchQuery);
     } catch {
       showToast("حدث خطأ في الاتصال", "error");
     }
@@ -156,7 +163,7 @@ export const UserManagement = forwardRef<{ openCreateModal: () => void }, UserMa
       }
 
       showToast("تم تفعيل المستخدم بنجاح", "success");
-      fetchUsers();
+      fetchUsers(searchQuery);
     } catch {
       showToast("حدث خطأ في الاتصال", "error");
     }
@@ -178,7 +185,7 @@ export const UserManagement = forwardRef<{ openCreateModal: () => void }, UserMa
       }
 
       showToast("تم فتح الحساب بنجاح", "success");
-      fetchUsers();
+      fetchUsers(searchQuery);
     } catch {
       showToast("حدث خطأ في الاتصال", "error");
     }
@@ -200,7 +207,7 @@ export const UserManagement = forwardRef<{ openCreateModal: () => void }, UserMa
       }
 
       showToast("تم قفل الحساب بنجاح", "success");
-      fetchUsers();
+      fetchUsers(searchQuery);
     } catch {
       showToast("حدث خطأ في الاتصال", "error");
     }
@@ -210,26 +217,26 @@ export const UserManagement = forwardRef<{ openCreateModal: () => void }, UserMa
     switch (role) {
       case "admin":
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-500/10 text-purple-600 border border-purple-500/20">
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)">
             مسؤول النظام
           </span>
         );
       case "commander":
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-500/10 text-blue-600 border border-blue-500/20">
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)">
             قائد
           </span>
         );
       case "employee":
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-500/10 text-slate-600 border border-slate-500/20">
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)">
             موظف
           </span>
         );
       case "viewer":
       default:
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-zinc-500/10 text-zinc-600 border border-zinc-500/20">
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)">
             مستعرض
           </span>
         );
@@ -265,7 +272,7 @@ export const UserManagement = forwardRef<{ openCreateModal: () => void }, UserMa
         <button
           type="button"
           onClick={() => setEditingUser(user)}
-          className="font-bold text-xs text-(--color-primary) hover:underline hover:text-(--app-info) cursor-pointer transition-colors text-right"
+          className="font-black text-xs text-(--color-primary) hover:underline hover:text-(--app-info) cursor-pointer transition-colors text-right"
         >
           {val as string}
         </button>
@@ -287,18 +294,18 @@ export const UserManagement = forwardRef<{ openCreateModal: () => void }, UserMa
       render: (_, user) => (
         <div className="flex items-center gap-1.5">
           {!user.isActive ? (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-500/10 text-red-600 border border-red-500/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)">
+              <span className="w-1.5 h-1.5 rounded-full bg-(--app-muted-foreground)" />
               معطل
             </span>
           ) : user.isLocked ? (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)">
+              <span className="w-1.5 h-1.5 rounded-full bg-(--app-muted-foreground)" />
               مقفل
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)">
+              <span className="w-1.5 h-1.5 rounded-full bg-(--color-primary)" />
               نشط
             </span>
           )}
@@ -319,7 +326,7 @@ export const UserManagement = forwardRef<{ openCreateModal: () => void }, UserMa
           <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
             {/* Edit User Button */}
             <ActionButton
-              icon={<Pencil className="w-4 h-4 text-blue-500" />}
+              icon={<Pencil className="w-4 h-4 text-(--color-primary) hover:text-(--app-info)" />}
               color="btn-action-primary"
               title="تعديل بيانات وصلاحيات المستخدم"
               placement={placement}
@@ -329,8 +336,8 @@ export const UserManagement = forwardRef<{ openCreateModal: () => void }, UserMa
             {/* Activate / Reactivate Button */}
             {!user.isActive && (
               <ActionButton
-                icon={<UserCheck className="w-4 h-4 text-emerald-600" />}
-                color="btn-action-success"
+                icon={<UserCheck className="w-4 h-4 text-(--color-primary) hover:text-(--app-info)" />}
+                color="btn-action-primary"
                 title="تفعيل الحساب"
                 placement={placement}
                 onClick={() => handleActivate(user.id)}
@@ -340,8 +347,8 @@ export const UserManagement = forwardRef<{ openCreateModal: () => void }, UserMa
             {/* Unlock Locked Account Button */}
             {user.isLocked && (
               <ActionButton
-                icon={<Unlock className="w-4 h-4 text-amber-500" />}
-                color="btn-action-warning"
+                icon={<Unlock className="w-4 h-4 text-(--color-primary) hover:text-(--app-info)" />}
+                color="btn-action-primary"
                 title="إلغاء قفل الحساب"
                 placement={placement}
                 onClick={() => handleUnlock(user.id)}
@@ -351,8 +358,8 @@ export const UserManagement = forwardRef<{ openCreateModal: () => void }, UserMa
             {/* Lock Account Button */}
             {!user.isLocked && user.isActive && user.id !== currentUserId && (
               <ActionButton
-                icon={<Lock className="w-4 h-4 text-amber-600" />}
-                color="btn-action-warning"
+                icon={<Lock className="w-4 h-4 text-(--color-primary) hover:text-(--app-info)" />}
+                color="btn-action-primary"
                 title="قفل الحساب مؤقتاً"
                 placement={placement}
                 onClick={() => handleLock(user.id)}
@@ -362,8 +369,8 @@ export const UserManagement = forwardRef<{ openCreateModal: () => void }, UserMa
             {/* Deactivate User Button */}
             {user.isActive && user.id !== currentUserId && (
               <ActionButton
-                icon={<UserX className="w-4 h-4 text-red-500" />}
-                color="btn-action-danger"
+                icon={<UserX className="w-4 h-4 text-(--color-primary) hover:text-(--app-info)" />}
+                color="btn-action-primary"
                 title="تعطيل الحساب"
                 placement={placement}
                 onClick={() => handleDeactivate(user.id)}
@@ -376,7 +383,7 @@ export const UserManagement = forwardRef<{ openCreateModal: () => void }, UserMa
   ];
 
   if (loading) {
-    return <div className="text-(--app-muted-foreground)">جاري التحميل...</div>;
+    return <LoadingState message="جاري تحميل المستخدمين..." />;
   }
 
   return (
@@ -394,8 +401,7 @@ export const UserManagement = forwardRef<{ openCreateModal: () => void }, UserMa
           onClose={() => setShowCreate(false)}
           onCreated={() => {
             setShowCreate(false);
-            showToast("تم إنشاء المستخدم بنجاح", "success");
-            fetchUsers();
+            fetchUsers(searchQuery);
           }}
         />
       )}
@@ -406,8 +412,7 @@ export const UserManagement = forwardRef<{ openCreateModal: () => void }, UserMa
           onClose={() => setEditingUser(null)}
           onSaved={() => {
             setEditingUser(null);
-            showToast("تم تحديث المستخدم بنجاح", "success");
-            fetchUsers();
+            fetchUsers(searchQuery);
           }}
         />
       )}

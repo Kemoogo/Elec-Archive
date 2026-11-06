@@ -7,7 +7,8 @@ import { useToast } from "@/components/ui/toast";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { DateField } from "@/components/ui/date-field";
-import { FormLabel, FormSelect, FormInput, FormTextarea } from "@/components/ui/form-fields";
+import { FormLabel, FormInput, FormTextarea } from "@/components/ui/form-fields";
+import { CustomSelect } from "@/components/ui/custom-select";
 import { extractApiError } from "@/lib/utils";
 import { Award } from "lucide-react";
 
@@ -37,17 +38,30 @@ export function OfficerPromoteModal({ officer, trigger }: OfficerPromoteModalPro
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
-  const [newRank, setNewRank] = useState(() => {
-    const currentIdx = RANK_OPTIONS.findIndex((r) => r.value === officer.rank);
-    if (currentIdx !== -1 && currentIdx < RANK_OPTIONS.length - 1) {
-      return RANK_OPTIONS[currentIdx + 1].value;
-    }
-    return officer.rank;
-  });
+
+  const currentIdx = RANK_OPTIONS.findIndex((r) => r.value === officer.rank);
+  const availableRanks =
+    currentIdx !== -1 && currentIdx < RANK_OPTIONS.length - 1
+      ? RANK_OPTIONS.slice(currentIdx + 1)
+      : RANK_OPTIONS;
+  const defaultNextRank =
+    currentIdx !== -1 && currentIdx < RANK_OPTIONS.length - 1
+      ? RANK_OPTIONS[currentIdx + 1].value
+      : officer.rank;
+
+  const [newRank, setNewRank] = useState(defaultNextRank);
   const [effectiveDate, setEffectiveDate] = useState(new Date().toISOString().split("T")[0]);
   const [orderNumber, setOrderNumber] = useState("");
   const [notes, setNotes] = useState("");
   const router = useRouter();
+
+  const handleOpen = () => {
+    setNewRank(defaultNextRank);
+    setEffectiveDate(new Date().toISOString().split("T")[0]);
+    setOrderNumber("");
+    setNotes("");
+    setOpen(true);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,7 +99,7 @@ export function OfficerPromoteModal({ officer, trigger }: OfficerPromoteModalPro
 
   return (
     <>
-      <div onClick={() => setOpen(true)} className="cursor-pointer inline-block">
+      <div onClick={handleOpen} className="cursor-pointer inline-block">
         {trigger}
       </div>
       {open && (
@@ -93,6 +107,15 @@ export function OfficerPromoteModal({ officer, trigger }: OfficerPromoteModalPro
           title="تسجيل ترقية"
           icon={<Award className="w-4 h-4" />}
           onClose={() => setOpen(false)}
+          footer={
+            <ModalActions
+              form="officer-promote-form"
+              submitText="حفظ الترقية"
+              submitLoading={loading}
+              cancelText="إلغاء"
+              onCancel={() => setOpen(false)}
+            />
+          }
         >
           <div className="mb-4 p-4 bg-(--color-primary)/5 border border-(--color-primary)/10 shadow-sm rounded-2xl text-right flex items-center justify-between">
             <div>
@@ -105,26 +128,17 @@ export function OfficerPromoteModal({ officer, trigger }: OfficerPromoteModalPro
               </div>
             )}
           </div>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form id="officer-promote-form" onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-              <div className="space-y-1.5 text-right">
-                <FormLabel htmlFor="promote-rank" required>
-                  الرتبة الجديدة
-                </FormLabel>
-                <FormSelect
-                  id="promote-rank"
-                  value={newRank}
-                  onChange={(e) => setNewRank(e.target.value)}
-                  focusVariant="amber"
-                  required
-                >
-                  {RANK_OPTIONS.map((r) => (
-                    <option key={r.value} value={r.value}>
-                      {r.label}
-                    </option>
-                  ))}
-                </FormSelect>
-              </div>
+              <CustomSelect
+                id="promote-rank"
+                label="الرتبة الجديدة"
+                value={newRank}
+                onChange={setNewRank}
+                options={availableRanks}
+                placeholder="اختر الرتبة..."
+                required
+              />
 
               <DateField
                 id="effective-date"
@@ -145,7 +159,7 @@ export function OfficerPromoteModal({ officer, trigger }: OfficerPromoteModalPro
                 value={orderNumber}
                 onChange={(e) => setOrderNumber(e.target.value)}
                 placeholder="مثلاً: 123 لسنة 2024"
-                focusVariant="amber"
+                focusVariant="blue"
               />
             </div>
 
@@ -158,16 +172,7 @@ export function OfficerPromoteModal({ officer, trigger }: OfficerPromoteModalPro
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}
-                focusVariant="amber"
-              />
-            </div>
-
-            <div className="pt-2">
-              <ModalActions
-                submitText="حفظ الترقية"
-                submitLoading={loading}
-                cancelText="إلغاء"
-                onCancel={() => setOpen(false)}
+                focusVariant="blue"
               />
             </div>
           </form>

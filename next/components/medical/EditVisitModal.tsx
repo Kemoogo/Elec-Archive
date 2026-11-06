@@ -4,10 +4,27 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { ModalActions } from "@/components/ui/modal-actions";
+import { LoadingState } from "@/components/ui/loading-state";
 import { Trash2, Edit } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
-import { FormField, FormInput, FormTextarea, FormSelect } from "@/components/ui/form-fields";
+import { FormField, FormInput, FormTextarea } from "@/components/ui/form-fields";
+import { CustomSelect, type CustomSelectOption } from "@/components/ui/custom-select";
 import { extractApiError } from "@/lib/utils";
+
+const FITNESS_CATEGORY_OPTIONS: CustomSelectOption[] = [
+  { value: "fit", label: "لائق طبياً" },
+  { value: "class_a", label: "لياقة فئة أ" },
+  { value: "class_b", label: "لياقة فئة ب" },
+  { value: "class_c", label: "لياقة فئة ج" },
+  { value: "temporary_unfit", label: "غير لائق مؤقتاً" },
+];
+
+const REST_TYPE_OPTIONS: CustomSelectOption[] = [
+  { value: "none", label: "لا يوجد" },
+  { value: "ward", label: "راحة بالعنبر" },
+  { value: "home", label: "راحة منزلية" },
+  { value: "exemption", label: "إعفاء مجهود" },
+];
 
 interface MedicineOption {
   _id: string;
@@ -185,24 +202,12 @@ export function EditVisitModal({ visitId, onClose }: EditVisitModalProps) {
   };
 
   const footer = (
-    <ModalActions className="sm:items-stretch w-full">
-      <button
-        type="submit"
-        form="edit-visit-form"
-        className="btn-primary"
-        disabled={saving}
-      >
-        {saving ? "جاري الحفظ..." : "حفظ التعديلات"}
-      </button>
-      <button
-        type="button"
-        onClick={onClose}
-        className="btn-secondary"
-        disabled={saving}
-      >
-        إلغاء
-      </button>
-    </ModalActions>
+    <ModalActions
+      form="edit-visit-form"
+      submitText="حفظ التعديلات"
+      submitLoading={saving}
+      onCancel={onClose}
+    />
   );
 
   return (
@@ -216,9 +221,7 @@ export function EditVisitModal({ visitId, onClose }: EditVisitModalProps) {
       footer={footer}
     >
       {loading ? (
-        <div className="py-12 text-center text-sm text-(--app-muted-foreground) font-bold">
-          جاري تحميل بيانات الزيارة...
-        </div>
+        <LoadingState message="جاري تحميل بيانات الزيارة..." variant="inline" />
       ) : (
         <form id="edit-visit-form" onSubmit={handleSubmit} className="space-y-4">
           {error && (
@@ -253,36 +256,25 @@ export function EditVisitModal({ visitId, onClose }: EditVisitModalProps) {
 
             {/* اللياقة الطبية والراحة الطبية */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-(--app-border) pt-4">
-              <FormField label="اللياقة الطبية">
-                <FormSelect
-                  id="visit-fitness"
-                  value={fitnessCategory}
-                  onChange={(e) => setFitnessCategory(e.target.value)}
-                >
-                  <option value="fit">لائق طبياً</option>
-                  <option value="class_a">لياقة فئة أ</option>
-                  <option value="class_b">لياقة فئة ب</option>
-                  <option value="class_c">لياقة فئة ج</option>
-                  <option value="temporary_unfit">غير لائق مؤقتاً</option>
-                </FormSelect>
-              </FormField>
+              <CustomSelect
+                id="visit-fitness"
+                label="اللياقة الطبية"
+                value={fitnessCategory}
+                onChange={setFitnessCategory}
+                options={FITNESS_CATEGORY_OPTIONS}
+              />
 
               <div className="grid grid-cols-2 gap-2">
-                <FormField label="نوع الراحة الطبية">
-                  <FormSelect
-                    id="visit-restType"
-                    value={restType}
-                    onChange={(e) => {
-                      setRestType(e.target.value);
-                      if (e.target.value === "none") setRestDays(0);
-                    }}
-                  >
-                    <option value="none">لا يوجد</option>
-                    <option value="ward">راحة بالعنبر</option>
-                    <option value="home">راحة منزلية</option>
-                    <option value="exemption">إعفاء مجهود</option>
-                  </FormSelect>
-                </FormField>
+                <CustomSelect
+                  id="visit-restType"
+                  label="نوع الراحة الطبية"
+                  value={restType}
+                  onChange={(val) => {
+                    setRestType(val);
+                    if (val === "none") setRestDays(0);
+                  }}
+                  options={REST_TYPE_OPTIONS}
+                />
 
                 <FormField label="المدة (بالأيام)">
                   <FormInput
@@ -406,7 +398,7 @@ export function EditVisitModal({ visitId, onClose }: EditVisitModalProps) {
                             <button
                                type="button"
                                onClick={() => removeDispense(d.medicineId)}
-                               className="btn-action-danger"
+                               className="p-1.5 rounded-lg btn-action-primary cursor-pointer"
                                title="حذف"
                             >
                                <Trash2 className="h-4 w-4" />

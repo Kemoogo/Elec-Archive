@@ -9,6 +9,7 @@ import { Branch } from "@/lib/db/models/Branch";
 import { Department } from "@/lib/db/models/Department";
 import { Officer } from "@/lib/db/models/Officer";
 import { handleApiError } from "@/lib/utils/api-error";
+import { escapeRegex } from "@/lib/utils";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
 import { createPositionAssignmentSchema } from "@/lib/validations/arkan-harb";
 
@@ -35,24 +36,28 @@ export async function GET(request: Request) {
 
     if (officerFilter && officerFilter.trim() !== "") {
       const trimmed = officerFilter.trim();
-      const matchedOfficers = await Officer.find({
-        $or: [
-          { fullName: { $regex: trimmed, $options: "i" } },
-          { militaryId: { $regex: trimmed, $options: "i" } },
-        ],
-      }).select("_id").lean();
-      const officerIds: unknown[] = matchedOfficers.map((o) => o._id);
-      if (trimmed.match(/^[0-9a-fA-F]{24}$/)) {
-        officerIds.push(trimmed);
-      }
+      const isObjectId = /^[0-9a-fA-F]{24}$/.test(trimmed);
+      if (trimmed.length >= 2 || isObjectId) {
+        const escaped = escapeRegex(trimmed);
+        const matchedOfficers = await Officer.find({
+          $or: [
+            { fullName: { $regex: escaped, $options: "i" } },
+            { militaryId: { $regex: escaped, $options: "i" } },
+          ],
+        }).select("_id").lean();
+        const officerIds: unknown[] = matchedOfficers.map((o) => o._id);
+        if (isObjectId) {
+          officerIds.push(trimmed);
+        }
 
-      query.$or = [
-        { primaryOfficerId: { $in: officerIds } },
-        { substituteOfficerIds: { $in: officerIds } },
-        { "assignmentHistory.officerId": { $in: officerIds } },
-        { positionTitle: { $regex: trimmed, $options: "i" } },
-        { department: { $regex: trimmed, $options: "i" } },
-      ];
+        query.$or = [
+          { primaryOfficerId: { $in: officerIds } },
+          { substituteOfficerIds: { $in: officerIds } },
+          { "assignmentHistory.officerId": { $in: officerIds } },
+          { positionTitle: { $regex: escaped, $options: "i" } },
+          { department: { $regex: escaped, $options: "i" } },
+        ];
+      }
     }
 
     const [dbBranches, dbDepartments, rawPositions] = await Promise.all([
@@ -196,6 +201,23 @@ export async function POST(request: Request) {
     const substituteIds = data.hasNoSubstitute
       ? []
       : (data.substituteOfficerIds || []).filter((id) => id && id.trim() !== "");
+
+    // Validate officers must be in unit and active
+    const checkIds = [primaryId, ...substituteIds].filter(Boolean) as string[];
+    if (checkIds.length > 0) {
+      const validOfficers = await Officer.find({
+        _id: { $in: checkIds },
+        isInUnit: true,
+        employmentStatus: "active",
+      }).select("_id").lean();
+
+      if (validOfficers.length !== checkIds.length) {
+        return NextResponse.json(
+          { success: false, error: "لا يمكن تسكين ضباط منقولين أو خارج الوحدة في وظائف أو تكليفات" },
+          { status: 400 }
+        );
+      }
+    }
 
     // Build initial assignment history
     const initialHistory = [];

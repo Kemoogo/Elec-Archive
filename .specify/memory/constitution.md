@@ -1,11 +1,11 @@
 <!-- Sync Impact Report
-Version change: 1.0.1 → 1.0.2
-Modified principles: None
+Version change: 1.1.0 → 1.1.1
+Modified principles: VI (Design-Driven UI & Layout Enforcement)
 Added sections: None
 Removed sections: None
 Templates requiring updates: None
 Follow-up TODOs: None
-Notes: PATCH bump — clarified Tech Stack versions to Next.js 16, React 19, Mongoose 9.x, Tailwind CSS 4, Zod 4 (already in use, aligned documentation)
+Notes: PATCH bump — clarified MainTable self-contained architecture (no redundant outer SectionWrapper) and consolidated native table props.
 -->
 
 # الأرشيف  (Elec Archive) Constitution
@@ -28,13 +28,23 @@ The system MUST operate completely offline with no internet dependency. All data
 
 TypeScript MUST be used strictly across the entire codebase. The use of `any` type is PROHIBITED — every variable, parameter, and return value MUST have an explicit or properly inferred type. All form inputs and API request/response bodies MUST be validated using Zod schemas. Validation MUST occur on the server side; client-side validation is supplementary only.
 
-### V. Quality Gates (بوابات الجودة)
+### V. Quality Gates & Main Branch Protection (بوابات الجودة وحماية الفرع الرئيسي — NON-NEGOTIABLE)
 
-ESLint and Prettier MUST be configured and enforced. `npm run build` is run ONLY when strictly necessary (e.g., major architectural changes, releases/deployments, or explicit user request) to maintain rapid iteration speed, and is NOT required after routine edits or minor modifications. Edge cases MUST be handled in every module: database connection failures, 404 for missing resources, unsupported file types/size limits, and concurrent edit conflicts.
+1. **Quality Gates**: ESLint and Prettier MUST be configured and enforced. `npx tsc --noEmit` MUST pass with 0 errors. `npm run build` is run ONLY when strictly necessary (e.g., major architectural changes, releases/deployments, or explicit user request) to maintain rapid iteration speed, and is NOT required after routine edits or minor modifications. Edge cases MUST be handled in every module: database connection failures, 404 for missing resources, unsupported file types/size limits, and concurrent edit conflicts. All search operations MUST implement debouncing (500ms), min-length guards (>= 2 chars), and immediate Enter triggers to protect server resources. After editing code, `graphify auto-update .` MUST be executed to maintain the structural AST navigation index.
+2. **Main Branch Protection (حماية الفرع الرئيسي main/master)**: Under NO circumstances may any code be merged into or switched to the `main` or `master` branch during development or iteration. All work MUST be performed on dedicated, isolated feature branches. Switching to or merging into `main`/`master` is STRICTLY PROHIBITED until:
+   - The application feature or task is completely finished, fully functional, and verified.
+   - All quality gates pass (`npx tsc --noEmit` 0 errors, lint checks, audit logging verified).
+   - Full UI layout and design system compliance audit is successfully completed.
+   - **EXPLICIT USER ORDER (بأمر صريح ومباشر من المستخدم)**: The agent MUST NOT merge into or switch to `main`/`master` autonomously; it requires direct, explicit command from the user. Without this explicit command, work stays on the feature branch.
 
-### VI. Design-Driven UI via Stitch MCP (تصميم الواجهات)
+### VI. Design-Driven UI & Layout Enforcement — Sapphire Archive (تصميم الواجهات والالتزام الصارم بالـ UI Layout)
 
-All frontend pages and components MUST be generated using the Stitch MCP workflow: (1) Write a natural language prompt referencing `DESIGN.md`, (2) Extract the generated HTML/CSS, (3) Convert to Next.js components with Tailwind CSS + shadcn/ui, (4) Connect to API Routes + Mongoose. A single Design System MUST be extracted in Phase 0 and stored in `DESIGN.md` — all subsequent screens MUST reference this document for visual consistency. The UI MUST support Arabic RTL layout throughout.
+All frontend pages and components MUST adhere strictly to the Sapphire Archive Design System ("The Digital Monolith") and layout standards. The living Single Source of Truth (SSOT) for all visual styles, color tokens, typography, inputs, tables, badges, and modals is the interactive Playground at `/theme-playground` (`next/app/(dashboard)/theme-playground/page.tsx`) along with centralized UI components in `next/components/ui/`.
+- **Mandatory Tables Layout**: Every table across all modules MUST use `MainTable` (`@/components/ui/Table`) directly (without redundant outer `<SectionWrapper>` since `MainTable` self-encapsulates it). Table headers use `bg-[var(--color-primary)] text-white`. Primary entity in table: highlighted with `text-(--color-primary) font-black hover:underline hover:text-(--app-info)`. Actions column & buttons: MUST use `ActionButton` with `btn-action-primary` (`text-(--color-primary) hover:text-(--app-info)`). All secondary columns, text, dates, ranks: calm neutral `text-(--app-muted-foreground)`. Use `showSerialNumber` for the standard Egyptian military serial column (`م`).
+- **Mandatory Modals Layout**: All modals MUST use `ModalShell` with `overlayClassName="bg-black/40"`. Backdrop blur (`backdrop-blur`) is STRICTLY PROHIBITED. Titles must be clean strings with icon badge. Footer MUST use `ModalActions` with unified buttons (`btn-primary`, `btn-secondary`, `btn-destructive`).
+- **Mandatory Inputs & Form Layout**: Dropdowns MUST use `CustomSelect` (raw `<select>` is strictly prohibited). Dates MUST use `DateField`. Focus ring on all inputs MUST be `focus:outline-none focus:ring-blue-500/20 focus:border-blue-500`. Labels MUST use officer label pattern `text-xs font-bold text-(--app-muted-foreground) block mr-1`.
+- **Color Discipline**: Non-brand colors (`amber`, `orange`, `yellow`) and raw `text-slate-500` are STRICTLY PROHIBITED. Use design tokens: `--color-primary`, `--app-muted-foreground`, `--app-surface-container`, `--app-border`. Red and green are restricted solely to toast notifications (`ToastProvider`) and standalone modal delete buttons (`btn-destructive`).
+- **Language & Layout**: The entire UI MUST support Arabic RTL layout (`dir="rtl"`) throughout. Reusable components from `@/components/ui/` MUST be used rather than ad-hoc inline styles.
 
 ## Additional Constraints
 
@@ -73,4 +83,4 @@ This constitution governs all development decisions for the الأرشيف ال�
 
 **Supremacy**: In case of conflict between this constitution and any other documentation, this constitution takes precedence.
 
-**Version**: 1.0.2 | **Ratified**: 2026-03-23 | **Last Amended**: 2026-03-27
+**Version**: 1.1.1 | **Ratified**: 2026-03-23 | **Last Amended**: 2026-10-21

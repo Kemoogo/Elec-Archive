@@ -1,12 +1,23 @@
 "use client";
 
-import { useState, useEffect, Fragment } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { ModalShell } from "@/components/ui/modal-shell";
+import { LoadingState } from "@/components/ui/loading-state";
 import { useToast } from "@/components/ui/toast";
 import { extractApiError } from "@/lib/utils";
-import { FormField, FormInput, FormSelect, FormLabel } from "@/components/ui/form-fields";
-import { UserCog, KeyRound, Shield } from "lucide-react";
+import { FormField, FormInput } from "@/components/ui/form-fields";
+import { CustomSelect, type CustomSelectOption } from "@/components/ui/custom-select";
+import { UserCog, KeyRound, Shield, Plus, Trash2, AlertCircle } from "lucide-react";
+import {
+  MODULES,
+  MODULE_CONFIG,
+  ROLE_LABELS,
+  ROLES,
+  type ModuleKey,
+  type PermissionLevel,
+  type PermissionRow,
+} from "./create-user-modal";
 
 interface UserSummary {
   id: string;
@@ -37,32 +48,6 @@ interface DynamicDep {
   branchId: { _id: string; name: string } | string;
 }
 
-const MODULES = ["fax", "officers", "arkan_harb", "medical", "students", "education"] as const;
-const PERMISSION_LEVELS = ["none", "view", "edit"] as const;
-const ROLES = ["admin", "commander", "employee", "viewer"] as const;
-
-const MODULE_CONFIG: Record<string, { label: string }> = {
-  fax: { label: "الفاكس والأرشيف" },
-  officers: { label: "شئون الضباط" },
-  arkan_harb: { label: "أركان الحرب" },
-  medical: { label: "الخدمات الطبية" },
-  students: { label: "شئون الطلبة" },
-  education: { label: "التعليم والتدريب" },
-};
-
-const PERMISSION_LEVEL_LABELS: Record<string, string> = {
-  none: "بدون صلاحية (محظور)",
-  view: "صلاحية قراءة (عرض فقط)",
-  edit: "كامل الصلاحيات (عرض وتعديل)",
-};
-
-const ROLE_LABELS: Record<string, string> = {
-  admin: "مسؤول النظام",
-  commander: "قائد",
-  employee: "موظف",
-  viewer: "مستعرض (عرض فقط)",
-};
-
 export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
   const { showToast } = useToast();
   const formId = `edit-user-form-${user.id}`;
@@ -71,14 +56,7 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
   const [department, setDepartment] = useState(user.department);
   const [dynamicBranches, setDynamicBranches] = useState<DynamicBranch[]>([]);
   const [dynamicDeps, setDynamicDeps] = useState<DynamicDep[]>([]);
-  const [permissions, setPermissions] = useState<Record<string, string>>({
-    fax: "none",
-    officers: "none",
-    arkan_harb: "none",
-    medical: "none",
-    students: "none",
-    education: "none",
-  });
+  const [permissionRows, setPermissionRows] = useState<PermissionRow[]>([]);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [changePassword, setChangePassword] = useState(false);
@@ -107,10 +85,21 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
 
         if (dataUser.success && dataUser.user) {
           setFullName(dataUser.user.fullName);
-          setRole(dataUser.user.role);
+          const currentRole = dataUser.user.role || user.role;
+          setRole(currentRole);
           setDepartment(dataUser.user.department || "");
           if (dataUser.user.permissions) {
-            setPermissions(dataUser.user.permissions);
+            const initialRows: PermissionRow[] = [];
+            for (const mod of MODULES) {
+              const val = dataUser.user.permissions[mod] as PermissionLevel | undefined;
+              if (val && val !== "none") {
+                initialRows.push({
+                  module: mod,
+                  level: currentRole === "viewer" && val === "edit" ? "view" : val,
+                });
+              }
+            }
+            setPermissionRows(initialRows);
           }
         }
       } catch {
@@ -120,14 +109,63 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
       }
     }
     loadData();
-  }, [user.id, showToast]);
+  }, [user.id, user.role, showToast]);
+
+  // When role changes to viewer, downgrade any "edit" permissions to "view"
+  function handleRoleChange(newRole: string) {
+    setRole(newRole);
+    if (newRole === "viewer") {
+      setPermissionRows((prev) =>
+        prev.map((r) => (r.level === "edit" ? { ...r, level: "view" } : r))
+      );
+    }
+  }
+
+  function handleAddPermission() {
+    const usedModules = new Set(permissionRows.map((r) => r.module));
+    const availableModule = MODULES.find((m) => !usedModules.has(m));
+    if (!availableModule) {
+      showToast("تمت إضافة جميع المنظومات بالفعل", "info");
+      return;
+    }
+    const defaultLevel: PermissionLevel = role === "viewer" ? "view" : "edit";
+    setPermissionRows((prev) => [...prev, { module: availableModule, level: defaultLevel }]);
+  }
+
+  function handleUpdateModule(index: number, newMod: ModuleKey) {
+    setPermissionRows((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], module: newMod };
+      return next;
+    });
+  }
+
+  function handleUpdateLevel(index: number, newLevel: PermissionLevel) {
+    if (role === "viewer" && newLevel === "edit") {
+      showToast("المستعرض (Viewer) لا يمكن أن يحصل على صلاحية تعديل", "error");
+      return;
+    }
+    setPermissionRows((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], level: newLevel };
+      return next;
+    });
+  }
+
+  function handleRemovePermission(index: number) {
+    setPermissionRows((prev) => prev.filter((_, i) => i !== index));
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
 
     if (changePassword) {
-      if (password.length < 6) {
-        showToast("كلمة المرور يجب أن تكون ٦ أحرف على الأقل", "error");
+      if (password.length < 8) {
+        showToast("كلمة المرور يجب أن تكون ٨ أحرف على الأقل", "error");
+        return;
+      }
+      if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
+        showToast("كلمة المرور يجب أن تحتوي على حرف واحد ورقم واحد على الأقل", "error");
         return;
       }
       if (password !== confirmPassword) {
@@ -136,10 +174,24 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
       }
     }
 
+    // Construct permissions object. Non-added modules are "none"
+    const builtPermissions: Record<string, string> = Object.fromEntries(
+      MODULES.map((m) => [m, "none"])
+    );
+    for (const rowItem of permissionRows) {
+      builtPermissions[rowItem.module] =
+        role === "viewer" && rowItem.level === "edit" ? "view" : rowItem.level;
+    }
+
     setSaving(true);
 
     try {
-      const body: Record<string, unknown> = { fullName, role, department, permissions };
+      const body: Record<string, unknown> = {
+        fullName,
+        role,
+        department,
+        permissions: builtPermissions,
+      };
       if (changePassword) {
         body.password = password;
       }
@@ -172,6 +224,68 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
     return !dynamicBranches.some((b) => b._id === bId);
   });
 
+  const roleOptions: CustomSelectOption[] = useMemo(
+    () =>
+      ROLES.map((r) => ({
+        value: r,
+        label: ROLE_LABELS[r] || r,
+      })),
+    []
+  );
+
+  const departmentOptions: CustomSelectOption[] = useMemo(() => {
+    if (dynamicBranches.length > 0) {
+      const list: CustomSelectOption[] = [];
+      dynamicBranches.forEach((branch) => {
+        list.push({ value: branch.name, label: branch.name });
+        const branchDeps = dynamicDeps.filter((d) => {
+          const bId = typeof d.branchId === "object" ? d.branchId?._id : d.branchId;
+          return bId === branch._id;
+        });
+        branchDeps.forEach((d) => {
+          list.push({
+            value: d.code || d.name,
+            label: `${branch.name} / ${d.name}`,
+          });
+        });
+      });
+
+      orphanDeps.forEach((d) => {
+        list.push({
+          value: d.code || d.name,
+          label: d.name,
+        });
+      });
+      return list;
+    }
+
+    return [
+      { value: "شئون الضباط", label: "شئون الضباط" },
+      { value: "الفاكس والأرشيف", label: "الفاكس والأرشيف" },
+      { value: "أركان الحرب", label: "أركان الحرب" },
+      { value: "الخدمات الطبية", label: "الخدمات الطبية" },
+      { value: "شئون الطلبة", label: "شئون الطلبة" },
+      { value: "التعليم والتدريب", label: "التعليم والتدريب" },
+    ];
+  }, [dynamicBranches, dynamicDeps, orphanDeps]);
+
+  const levelOptions: CustomSelectOption[] = useMemo(
+    () => [
+      { value: "none", label: "محظور (none)" },
+      { value: "view", label: "عرض فقط (view)" },
+      ...(role !== "viewer" ? [{ value: "edit", label: "عرض وتعديل (edit)" }] : []),
+    ],
+    [role]
+  );
+
+  const getModuleOptions = (currentIdx: number): CustomSelectOption[] => {
+    return MODULES.map((m) => ({
+      value: m,
+      label: MODULE_CONFIG[m]?.label || m,
+      disabled: permissionRows.some((r, i) => i !== currentIdx && r.module === m),
+    }));
+  };
+
   return (
     <ModalShell
       title={`تعديل بيانات المستخدم: ${user.username}`}
@@ -190,10 +304,7 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
       }
     >
       {loading ? (
-        <div className="py-12 flex flex-col items-center justify-center gap-3">
-          <div className="w-8 h-8 border-3 border-(--color-primary)/20 border-t-(--color-primary) rounded-full animate-spin" />
-          <span className="text-xs font-bold text-(--app-muted-foreground)">جاري تحميل بيانات المستخدم...</span>
-        </div>
+        <LoadingState message="جاري تحميل بيانات المستخدم..." variant="inline" />
       ) : (
         <form id={formId} onSubmit={handleSave} className="space-y-4" dir="rtl">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -210,67 +321,24 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
               </FormField>
             </div>
 
-            <FormField label="الدور الوظيفي" required>
-              <FormSelect value={role} onChange={(e) => setRole(e.target.value)}>
-                {ROLES.map((r) => (
-                  <option key={r} value={r}>
-                    {ROLE_LABELS[r] || r}
-                  </option>
-                ))}
-              </FormSelect>
-            </FormField>
+            <CustomSelect
+              id="edit-user-role"
+              label="الدور الوظيفي"
+              value={role}
+              onChange={handleRoleChange}
+              options={roleOptions}
+              required
+            />
 
-            <FormField label="الفرع / القسم التكتيكي" required>
-              <FormSelect value={department} onChange={(e) => setDepartment(e.target.value)}>
-                {dynamicBranches.length > 0 ? (
-                  <>
-                    {dynamicBranches.map((branch) => {
-                      const branchDeps = dynamicDeps.filter((d) => {
-                        const bId = typeof d.branchId === "object" ? d.branchId?._id : d.branchId;
-                        return bId === branch._id;
-                      });
-
-                      return (
-                        <Fragment key={branch._id}>
-                          {/* Option for the parent branch itself */}
-                          <option value={branch.name}>
-                            {branch.name}
-                          </option>
-                          {/* Options for child departments under this branch */}
-                          {branchDeps.map((d) => {
-                            const val = d.code || d.name;
-                            return (
-                              <option key={d._id} value={val}>
-                                {branch.name} / {d.name}
-                              </option>
-                            );
-                          })}
-                        </Fragment>
-                      );
-                    })}
-
-                    {orphanDeps.length > 0 &&
-                      orphanDeps.map((d) => {
-                        const val = d.code || d.name;
-                        return (
-                          <option key={d._id} value={val}>
-                            {d.name}
-                          </option>
-                        );
-                      })}
-                  </>
-                ) : (
-                  <>
-                    <option value="fax">الفاكس والأرشيف</option>
-                    <option value="officers">شئون الضباط</option>
-                    <option value="arkan_harb">أركان الحرب</option>
-                    <option value="medical">الخدمات الطبية</option>
-                    <option value="students">شئون الطلبة</option>
-                    <option value="education">التعليم والتدريب</option>
-                  </>
-                )}
-              </FormSelect>
-            </FormField>
+            <CustomSelect
+              id="edit-user-department"
+              label="الفرع / القسم التكتيكي"
+              value={department}
+              onChange={setDepartment}
+              options={departmentOptions}
+              placeholder="اختر الفرع أو القسم التكتيكي..."
+              required
+            />
           </div>
 
           {/* Change Password Card */}
@@ -296,71 +364,104 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
             </label>
 
             {changePassword && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-(--app-border)">
-                <FormField label="كلمة المرور الجديدة" required>
-                  <FormInput
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    dir="ltr"
-                    className="text-left font-mono"
-                    autoComplete="new-password"
-                  />
-                </FormField>
-                <FormField label="تأكيد كلمة المرور" required>
-                  <FormInput
-                    type="password"
-                    placeholder="••••••••"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    dir="ltr"
-                    className="text-left font-mono"
-                    autoComplete="new-password"
-                  />
-                </FormField>
+              <div className="space-y-2 pt-2 border-t border-(--app-border)">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <FormField label="كلمة المرور الجديدة" required>
+                    <FormInput
+                      type="password"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      dir="ltr"
+                      className="text-left font-mono"
+                      autoComplete="new-password"
+                    />
+                  </FormField>
+                  <FormField label="تأكيد كلمة المرور" required>
+                    <FormInput
+                      type="password"
+                      placeholder="••••••••"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      dir="ltr"
+                      className="text-left font-mono"
+                      autoComplete="new-password"
+                    />
+                  </FormField>
+                </div>
+                <p className="text-[11px] font-bold text-(--app-muted-foreground) pr-1">
+                  * كلمة المرور يجب أن تكون ٨ أحرف على الأقل وتحتوي على حرف واحد ورقم واحد على الأقل.
+                </p>
               </div>
             )}
           </div>
 
-          {/* Permissions Grid */}
-          <div className="space-y-2.5 pt-3 border-t border-(--app-border)">
+          {/* Dynamic Permissions Section (Modeled after PositionPlacementModal) */}
+          <div className="p-3.5 bg-(--app-surface-container)/30 rounded-2xl border border-(--app-border) space-y-3">
             <div className="flex items-center justify-between">
-              <FormLabel className="text-xs font-black text-(--color-primary) flex items-center gap-1.5">
-                <Shield className="w-3.5 h-3.5" />
-                صلاحيات المنظومات
-              </FormLabel>
-              <span className="text-[10px] font-bold text-(--app-muted-foreground)">
-                حدد مستوى وصول المستخدم لكل منظومة
-              </span>
+              <label className="text-xs font-bold text-(--app-muted-foreground) flex items-center gap-1.5">
+                <Shield className="w-3.5 h-3.5 text-(--color-primary)" />
+                <span>صلاحيات المنظومات</span>
+              </label>
+              <button
+                type="button"
+                onClick={handleAddPermission}
+                disabled={permissionRows.length >= MODULES.length}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-(--color-primary)/10 text-(--color-primary) border border-(--color-primary)/20 hover:bg-(--color-primary)/20 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>إضافة صلاحية</span>
+              </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-              {MODULES.map((mod) => (
-                <div
-                  key={mod}
-                  className="p-2.5 bg-(--app-surface-container) border border-(--app-border) rounded-xl space-y-1.5 transition-all hover:border-(--color-primary)/30"
-                >
-                  <label className="block text-xs font-black text-(--app-foreground)">
-                    {MODULE_CONFIG[mod]?.label || mod}
-                  </label>
-                  <FormSelect
-                    value={permissions[mod] || "none"}
-                    onChange={(e) =>
-                      setPermissions({ ...permissions, [mod]: e.target.value })
-                    }
-                    selectSize="sm"
-                    className="text-xs font-bold"
-                  >
-                    {PERMISSION_LEVELS.map((p) => (
-                      <option key={p} value={p}>
-                        {PERMISSION_LEVEL_LABELS[p] || p}
-                      </option>
-                    ))}
-                  </FormSelect>
-                </div>
-              ))}
-            </div>
+            {role === "viewer" && (
+              <div className="p-2.5 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-center gap-2 text-xs font-bold text-blue-700 dark:text-blue-300">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>المستخدم بدور مستعرض (Viewer) يقتصر فقط على صلاحيات القراءة (عرض فقط) ولا يمكنه التعديل.</span>
+              </div>
+            )}
+
+            {permissionRows.length === 0 ? (
+              <p className="text-xs font-bold text-(--app-muted-foreground) py-2 text-center">
+                لا توجد صلاحيات مخصصة (سيكون المستخدم محظوراً من كافة المنظومات).
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {permissionRows.map((rowItem, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    {/* Select Module */}
+                    <div className="flex-1">
+                      <CustomSelect
+                        value={rowItem.module}
+                        onChange={(val) => handleUpdateModule(idx, val as ModuleKey)}
+                        options={getModuleOptions(idx)}
+                        placeholder="اختر المنظومة..."
+                      />
+                    </div>
+
+                    {/* Select Permission Level */}
+                    <div className="w-44 sm:w-48">
+                      <CustomSelect
+                        value={rowItem.level}
+                        onChange={(val) => handleUpdateLevel(idx, val as PermissionLevel)}
+                        options={levelOptions}
+                        placeholder="اختر الصلاحية..."
+                      />
+                    </div>
+
+                    {/* Delete Permission Row */}
+                    <button
+                      type="button"
+                      onClick={() => handleRemovePermission(idx)}
+                      className="p-2 rounded-xl text-slate-500 hover:text-(--color-primary) hover:bg-(--color-primary)/10 border border-transparent hover:border-(--app-border) transition-all cursor-pointer shrink-0"
+                      title="حذف هذه الصلاحية"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </form>
       )}

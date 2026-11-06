@@ -1,111 +1,255 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { StudentList } from "@/components/students/StudentList";
-import { StudentForm } from "@/components/students/StudentForm";
+import React, { useState, useCallback } from "react";
+import { FolderTabs, type TabItem } from "@/components/ui/folder-tabs";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { ModernPageHeader as PageHeader } from "@/components/layout/ModernPageHeader";
-import { GraduationCap } from "lucide-react";
-
-interface SerializedStudent {
-  _id: string;
-  studentId: string;
-  fullName: string;
-  enrollDate: string;
-  status: string;
-  documents: { name: string; fileUrl: string; uploadedAt: string }[];
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import { StudentsDashboardTab } from "./StudentsDashboardTab";
+import { StudentRollcallTab } from "./StudentRollcallTab";
+import { CurrentStageTab } from "./CurrentStageTab";
+import { PreviousStagesTab } from "./PreviousStagesTab";
+import { MdbImportModal } from "./MdbImportModal";
+import { StudentShatbModal } from "./StudentShatbModal";
+import { StudentShatbReverseModal } from "./StudentShatbReverseModal";
+import {
+  GraduationCap,
+  LayoutDashboard,
+  Calendar,
+  Layers,
+  Archive,
+  FileSpreadsheet,
+} from "lucide-react";
+import type {
+  IStudentListItem,
+  IStageInfo,
+  IStudentsAnalyticsData,
+} from "@/types/student";
 
 interface StudentsPageClientProps {
-  students: SerializedStudent[];
-  total: number;
-  totalPages: number;
-  page: number;
+  initialStudents: IStudentListItem[];
+  initialTotal: number;
+  initialActiveStage: { mrhla: string; name: string };
+  initialStages: IStageInfo[];
+  initialAnalytics: IStudentsAnalyticsData;
   canEdit: boolean;
-  initialFilters: {
-    search?: string;
-    level?: string;
-    class?: string;
-    status?: string;
-  };
+  isAdmin: boolean;
 }
 
-
 export function StudentsPageClient({
-  students,
-  total,
-  totalPages,
-  page,
+  initialStudents,
+  initialTotal,
+  initialActiveStage,
+  initialStages,
+  initialAnalytics,
   canEdit,
-  initialFilters,
+  isAdmin,
 }: StudentsPageClientProps) {
-  const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState(initialFilters.search || "");
-  const [statusFilter, setStatusFilter] = useState(initialFilters.status || "");
+  // Active Tab
+  const [activeTab, setActiveTab] = useState<string>("dashboard");
 
-  const applyFilters = useCallback(
-    (updates: Record<string, string>) => {
-      const params = new URLSearchParams();
-      const current = {
-        search: searchQuery,
-        status: statusFilter,
-        ...updates,
-      };
+  // Stages & Active Stage state
+  const [activeStage, setActiveStage] = useState(initialActiveStage);
+  const [stages, setStages] = useState<IStageInfo[]>(initialStages);
 
-      if (current.search) params.set("search", current.search);
-      if (current.status) params.set("status", current.status);
-      params.set("page", "1");
+  // Students state for Tab 3 (Current Stage)
+  const [currentStudents, setCurrentStudents] = useState<IStudentListItem[]>(initialStudents);
+  const [totalStudents, setTotalStudents] = useState(initialTotal);
+  const [loadingCurrentStage, setLoadingCurrentStage] = useState(false);
 
-      router.push(`/students?${params.toString()}`);
+  // Analytics state
+  const [analytics, setAnalytics] = useState<IStudentsAnalyticsData>(initialAnalytics);
+
+  // Modals state
+  const [showMdbModal, setShowMdbModal] = useState(false);
+  const [shatbStudent, setShatbStudent] = useState<IStudentListItem | null>(null);
+  const [reverseShatbStudent, setReverseShatbStudent] = useState<IStudentListItem | null>(null);
+
+  // Refetch data for current stage and stages list
+  const refreshStageData = useCallback(async (targetMrhla?: string) => {
+    setLoadingCurrentStage(true);
+    try {
+      const mrhlaToFetch = targetMrhla || activeStage.mrhla;
+
+      const [studentsRes, stagesRes, analyticsRes] = await Promise.all([
+        fetch(`/api/students?mrhla=${mrhlaToFetch}&limit=100`),
+        fetch("/api/students/stages"),
+        fetch(`/api/students/analytics?mrhla=${mrhlaToFetch}`),
+      ]);
+
+      if (studentsRes.ok) {
+        const sData = await studentsRes.json();
+        if (sData.success) {
+          setCurrentStudents(sData.data.items || []);
+          setTotalStudents(sData.data.total || 0);
+        }
+      }
+
+      if (stagesRes.ok) {
+        const stData = await stagesRes.json();
+        if (stData.success) {
+          setStages(stData.data.stages || []);
+          if (stData.data.activeStage) {
+            setActiveStage(stData.data.activeStage);
+          }
+        }
+      }
+
+      if (analyticsRes.ok) {
+        const aData = await analyticsRes.json();
+        if (aData.success) {
+          setAnalytics(aData.data);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to refresh stage data:", err);
+    } finally {
+      setLoadingCurrentStage(false);
+    }
+  }, [activeStage.mrhla]);
+
+  const handleStageChange = async (newMrhla: string) => {
+    const found = stages.find((s) => s.mrhla === newMrhla);
+    if (found) {
+      setActiveStage({ mrhla: found.mrhla, name: found.name });
+    }
+    await refreshStageData(newMrhla);
+  };
+
+  const [selectedGovFilter, setSelectedGovFilter] = useState<string>("all");
+  const [selectedBloodFilter, setSelectedBloodFilter] = useState<string>("all");
+
+  const handleQualificationFilterSelect = (_qualification: string) => {
+    setActiveTab("current_stage");
+  };
+
+  const handleGovernorateFilterSelect = (governorate: string) => {
+    setSelectedGovFilter(governorate);
+    setActiveTab("current_stage");
+  };
+
+  const handleBloodTypeFilterSelect = (bloodType: string) => {
+    setSelectedBloodFilter(bloodType);
+    setActiveTab("current_stage");
+  };
+
+  // FolderTabs Items
+  const tabItems: TabItem[] = [
+    {
+      id: "dashboard",
+      label: "الرئيسية والمؤشرات",
+      icon: <LayoutDashboard className="w-4 h-4" />,
+      content: (
+        <StudentsDashboardTab
+          initialAnalytics={analytics}
+          canEdit={canEdit}
+          onSelectQualification={handleQualificationFilterSelect}
+          onSelectGovernorate={handleGovernorateFilterSelect}
+          onSelectBloodType={handleBloodTypeFilterSelect}
+          onNavigateToRollcall={() => setActiveTab("rollcall")}
+          onOpenMdbUpload={() => setShowMdbModal(true)}
+        />
+      ),
     },
-    [router, searchQuery, statusFilter]
-  );
-
-  const handleSearchChange = (query: string) => {
-    setSearchQuery(query);
-    applyFilters({ search: query });
-  };
-
-  const handleStatusChange = (status: string) => {
-    setStatusFilter(status);
-    applyFilters({ status });
-  };
+    {
+      id: "rollcall",
+      label: "التمام اليومي للطلبة",
+      icon: <Calendar className="w-4 h-4" />,
+      content: (
+        <StudentRollcallTab
+          activeStage={activeStage}
+          canEdit={canEdit}
+          isAdmin={isAdmin}
+        />
+      ),
+    },
+    {
+      id: "current_stage",
+      label: activeStage.name || "المرحلة الحالية النشطة",
+      icon: <Layers className="w-4 h-4" />,
+      badge: totalStudents > 0 ? totalStudents : undefined,
+      content: (
+        <CurrentStageTab
+          students={currentStudents}
+          total={totalStudents}
+          activeStage={activeStage}
+          stages={stages}
+          canEdit={canEdit}
+          initialGovernorateFilter={selectedGovFilter}
+          initialBloodTypeFilter={selectedBloodFilter}
+          onStageChange={handleStageChange}
+          onOpenShatb={(student) => setShatbStudent(student)}
+          onOpenReverseShatb={(student) => setReverseShatbStudent(student)}
+          onRefresh={() => refreshStageData()}
+          isLoading={loadingCurrentStage}
+        />
+      ),
+    },
+    {
+      id: "previous_stages",
+      label: "متبقيات وأرشيف المراحل السابقة",
+      icon: <Archive className="w-4 h-4" />,
+      content: (
+        <PreviousStagesTab
+          activeStage={activeStage}
+          stages={stages}
+          canEdit={canEdit}
+          onRefresh={() => refreshStageData()}
+        />
+      ),
+    },
+  ];
 
   return (
-    <PageContainer className="max-w-[1600px] mx-auto pb-12">
+    <PageContainer className="max-w-[1600px] mx-auto pb-12 space-y-4">
+      {/* Page Header */}
       <PageHeader
-        title="شئون الطلبة"
-        description="إدارة سجلات الطلبة وملفاتهم"
+        title="شئون الطلاب والدارسين"
+        description="إدارة السجلات العسكرية، التمام اليومي، استيراد قواعد بيانات Access، وأرشيف المراحل"
         icon={<GraduationCap className="w-6 h-6" />}
-        showSearch
-        searchQuery={searchQuery}
-        onSearchChange={handleSearchChange}
         action={
-          <div className="flex items-center gap-2">
-            <select
-              value={statusFilter}
-              onChange={(e) => handleStatusChange(e.target.value)}
-              className="btn-secondary-sm"
+          canEdit && (
+            <button
+              type="button"
+              onClick={() => setShowMdbModal(true)}
+              className="btn-primary flex items-center gap-2 py-2 px-4 text-xs font-bold cursor-pointer"
             >
-              <option value="all">جميع السجلات</option>
-              <option value="active">الطلبة الفعليون</option>
-              <option value="graduated">الخريجون</option>
-              <option value="dismissed">المنتهية خدمتهم</option>
-            </select>
-            {canEdit && <StudentForm mode="create" />}
-          </div>
+              <FileSpreadsheet className="w-4 h-4" />
+              <span>استيراد ملف Access (.mdb)</span>
+            </button>
+          )
         }
       />
 
-      <StudentList
-        students={students}
-        page={page}
-        totalPages={totalPages}
-        total={total}
+      {/* Modern FolderTabs Navigation */}
+      <FolderTabs
+        tabs={tabItems}
+        value={activeTab}
+        onValueChange={setActiveTab}
+        variant="folder"
+      />
+
+      {/* MDB Import Modal */}
+      <MdbImportModal
+        isOpen={showMdbModal}
+        onClose={() => setShowMdbModal(false)}
+        onSuccess={() => refreshStageData()}
+      />
+
+      {/* Shatb Action Modal */}
+      <StudentShatbModal
+        student={shatbStudent}
+        isOpen={Boolean(shatbStudent)}
+        onClose={() => setShatbStudent(null)}
+        onSuccess={() => refreshStageData()}
+      />
+
+      {/* Reverse Shatb Action Modal */}
+      <StudentShatbReverseModal
+        student={reverseShatbStudent}
+        isOpen={Boolean(reverseShatbStudent)}
+        onClose={() => setReverseShatbStudent(null)}
+        onSuccess={() => refreshStageData()}
+        isAdmin={isAdmin}
       />
     </PageContainer>
   );

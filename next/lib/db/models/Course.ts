@@ -56,5 +56,6 @@ CourseSchema.pre("validate", function () {
 
 CourseSchema.index({ status: 1 });
 CourseSchema.index({ startDate: 1 });
+CourseSchema.index({ participantModel: 1, status: 1, startDate: 1, endDate: 1, participants: 1 });
 
 export const Course = models.Course ?? model<ICourse>("Course", CourseSchema);

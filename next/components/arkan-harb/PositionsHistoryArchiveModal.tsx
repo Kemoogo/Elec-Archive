@@ -34,6 +34,13 @@ export function PositionsHistoryArchiveModal({ isOpen, onClose }: PositionsHisto
   const [queriedDate, setQueriedDate] = useState<string | null>(null);
   const [data, setData] = useState<HistoricalPositionRow[]>([]);
 
+  const handleClose = () => {
+    setSelectedDate(format(new Date(), "yyyy-MM-dd"));
+    setQueriedDate(null);
+    setData([]);
+    onClose();
+  };
+
   // Group positions by department/branch for merged row rendering
   const groupedData = useMemo(() => {
     const groups: { department: string; items: HistoricalPositionRow[] }[] = [];
@@ -133,7 +140,7 @@ export function PositionsHistoryArchiveModal({ isOpen, onClose }: PositionsHisto
     <ModalShell
       title="تقرير وأرشيف الوظائف التاريخي"
       icon={<History className="w-4 h-4" />}
-      onClose={onClose}
+      onClose={handleClose}
       overlayClassName="bg-black/40"
       panelClassName={`${
         queriedDate ? "max-w-4xl max-h-[85vh]" : "max-w-md"
@@ -144,8 +151,8 @@ export function PositionsHistoryArchiveModal({ isOpen, onClose }: PositionsHisto
           submitText="استعلام عن التعيينات"
           submitLoading={loading}
           onConfirm={handleSearch}
-          onCancel={onClose}
-          cancelText="إلغاء"
+          onCancel={handleClose}
+          cancelText="إغلاق"
         />
       }
     >
@@ -226,13 +233,13 @@ export function PositionsHistoryArchiveModal({ isOpen, onClose }: PositionsHisto
                             className="branch-cell px-5 py-3 align-middle border-l border-(--app-border)/30 group-hover/branch:bg-(--app-surface-container) hover:!bg-blue-500/10 dark:hover:!bg-blue-900/20 transition-colors duration-150 whitespace-nowrap bg-(--app-surface) cursor-default"
                             style={{ width: "1%" }}
                           >
-                            <span className="font-extrabold text-xs text-(--color-primary)">
+                            <span className="font-bold text-xs text-(--app-muted-foreground)">
                               {group.department}
                             </span>
                           </td>
 
                           {/* Position Title */}
-                          <td className="px-5 py-3 text-xs font-extrabold text-(--color-primary) align-middle">
+                          <td className="px-5 py-3 text-xs font-black text-(--color-primary) align-middle">
                             {firstItem.positionTitle}
                           </td>
 
@@ -283,7 +290,7 @@ export function PositionsHistoryArchiveModal({ isOpen, onClose }: PositionsHisto
                             </td>
 
                             {/* Position Title */}
-                            <td className="px-5 py-3 text-xs font-extrabold text-(--color-primary) align-middle">
+                            <td className="px-5 py-3 text-xs font-black text-(--color-primary) align-middle">
                               {item.positionTitle}
                             </td>
 

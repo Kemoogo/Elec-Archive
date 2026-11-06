@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { authenticate } from "@/lib/auth/middleware";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Department } from "@/lib/db/models/Department";
-import { updateDepartmentSchema } from "@/validations/department";
+import { updateDepartmentSchema } from "@/lib/validations/department";
 import { logAuditEvent } from "@/lib/auth/audit";
 
 export async function PATCH(
@@ -88,6 +88,23 @@ export async function DELETE(
     const department = await Department.findById(id);
     if (!department) {
       return NextResponse.json({ success: false, error: "القسم غير موجود" }, { status: 404 });
+    }
+
+    const { PositionAssignment } = await import("@/lib/db/models/PositionAssignment");
+    const { Officer } = await import("@/lib/db/models/Officer");
+    const { User } = await import("@/lib/db/models/User");
+
+    const [posCount, offCount, userCount] = await Promise.all([
+      PositionAssignment.countDocuments({ department: department.name }),
+      Officer.countDocuments({ department: department.name }),
+      User.countDocuments({ department: department.name }),
+    ]);
+
+    if (posCount > 0 || offCount > 0 || userCount > 0) {
+      return NextResponse.json(
+        { success: false, error: "لا يمكن حذف قسم مرتبط به ضباط أو مستخدمون أو وظائف فعالة" },
+        { status: 400 }
+      );
     }
 
     await Department.findByIdAndDelete(id);

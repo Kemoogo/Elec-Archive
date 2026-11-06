@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
 
 interface DeveloperInfo {
   isLoggedIn: boolean;
@@ -10,7 +9,6 @@ interface DeveloperInfo {
 }
 
 const Footer = () => {
-  const pathname = usePathname();
   const [info, setInfo] = useState<DeveloperInfo>({
     isLoggedIn: false,
     rankLabel: "مقدم",
@@ -47,7 +45,7 @@ const Footer = () => {
       isMounted = false;
       window.removeEventListener("focus", handleFocus);
     };
-  }, [pathname]);
+  }, []);
 
   return (
     <footer className="w-full text-(--app-white) mt-auto py-4 px-8 shadow-inner bg-primary-gradient dark:border-t dark:border-(--color-primary)/20 dark:shadow-none select-none">

@@ -3,10 +3,12 @@
 import { useState, useEffect } from "react";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { ModalActions } from "@/components/ui/modal-actions";
+import { LoadingState } from "@/components/ui/loading-state";
 import { useRouter } from "next/navigation";
-import { Trash2, AlertTriangle, Calendar, Package } from "lucide-react";
+import { AlertTriangle, Calendar, Package } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { cn, extractApiError } from "@/lib/utils";
+import { formatDateDisplay } from "@/lib/utils/date-display";
 
 interface Batch {
   _id: string;
@@ -37,6 +39,7 @@ export function MedicineDetailModal({ medicineId, onClose }: MedicineDetailModal
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
+  const [showDestroyConfirm, setShowDestroyConfirm] = useState(false);
 
   useEffect(() => {
     fetch(`/api/medical/medicines/${medicineId}`)
@@ -45,16 +48,15 @@ export function MedicineDetailModal({ medicineId, onClose }: MedicineDetailModal
         if (data.success) {
           setMedicine(data.data);
         } else {
-          setError(data.error);
+          setError(extractApiError(data, "فشل في تحميل بيانات الدواء"));
         }
       })
       .catch(() => setError("حدث خطأ أثناء تحميل البيانات"))
       .finally(() => setLoading(false));
   }, [medicineId]);
 
-  const handleDestroyExpired = async () => {
-    if (!confirm("هل أنت متأكد من إعدام كافة الكميات منتهية الصلاحية لهذا الدواء؟")) return;
-
+  const handleConfirmDestroy = async () => {
+    setShowDestroyConfirm(false);
     setActionLoading(true);
     try {
       const res = await fetch(`/api/medical/medicines/${medicineId}/destroy-expired`, {
@@ -82,39 +84,27 @@ export function MedicineDetailModal({ medicineId, onClose }: MedicineDetailModal
   );
 
   return (
-    <ModalShell
-      title="تفاصيل الدواء"
-      icon={<Package className="w-4 h-4" />}
-      onClose={onClose}
-      overlayClassName="bg-black/40"
-      panelClassName="max-h-[85vh] max-w-2xl border-(--app-border) shadow-depth-xl"
-      bodyClassName="p-0 no-scrollbar"
-      footer={
-        <ModalActions className="p-4 border-t border-(--app-border) bg-(--app-surface-container)/50">
-          {hasExpired && (
-            <button
-              onClick={handleDestroyExpired}
-              disabled={actionLoading}
-              className="btn-destructive flex items-center gap-2 px-6"
-            >
-              <Trash2 className="w-4 h-4" />
-              إعدام المنتهي
-            </button>
-          )}
-          <button
-            onClick={onClose}
-            className="btn-secondary px-6"
-          >
-            إلغاء
-          </button>
-        </ModalActions>
-      }
+    <>
+      <ModalShell
+        title="تفاصيل الدواء"
+        icon={<Package className="w-4 h-4" />}
+        onClose={onClose}
+        overlayClassName="bg-black/40"
+        panelClassName="max-h-[85vh] max-w-2xl border-(--app-border) shadow-depth-xl"
+        bodyClassName="p-0 no-scrollbar"
+        footer={
+          <ModalActions
+            mode="view"
+            destructiveText={hasExpired ? "إعدام المنتهي" : undefined}
+            onDestructive={hasExpired ? () => setShowDestroyConfirm(true) : undefined}
+            destructiveDisabled={actionLoading}
+            onCancel={onClose}
+          />
+        }
     >
       <div className="p-6">
         {loading ? (
-          <div className="py-20 text-center animate-pulse text-(--app-muted-foreground) font-bold">
-            جاري تحميل البيانات...
-          </div>
+          <LoadingState message="جاري تحميل البيانات..." variant="inline" />
         ) : error ? (
           <div className="p-4 bg-(--app-error)/10 text-(--app-error) rounded-xl border border-(--app-error)/20 text-center font-bold">
             {error}
@@ -169,13 +159,13 @@ export function MedicineDetailModal({ medicineId, onClose }: MedicineDetailModal
                                 isExpired && batch.quantity > 0 && "bg-(--app-error)/10"
                               )}
                             >
-                              <td className="px-5 py-3 text-xs font-bold text-(--app-muted-foreground) whitespace-nowrap">
-                                {new Date(batch.receivedAt).toLocaleDateString("ar-EG")}
+                              <td className="px-5 py-3 text-xs font-bold text-(--app-muted-foreground) whitespace-nowrap font-mono">
+                                {formatDateDisplay(batch.receivedAt)}
                               </td>
                               <td className="px-5 py-3 text-xs font-bold text-(--app-muted-foreground) whitespace-nowrap">
-                                <div className="flex items-center gap-1.5">
+                                <div className="flex items-center gap-1.5 font-mono">
                                   <Calendar className="w-3.5 h-3.5 text-(--app-muted-foreground)" />
-                                  {new Date(batch.expiryDate).toLocaleDateString("ar-EG")}
+                                  {formatDateDisplay(batch.expiryDate)}
                                 </div>
                               </td>
                               <td className="px-5 py-3 text-center text-xs font-mono font-bold text-(--app-muted-foreground) whitespace-nowrap">
@@ -211,5 +201,37 @@ export function MedicineDetailModal({ medicineId, onClose }: MedicineDetailModal
         )}
       </div>
     </ModalShell>
+
+    {showDestroyConfirm && (
+      <ModalShell
+        title="تأكيد إعدام الكميات المنتهية"
+        icon={<AlertTriangle className="w-4 h-4 text-(--app-error)" />}
+        titleVariant="danger"
+        onClose={() => setShowDestroyConfirm(false)}
+        overlayClassName="bg-black/40"
+        panelClassName="max-w-md border-(--app-border) shadow-depth-xl"
+        bodyClassName="p-6 space-y-3"
+        footer={
+          <ModalActions
+            submitText="تأكيد الإعدام"
+            submitVariant="destructive"
+            submitLoading={actionLoading}
+            onConfirm={handleConfirmDestroy}
+            cancelText="إلغاء"
+            onCancel={() => setShowDestroyConfirm(false)}
+          />
+        }
+      >
+        <div className="text-right space-y-2">
+          <p className="text-sm font-bold text-(--app-foreground)">
+            هل أنت متأكد من إعدام كافة الكميات منتهية الصلاحية لهذا الدواء؟
+          </p>
+          <p className="text-xs font-bold text-(--app-muted-foreground)">
+            سيتم تصفير رصيد كافة التشغيلات المنتهية ولا يمكن التراجع عن هذا الإجراء.
+          </p>
+        </div>
+      </ModalShell>
+    )}
+  </>
   );
 }

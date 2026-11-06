@@ -58,8 +58,9 @@ export async function GET(request: Request) {
         query.employmentStatus = status; // Keep for backward compat if needed
       }
     }
-    if (search) {
-      const escapedSearch = escapeRegex(search);
+    const trimmedSearch = search?.trim();
+    if (trimmedSearch && trimmedSearch.length >= 2) {
+      const escapedSearch = escapeRegex(trimmedSearch);
       const searchRegex = { $regex: escapedSearch, $options: "i" };
       query.$or = [
         { fullName: searchRegex },
@@ -187,7 +188,13 @@ export async function POST(request: Request) {
       isInUnit: true,
       joinDate: data.joinDate ? new Date(data.joinDate) : new Date(),
       birthDate: data.birthDate ? new Date(data.birthDate) : undefined,
+      graduationDate: data.graduationDate ? new Date(data.graduationDate) : undefined,
+      bloodType: data.bloodType,
+      religion: data.religion,
+      maritalStatus: data.maritalStatus,
+      faculty: data.faculty,
       file121Url: data.file121Url,
+      file121IssueDate: data.file121IssueDate,
       isArkanHarb: data.isArkanHarb,
     });
 

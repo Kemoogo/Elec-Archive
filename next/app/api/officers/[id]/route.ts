@@ -121,6 +121,7 @@ export async function PATCH(
     if (data.phone !== undefined) officer.phone = data.phone;
     if (data.nationalId !== undefined) officer.nationalId = data.nationalId;
     if (data.employmentStatus !== undefined) officer.employmentStatus = data.employmentStatus;
+    if (data.defaultLeaveSystem !== undefined) officer.defaultLeaveSystem = data.defaultLeaveSystem;
     if (data.isInUnit !== undefined) {
       const oldStatus = officer.isInUnit;
       officer.isInUnit = data.isInUnit;
@@ -138,10 +139,54 @@ export async function PATCH(
           updatedBy: auth.user!.id,
         });
       }
+
+      // If officer leaves the unit, automatically vacate them from any active position assignments
+      if (data.isInUnit === false) {
+        const { PositionAssignment } = await import("@/lib/db/models/PositionAssignment");
+        const departureDate = new Date(body.movement?.date || Date.now());
+
+        // 1. Vacate primary positions
+        await PositionAssignment.updateMany(
+          { primaryOfficerId: id },
+          {
+            $set: {
+              primaryOfficerId: null,
+              primaryStartDate: null,
+              "assignmentHistory.$[elem].endDate": departureDate,
+              "assignmentHistory.$[elem].notes": "تم إخلاء المنصب لمغادرة الضابط الوحدة",
+              updatedBy: auth.user!.id,
+            },
+          },
+          { arrayFilters: [{ "elem.officerId": id, "elem.role": "primary", "elem.endDate": null }] }
+        );
+
+        // 2. Remove from substitute positions
+        await PositionAssignment.updateMany(
+          { substituteOfficerIds: id },
+          {
+            $pull: {
+              substituteOfficerIds: id,
+              substituteStartDates: { officerId: id },
+            },
+            $set: {
+              "assignmentHistory.$[elem].endDate": departureDate,
+              "assignmentHistory.$[elem].notes": "تم إلغاء التكليف كبديل لمغادرة الضابط الوحدة",
+              updatedBy: auth.user!.id,
+            },
+          },
+          { arrayFilters: [{ "elem.officerId": id, "elem.role": "substitute", "elem.endDate": null }] }
+        );
+      }
     }
     if (data.joinDate !== undefined) officer.joinDate = new Date(data.joinDate);
     if (data.birthDate !== undefined) officer.birthDate = data.birthDate ? new Date(data.birthDate) : undefined;
+    if (data.graduationDate !== undefined) officer.graduationDate = data.graduationDate ? new Date(data.graduationDate) : undefined;
+    if (data.bloodType !== undefined) officer.bloodType = data.bloodType;
+    if (data.religion !== undefined) officer.religion = data.religion;
+    if (data.maritalStatus !== undefined) officer.maritalStatus = data.maritalStatus;
+    if (data.faculty !== undefined) officer.faculty = data.faculty;
     if (data.file121Url !== undefined) officer.file121Url = data.file121Url;
+    if (data.file121IssueDate !== undefined) officer.file121IssueDate = data.file121IssueDate;
     if (data.isArkanHarb !== undefined) officer.isArkanHarb = data.isArkanHarb;
 
     await officer.save();

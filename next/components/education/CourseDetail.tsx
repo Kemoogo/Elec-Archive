@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/toast";
 import { MonoBadge } from "@/components/ui/mono-badge";
 import { extractApiError } from "@/lib/utils";
 import { Trash2, Calendar } from "lucide-react";
+import { formatDateDisplay } from "@/lib/utils/date-display";
 
 interface CourseDetailProps {
   course: {
@@ -34,9 +35,9 @@ const statusLabels: Record<string, string> = {
 };
 
 const statusColors: Record<string, string> = {
-  upcoming: "bg-(--app-info)/20 text-(--app-info) border-(--app-info)/30",
-  ongoing: "bg-(--app-success)/20 text-(--app-success) border-(--app-success)/30",
-  completed: "bg-(--app-border) text-(--app-muted-foreground) border-(--app-border)",
+  upcoming: "bg-(--app-info)/10 text-(--app-info) border border-(--app-info)/20",
+  ongoing: "bg-(--color-primary)/10 text-(--color-primary) border border-(--color-primary)/20",
+  completed: "bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)",
 };
 
 export function CourseDetail({ course, canEdit }: CourseDetailProps) {
@@ -113,7 +114,7 @@ export function CourseDetail({ course, canEdit }: CourseDetailProps) {
             {course.participants.length === 0 && (
               <button
                 onClick={() => setShowDeleteConfirm(true)}
-                className="rounded-md border border-(--app-error)/30 bg-(--app-error)/10 px-4 py-2 text-sm text-(--app-error) hover:bg-(--app-error)/20"
+                className="btn-secondary text-xs"
               >
                 حذف الدورة
               </button>
@@ -128,7 +129,7 @@ export function CourseDetail({ course, canEdit }: CourseDetailProps) {
           <div>
             <span className="text-xs text-(--app-muted-foreground) block mb-1">تاريخ البداية</span>
             <MonoBadge
-              value={new Date(course.startDate).toLocaleDateString("ar-EG")}
+              value={formatDateDisplay(course.startDate)}
               icon={<Calendar className="w-3.5 h-3.5" />}
               size="sm"
             />
@@ -136,7 +137,7 @@ export function CourseDetail({ course, canEdit }: CourseDetailProps) {
           <div>
             <span className="text-xs text-(--app-muted-foreground) block mb-1">تاريخ الانتهاء</span>
             <MonoBadge
-              value={new Date(course.endDate).toLocaleDateString("ar-EG")}
+              value={formatDateDisplay(course.endDate)}
               icon={<Calendar className="w-3.5 h-3.5" />}
               size="sm"
             />
@@ -179,7 +180,7 @@ export function CourseDetail({ course, canEdit }: CourseDetailProps) {
                   <button
                     onClick={() => handleRemoveParticipant(p._id)}
                     disabled={removingParticipant === p._id}
-                    className="rounded-md border border-(--app-error)/30 px-3 py-1 text-xs text-(--app-error) hover:bg-(--app-error)/10 disabled:opacity-50"
+                    className="btn-secondary text-xs px-3 py-1 disabled:opacity-50"
                   >
                     {removingParticipant === p._id ? "جاري..." : "إزالة"}
                   </button>
@@ -227,21 +228,16 @@ export function CourseDetail({ course, canEdit }: CourseDetailProps) {
             setDeleteError("");
           }}
           footer={
-            <ModalActions>
-              <button type="button" onClick={handleDelete} disabled={isDeleting} className="btn-destructive disabled:opacity-50">
-                {isDeleting ? "جاري الحذف..." : "تأكيد الحذف"}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowDeleteConfirm(false);
-                  setDeleteError("");
-                }}
-                className="rounded-md border border-(--app-border) px-4 py-2 text-sm text-foreground hover:bg-white/10"
-              >
-                إلغاء
-              </button>
-            </ModalActions>
+            <ModalActions
+              submitText={isDeleting ? "جاري الحذف..." : "تأكيد الحذف"}
+              submitVariant="destructive"
+              submitLoading={isDeleting}
+              onConfirm={handleDelete}
+              onCancel={() => {
+                setShowDeleteConfirm(false);
+                setDeleteError("");
+              }}
+            />
           }
         >
             <p className="mt-2 text-sm text-(--app-muted-foreground)">

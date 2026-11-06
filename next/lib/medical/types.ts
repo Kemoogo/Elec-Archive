@@ -54,3 +54,51 @@ export interface Medication {
   totalQuantity: number;
   lastDispenseDate: string;
 }
+
+export interface MedicalDashboardStats {
+  visitsToday: number;
+  lowStockCount: number;
+  expiredCount: number;
+  totalMedicines: number;
+}
+
+export interface MedicalDashboardVisitItem {
+  _id: string;
+  id?: string;
+  className?: string;
+  patientId: string;
+  patientName: string;
+  visitDate: string;
+  diagnosis: string;
+  treatment: string;
+  restType?: string;
+  restDays?: number;
+  fitnessCategory?: string;
+  dispensedMedicines: Array<{
+    medicineId: string;
+    medicineName: string;
+    quantity: number;
+  }>;
+}
+
+export interface MedicalDashboardMedicineItem {
+  _id: string;
+  id?: string;
+  className?: string;
+  name: string;
+  unit: string;
+  concentration: string;
+  quantity: number;
+  expiryDate: string;
+  minThreshold: number;
+  isExpired: boolean;
+}
+
+export interface MedicalDashboardPatientItem {
+  _id: string;
+  patientId: string;
+  patientName: string;
+  visitCount: number;
+  lastVisitDate: string | null;
+}
+

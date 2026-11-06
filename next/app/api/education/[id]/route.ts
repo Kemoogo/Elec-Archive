@@ -7,8 +7,9 @@ import { handleApiError } from "@/lib/utils/api-error";
 import { Course } from "@/lib/db/models/Course";
 import { updateCourseSchema } from "@/lib/validations/education";
 import { unlink } from "fs/promises";
-import { join } from "path";
+import { resolve, sep } from "path";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
+import { canViewModule, canEditModule } from "@/lib/auth/authorization";
 import type { Types } from "mongoose";
 
 function serializeCourse(c: Record<string, unknown>) {
@@ -39,7 +40,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   if (!auth.success) {
     return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
   }
-  if (auth.user!.permissions.education === "none") {
+  if (!canViewModule(auth.user!, "education")) {
     return NextResponse.json({ success: false, error: errors.insufficientPermissions }, { status: 403 });
   }
   const ip = request.headers.get("x-forwarded-for") ?? "";
@@ -77,7 +78,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!auth.success) {
     return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
   }
-  if (auth.user!.permissions.education !== "edit") {
+  if (!canEditModule(auth.user!, "education")) {
     return NextResponse.json({ success: false, error: errors.insufficientPermissions }, { status: 403 });
   }
   const ip = request.headers.get("x-forwarded-for") ?? "";
@@ -133,7 +134,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   if (!auth.success) {
     return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
   }
-  if (auth.user!.permissions.education !== "edit") {
+  if (!canEditModule(auth.user!, "education")) {
     return NextResponse.json({ success: false, error: errors.insufficientPermissions }, { status: 403 });
   }
   const ip = request.headers.get("x-forwarded-for") ?? "";
@@ -155,9 +156,13 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     }
 
     // Delete associated files
+    const expectedDir = resolve(process.cwd(), "public", "uploads", "courses");
     for (const doc of (course.documents as { name: string; fileUrl: string }[])) {
       try {
-        await unlink(join(process.cwd(), "public", doc.fileUrl));
+        const filePath = resolve(process.cwd(), "public", doc.fileUrl.replace(/^\/+/, ""));
+        if (filePath.startsWith(expectedDir + sep)) {
+          await unlink(filePath);
+        }
       } catch { /* file may not exist */ }
     }
 

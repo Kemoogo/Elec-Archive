@@ -8,6 +8,7 @@ import { Course } from "@/lib/db/models/Course";
 import { courseListQuerySchema, createCourseSchema } from "@/lib/validations/education";
 import { escapeRegex } from "@/lib/utils";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
+import { hasModuleAccess } from "@/lib/auth/rbac";
 import type { Types } from "mongoose";
 
 export async function GET(request: Request) {
@@ -15,7 +16,7 @@ export async function GET(request: Request) {
   if (!auth.success) {
     return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
   }
-  if (auth.user!.permissions.education === "none") {
+  if (!hasModuleAccess(auth.user, "education", "view")) {
     return NextResponse.json({ success: false, error: errors.insufficientPermissions }, { status: 403 });
   }
   const ip = request.headers.get("x-forwarded-for") ?? "";
@@ -40,8 +41,9 @@ export async function GET(request: Request) {
     else if (status) { query.status = status; }
     else { query.status = { $in: ["upcoming", "ongoing"] }; }
 
-    if (search) {
-      query.title = { $regex: escapeRegex(search), $options: "i" };
+    const trimmedSearch = search?.trim();
+    if (trimmedSearch && trimmedSearch.length >= 2) {
+      query.title = { $regex: escapeRegex(trimmedSearch), $options: "i" };
     }
 
     const skip = (page - 1) * limit;
@@ -85,7 +87,7 @@ export async function POST(request: Request) {
   if (!auth.success) {
     return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
   }
-  if (auth.user!.permissions.education !== "edit") {
+  if (!hasModuleAccess(auth.user, "education", "edit")) {
     return NextResponse.json({ success: false, error: errors.insufficientPermissions }, { status: 403 });
   }
   const ip = request.headers.get("x-forwarded-for") ?? "";

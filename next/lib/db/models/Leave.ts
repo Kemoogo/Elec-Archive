@@ -6,9 +6,14 @@ import {
   LEAVE_STATUSES, 
   LEAVE_TYPE_LABELS, 
   LEAVE_STATUS_LABELS,
+  OFFICER_LEAVE_SYSTEMS,
+  OFFICER_LEAVE_SYSTEM_LABELS,
+  LEAVE_REQUEST_TYPES,
   type LeaveCategory,
   type LeaveType,
-  type LeaveStatus 
+  type LeaveStatus,
+  type OfficerLeaveSystem,
+  type LeaveRequestType,
 } from "./Leave.shared";
 
 export { 
@@ -17,9 +22,14 @@ export {
   LEAVE_STATUSES, 
   LEAVE_TYPE_LABELS, 
   LEAVE_STATUS_LABELS,
+  OFFICER_LEAVE_SYSTEMS,
+  OFFICER_LEAVE_SYSTEM_LABELS,
+  LEAVE_REQUEST_TYPES,
   type LeaveCategory,
   type LeaveType,
-  type LeaveStatus 
+  type LeaveStatus,
+  type OfficerLeaveSystem,
+  type LeaveRequestType,
 };
 
 export interface ILeaveExtension {
@@ -51,8 +61,16 @@ export interface ILeave extends Document {
   commanderDecision?: ICommanderDecision;
   extensionRequests?: ILeaveExtension[];
   actualReturnDate?: Date;
+  originalEndDate?: Date;
+  isResumedLeave?: boolean;
+  originalLeaveId?: Types.ObjectId;
+  isResumed?: boolean;
+  resumedLeaveId?: Types.ObjectId;
+  compensatedDays?: number;
   isReturnConfirmed?: boolean;
+  viewedByCommander?: boolean;
   reason?: string;
+  medicalReportUrl?: string;
   status: LeaveStatus;
   createdBy: Types.ObjectId;
   updatedBy: Types.ObjectId;
@@ -98,8 +116,16 @@ const LeaveSchema = new Schema<ILeave>(
       },
     ],
     actualReturnDate: { type: Date },
+    originalEndDate: { type: Date },
+    isResumedLeave: { type: Boolean, default: false },
+    originalLeaveId: { type: Schema.Types.ObjectId, ref: "Leave" },
+    isResumed: { type: Boolean, default: false },
+    resumedLeaveId: { type: Schema.Types.ObjectId, ref: "Leave" },
+    compensatedDays: { type: Number, default: 0 },
     isReturnConfirmed: { type: Boolean, default: false },
+    viewedByCommander: { type: Boolean, default: false },
     reason: { type: String, trim: true },
+    medicalReportUrl: { type: String, trim: true },
     status: {
       type: String,
       required: true,
@@ -119,6 +145,8 @@ LeaveSchema.pre("validate", function () {
 });
 
 LeaveSchema.index({ officerId: 1, startDate: 1, endDate: 1, status: 1 });
+LeaveSchema.index({ startDate: 1, endDate: 1, status: 1 });
 LeaveSchema.index({ status: 1 });
+LeaveSchema.index({ "commanderDecision.decidedAt": -1 }, { sparse: true });
 
 export const Leave = models.Leave ?? model<ILeave>("Leave", LeaveSchema);

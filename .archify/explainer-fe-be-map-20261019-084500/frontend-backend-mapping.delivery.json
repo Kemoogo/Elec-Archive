@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "84077435-d3ee-4885-b808-2c214e534d6f",
+  "status": "current",
+  "command": "deliver",
+  "type": "explainer",
+  "input": "/home/karim/projects/Elec-Archive/.archify/explainer-fe-be-map-20261019-084500/candidate.archify.md",
+  "output": "/home/karim/projects/Elec-Archive/.archify/explainer-fe-be-map-20261019-084500/frontend-backend-mapping.html",
+  "specification": {
+    "sha256": "1f8caf6496802851001013e99b0f6bdc3dbbc025fce95fb884fc2491e722e5d4",
+    "bytes": 20840
+  },
+  "artifact": {
+    "sha256": "95721c471c4e6d58e51fe990f7b2f6bf7917bad70c7ed7f80f93083bbc61b128",
+    "bytes": 1057715
+  },
+  "explainer": {
+    "preparedSha256": "546a8d15c243e8244aaccc191a0e6d22d4cf28e16782ac81cbee2c83e6253469",
+    "dependencies": [
+      {
+        "kind": "diagram-spec",
+        "id": "system-layers",
+        "inline": true,
+        "sha256": "0bc8e05600f98eee1d37a6fa3e74b4054d8f14ce448d8f9c29f7a5392f0f1ec9",
+        "bytes": 1262
+      },
+      {
+        "kind": "diagram-spec",
+        "id": "req-cycle",
+        "inline": true,
+        "sha256": "6209d26c61b648298aead831504d74cc04a33b7fdb21a8a2e10795c3c5d1cfb5",
+        "bytes": 1424
+      }
+    ]
+  }
+}

@@ -2,8 +2,21 @@
 
 import { useState } from "react";
 import { AlertCircle, Save } from "lucide-react";
-import { FormField, FormTextarea, FormSelect } from "@/components/ui/form-fields";
+import { FormField, FormTextarea } from "@/components/ui/form-fields";
+import { CustomSelect, type CustomSelectOption } from "@/components/ui/custom-select";
 import type { MedicalRecord } from "@/lib/medical/types";
+
+const BLOOD_TYPE_OPTIONS: CustomSelectOption[] = [
+  { value: "", label: "اختر فصيلة الدم..." },
+  { value: "A+", label: "A+" },
+  { value: "A-", label: "A-" },
+  { value: "B+", label: "B+" },
+  { value: "B-", label: "B-" },
+  { value: "AB+", label: "AB+" },
+  { value: "AB-", label: "AB-" },
+  { value: "O+", label: "O+" },
+  { value: "O-", label: "O-" },
+];
 
 interface MedicalDetailsTabProps {
   record: MedicalRecord | null;
@@ -21,6 +34,21 @@ export function MedicalDetailsTab({ record, patientName, canEdit, onSave }: Medi
   const [severityNotes, setSeverityNotes] = useState(record?.severityNotes ?? "");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const resetToRecord = () => {
+    setAllergies(record?.allergies.join("\n") ?? "");
+    setChronicConditions(record?.chronicConditions.join("\n") ?? "");
+    setBloodType(record?.bloodType ?? "");
+    setMedicalNotes(record?.medicalNotes ?? "");
+    setSeverityNotes(record?.severityNotes ?? "");
+    setError(null);
+  };
+
+  const [prevRecordVersion, setPrevRecordVersion] = useState(record?.version);
+  if (record?.version !== prevRecordVersion) {
+    setPrevRecordVersion(record?.version);
+    resetToRecord();
+  }
 
   const handleSave = async () => {
     if (!onSave) return;
@@ -100,23 +128,14 @@ export function MedicalDetailsTab({ record, patientName, canEdit, onSave }: Medi
           />
         </FormField>
 
-        <FormField label="فصيلة الدم">
-          <FormSelect
-            id="bloodType"
-            value={bloodType}
-            onChange={(e) => setBloodType(e.target.value)}
-          >
-            <option value="">اختر فصيلة الدم...</option>
-            <option value="A+">A+</option>
-            <option value="A-">A-</option>
-            <option value="B+">B+</option>
-            <option value="B-">B-</option>
-            <option value="AB+">AB+</option>
-            <option value="AB-">AB-</option>
-            <option value="O+">O+</option>
-            <option value="O-">O-</option>
-          </FormSelect>
-        </FormField>
+        <CustomSelect
+          id="bloodType"
+          label="فصيلة الدم"
+          value={bloodType}
+          onChange={setBloodType}
+          options={BLOOD_TYPE_OPTIONS}
+          placeholder="اختر فصيلة الدم..."
+        />
 
         <FormField label="ملاحظات طبية">
           <FormTextarea
@@ -140,8 +159,8 @@ export function MedicalDetailsTab({ record, patientName, canEdit, onSave }: Medi
           <button
             type="button"
             onClick={() => {
+              resetToRecord();
               setIsEditing(false);
-              setError(null);
             }}
             className="px-4 py-2 text-sm font-bold text-(--app-muted-foreground) hover:text-(--app-muted-foreground) transition-colors"
           >
@@ -185,7 +204,7 @@ export function MedicalDetailsTab({ record, patientName, canEdit, onSave }: Medi
           <ul className="text-sm font-bold text-(--app-foreground) space-y-1">
             {record!.chronicConditions.map((condition, idx) => (
               <li key={idx} className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-(--app-warning)" />
+                <span className="w-1.5 h-1.5 rounded-full bg-(--color-primary)" />
                 {condition}
               </li>
             ))}

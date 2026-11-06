@@ -9,6 +9,7 @@ import { buildFaxListSort } from "@/lib/fax/queries";
 import { escapeRegex } from "@/lib/utils";
 import { handleApiError } from "@/lib/utils/api-error";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
+import { hasModuleAccess } from "@/lib/auth/rbac";
 import type { Types } from "mongoose";
 
 export async function GET(request: Request) {
@@ -20,8 +21,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const faxPermission = auth.user!.permissions.fax;
-  if (faxPermission === "none") {
+  if (!hasModuleAccess(auth.user, "fax", "view")) {
     return NextResponse.json(
       { success: false, error: errors.insufficientPermissions },
       { status: 403 },
@@ -56,8 +56,9 @@ export async function GET(request: Request) {
       query.status = status;
     }
 
-    if (search) {
-      const escapedSearch = escapeRegex(search);
+    const trimmedSearch = search?.trim();
+    if (trimmedSearch && trimmedSearch.length >= 2) {
+      const escapedSearch = escapeRegex(trimmedSearch);
       const searchRegex = { $regex: escapedSearch, $options: "i" };
       query.$or = [
         { faxNumber: searchRegex },
@@ -147,7 +148,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (auth.user!.permissions.fax !== "edit") {
+  if (!hasModuleAccess(auth.user, "fax", "edit")) {
     return NextResponse.json(
       { success: false, error: errors.insufficientPermissions },
       { status: 403 },

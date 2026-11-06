@@ -20,9 +20,11 @@ export default async function DepartmentsPage() {
 
   await connectToDatabase();
 
-  const [branches, departments] = await Promise.all([
+  const { getUnitName } = await import("@/lib/db/settings");
+  const [branches, departments, unitName] = await Promise.all([
     Branch.find().sort({ order: 1, createdAt: 1 }).lean(),
     Department.find().populate("branchId", "name").sort({ order: 1, createdAt: 1 }).lean(),
+    getUnitName(),
   ]);
 
   const serializedBranches = branches.map((b) => ({
@@ -53,6 +55,7 @@ export default async function DepartmentsPage() {
     <DepartmentsPageClient
       initialBranches={serializedBranches}
       initialDepartments={serializedDepartments}
+      initialUnitName={unitName}
       canEdit={canEdit}
     />
   );

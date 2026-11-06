@@ -55,7 +55,7 @@ const TabsList = React.forwardRef<
   return (
     <div
       className={cn(
-        "relative w-full",
+        "relative w-full print:hidden",
         variant === "folder" && "bg-(--app-surface-container) rounded-t-2xl border border-b-0 border-(--app-border) pt-2 px-2.5 shadow-xs",
         variant === "underlined" && "border-b border-(--app-border) px-1",
         variant === "pills" && "bg-(--app-surface-container) border border-(--app-border) p-1.5 rounded-2xl w-fit max-w-full mb-4 shadow-xs",
@@ -65,8 +65,8 @@ const TabsList = React.forwardRef<
       <div
         ref={ref}
         className={cn(
-          "flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-[1px]",
-          variant === "folder" && "-mb-[1px] border-b border-(--app-border)",
+          "flex gap-1.5 overflow-x-auto overflow-y-hidden no-scrollbar",
+          variant === "folder" ? "items-end -mb-[1px] border-b border-(--app-border)" : "items-center",
           className
         )}
         {...props}
@@ -106,7 +106,7 @@ const TabsTrigger = React.forwardRef<
         /* Folder Variant: Distinct header container contrast, active tab pops seamlessly into content container below */
         variant === "folder" && [
           isActive
-            ? "px-5 py-2.5 sm:px-6 sm:py-3 rounded-t-xl bg-(--app-surface) text-(--color-primary) border-t border-x border-(--app-border) border-b-0 font-black -mb-[1px] z-20 shadow-xs"
+            ? "px-5 py-2.5 sm:px-6 sm:py-3 rounded-t-xl bg-(--app-surface) text-(--color-primary) border-t border-x border-(--app-border) border-b-0 font-black -mb-[1px] z-20 shadow-xs after:absolute after:-bottom-[2px] after:inset-x-0 after:h-[3px] after:bg-(--app-surface) after:z-30"
             : "px-4 py-2 my-0.5 rounded-lg border border-transparent text-(--app-muted-foreground) hover:text-(--color-primary) hover:bg-(--app-surface)/80 transition-all duration-150"
         ],
 

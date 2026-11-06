@@ -1,20 +1,13 @@
 "use client";
 
 import { ModalShell, ModalHeaderCard, ModalSection, ModalBadge } from "@/components/ui/modal-shell";
+import { ModalActions } from "@/components/ui/modal-actions";
 import { RANK_LABELS, type OfficerRank } from "@/lib/db/models/Officer.shared";
 import { compareOfficers } from "@/lib/officers/seniority";
-import { Briefcase, User, Edit, CheckCircle2, AlertCircle, FileText, Trash2 } from "lucide-react";
+import { Briefcase, User, CheckCircle2, AlertCircle, FileText } from "lucide-react";
+import type { OfficerOption } from "@/types";
 
-interface OfficerInfo {
-  id?: string;
-  _id?: string;
-  fullName: string;
-  rank: string;
-  militaryId?: string;
-  seniorityNumber?: string;
-  officerLabel?: string;
-  isArkanHarb?: boolean;
-}
+export type OfficerInfo = OfficerOption;
 
 export interface PositionViewData {
   id: string;
@@ -73,45 +66,28 @@ export function PositionViewModal({
       panelClassName="max-w-xl border-(--app-border) shadow-depth-xl"
       bodyClassName="p-5 space-y-4 no-scrollbar"
       footer={
-        <div className="flex items-center justify-between w-full flex-wrap gap-2">
-          {canEdit && onDeletePosition ? (
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                onDeletePosition(position);
-              }}
-              className="btn-destructive text-xs"
-            >
-              <Trash2 className="w-4 h-4 text-white" />
-              <span>حذف الوظيفة</span>
-            </button>
-          ) : <div />}
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn-secondary text-xs"
-            >
-              إلغاء
-            </button>
-
-            {canEdit && (
-              <button
-                type="button"
-                onClick={() => {
+        <ModalActions
+          mode="view"
+          destructiveText={canEdit && onDeletePosition ? "حذف الوظيفة" : undefined}
+          onDestructive={
+            canEdit && onDeletePosition
+              ? () => {
+                  onClose();
+                  onDeletePosition(position);
+                }
+              : undefined
+          }
+          submitText={canEdit ? "تعديل الوظيفة" : undefined}
+          onConfirm={
+            canEdit
+              ? () => {
                   onClose();
                   onEditPosition(position);
-                }}
-                className="btn-primary text-xs"
-              >
-                <Edit className="w-4 h-4" />
-                <span>تعديل الوظيفة</span>
-              </button>
-            )}
-          </div>
-        </div>
+                }
+              : undefined
+          }
+          onCancel={onClose}
+        />
       }
     >
       {/* 1. Header Card */}

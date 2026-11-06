@@ -4,6 +4,17 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { Officer } from "@/lib/db/models/Officer";
 import { handleApiError } from "@/lib/utils/api-error";
 import { canEditOfficers } from "@/lib/officers/access";
+import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
+import { z } from "zod";
+import { Types } from "mongoose";
+
+const checkSenioritySchema = z.object({
+  seniorityNumber: z.preprocess(
+    (val) => (typeof val === "number" ? String(val) : typeof val === "string" ? val.trim() : val),
+    z.string().min(1, "رقم الأقدمية مطلوب").regex(/^\d{5,}(?:[A-Za-z\u0600-\u06FF]+\d*)?$/, "رقم الأقدمية غير صالح")
+  ),
+  excludeOfficerId: z.string().optional(),
+});
 
 export async function POST(request: Request) {
   try {
@@ -12,15 +23,44 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "غير مصرح لك بإجراء هذه العملية" }, { status: 403 });
     }
 
-    const { seniorityNumber } = await request.json();
+    const ip = request.headers.get("x-forwarded-for") ?? "";
+    const rl = checkApiRateLimit(auth.user!.id, ip, "read");
+    if (!rl.allowed) {
+      return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
+    }
 
-    if (!seniorityNumber) {
-      return NextResponse.json({ success: false, error: "رقم الأقدمية مطلوب" }, { status: 400 });
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ success: false, error: "بيانات الطلب غير صالحة" }, { status: 400 });
+    }
+
+    const parsed = checkSenioritySchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: parsed.error.issues[0]?.message || "رقم الأقدمية غير صالح" },
+        { status: 400 }
+      );
+    }
+
+    const { seniorityNumber, excludeOfficerId } = parsed.data;
+
+    if (excludeOfficerId && !Types.ObjectId.isValid(excludeOfficerId)) {
+      return NextResponse.json(
+        { success: false, error: "معرف الضابط المستثنى غير صالح" },
+        { status: 400 }
+      );
     }
 
     await connectToDatabase();
 
-    const existing = await Officer.findOne({ seniorityNumber }).lean();
+    const query: Record<string, unknown> = { seniorityNumber };
+    if (excludeOfficerId) {
+      query._id = { $ne: new Types.ObjectId(excludeOfficerId) };
+    }
+
+    const existing = await Officer.findOne(query).lean();
 
     if (existing) {
       // ضابط لا يزال نشطاً وفي الوحدة — منع الإضافة

@@ -4,6 +4,7 @@ import { authenticate } from "@/lib/auth/middleware";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Branch } from "@/lib/db/models/Branch";
 import { logAuditEvent } from "@/lib/auth/audit";
+import { Types } from "mongoose";
 
 export async function POST(req: Request) {
   const auth = await authenticate();
@@ -29,10 +30,29 @@ export async function POST(req: Request) {
 
     // 1. If explicit orderedIds array provided
     if (Array.isArray(orderedIds) && orderedIds.length > 0) {
-      const updatePromises = orderedIds.map((branchId, index) =>
-        Branch.findByIdAndUpdate(branchId, { order: index + 1 })
-      );
-      await Promise.all(updatePromises);
+      const validIds = orderedIds.filter((bid) => Types.ObjectId.isValid(bid));
+      if (validIds.length > 0) {
+        await Branch.bulkWrite(
+          validIds.map((branchId, index) => ({
+            updateOne: {
+              filter: { _id: new Types.ObjectId(branchId) },
+              update: { $set: { order: index + 1 } },
+            },
+          }))
+        );
+
+        await logAuditEvent({
+          userId: user.id,
+          userName: user.fullName || user.username,
+          action: "UPDATE",
+          module: "users",
+          targetId: validIds[0],
+          description: "إعادة ترتيب الفروع بالكامل",
+        });
+
+        revalidatePath("/arkan-harb");
+        revalidatePath("/admin/departments");
+      }
       return NextResponse.json({ success: true, message: "تم تحديث ترتيب الفروع بنجاح" });
     }
 
@@ -41,7 +61,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "بيانات الترتيب غير مكتملة" }, { status: 400 });
     }
 
-    const branches = await Branch.find().sort({ order: 1, name: 1 });
+    const branches = await Branch.find().sort({ order: 1, name: 1 }).lean();
     const currentIndex = branches.findIndex((b) => b._id.toString() === id);
 
     if (currentIndex === -1) {
@@ -60,11 +80,15 @@ export async function POST(req: Request) {
     branches[currentIndex] = branches[targetIndex];
     branches[targetIndex] = temp;
 
-    // Persist new orders sequentially
-    const updateOps = branches.map((branch, index) =>
-      Branch.findByIdAndUpdate(branch._id, { order: index + 1 })
+    // Persist new orders using bulkWrite
+    await Branch.bulkWrite(
+      branches.map((branch, index) => ({
+        updateOne: {
+          filter: { _id: branch._id },
+          update: { $set: { order: index + 1 } },
+        },
+      }))
     );
-    await Promise.all(updateOps);
 
     await logAuditEvent({
       userId: user.id,

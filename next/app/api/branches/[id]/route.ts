@@ -3,7 +3,7 @@ import { authenticate } from "@/lib/auth/middleware";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Branch } from "@/lib/db/models/Branch";
 import { Department } from "@/lib/db/models/Department";
-import { updateBranchSchema } from "@/validations/department";
+import { updateBranchSchema } from "@/lib/validations/department";
 import { logAuditEvent } from "@/lib/auth/audit";
 
 export async function PATCH(

@@ -10,6 +10,7 @@ import { createVisitSchema, visitListQuerySchema } from "@/lib/validations/medic
 import { dispenseMultipleMedicines } from "@/lib/medical/stock";
 import { escapeRegex } from "@/lib/utils";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
+import { hasModuleAccess } from "@/lib/auth/rbac";
 import type { Types } from "mongoose";
 import { IMedicalVisit } from "@/lib/db/models/MedicalVisit";
 import { IMedicalPatient } from "@/lib/db/models/MedicalPatient";
@@ -27,8 +28,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const medicalPermission = auth.user!.permissions.medical;
-  if (medicalPermission === "none") {
+  if (!hasModuleAccess(auth.user, "medical", "view")) {
     return NextResponse.json(
       { success: false, error: errors.insufficientPermissions },
       { status: 403 },
@@ -154,7 +154,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (auth.user!.permissions.medical !== "edit") {
+  if (!hasModuleAccess(auth.user, "medical", "edit")) {
     return NextResponse.json(
       { success: false, error: errors.insufficientPermissions },
       { status: 403 },

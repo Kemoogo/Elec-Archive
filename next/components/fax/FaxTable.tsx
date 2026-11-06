@@ -2,6 +2,7 @@
 
 import MainTable, { TableColumn } from "@/components/ui/Table";
 import Link from "next/link";
+import { formatDateDisplay } from "@/lib/utils/date-display";
 
 interface FaxItem {
   _id: string;
@@ -25,9 +26,9 @@ const statusLabels: Record<string, string> = {
 };
 
 const statusColors: Record<string, string> = {
-  pending: "bg-(--app-warning)/20 text-(--app-warning)",
-  forwarded: "bg-(--app-info)/20 text-(--app-info)",
-  closed: "bg-(--app-success)/20 text-(--app-success)",
+  pending: "bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)",
+  forwarded: "bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)",
+  closed: "bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)",
 };
 
 export function FaxTable({ faxes }: FaxTableProps) {
@@ -35,9 +36,8 @@ export function FaxTable({ faxes }: FaxTableProps) {
     {
       header: "رقم الفاكس",
       accessor: "faxNumber",
-      className: "font-medium text-(--color-primary)",
       render: (val, row) => (
-        <Link href={`/fax/${row._id}`} className="hover:underline">
+        <Link href={`/fax/${row._id}`} className="font-mono text-xs font-bold text-(--app-muted-foreground) hover:underline hover:text-(--app-info)">
           {val as string}
         </Link>
       ),
@@ -45,7 +45,7 @@ export function FaxTable({ faxes }: FaxTableProps) {
     {
       header: "التاريخ",
       accessor: "date",
-      render: (val) => <span className="font-mono">{new Date(val as string).toLocaleDateString("ar-EG")}</span>,
+      render: (val) => <span className="font-mono text-xs text-(--app-muted-foreground)">{formatDateDisplay(val as string)}</span>,
     },
     {
       header: "الجهة المرسِلة",
@@ -54,14 +54,18 @@ export function FaxTable({ faxes }: FaxTableProps) {
     {
       header: "الموضوع",
       accessor: "subject",
-
+      render: (val, row) => (
+        <Link href={`/fax/${row._id}`} className="font-black text-xs text-(--color-primary) hover:underline hover:text-(--app-info) transition-colors">
+          {val as string}
+        </Link>
+      ),
     },
     {
       header: "الحالة",
       accessor: "status",
       render: (val) => (
         <span
-          className={`inline-block rounded-full px-3 py-1 text-xs font-medium ${statusColors[val as string]}`}
+          className={`inline-block rounded-full px-3 py-1 text-xs font-bold border ${statusColors[val as string] || "bg-(--app-surface-container) text-(--app-muted-foreground) border-(--app-border)"}`}
         >
           {statusLabels[val as string]}
         </span>
@@ -70,7 +74,7 @@ export function FaxTable({ faxes }: FaxTableProps) {
     {
       header: "رفعه",
       accessor: "uploadedBy.fullName",
-      render: (_, row) => row.uploadedBy.fullName,
+      render: (_, row) => <span className="text-xs font-bold text-(--app-muted-foreground)">{row.uploadedBy?.fullName || "ـ"}</span>,
     },
   ];
 

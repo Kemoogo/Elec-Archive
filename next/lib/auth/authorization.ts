@@ -1,12 +1,12 @@
 import { AuthUser, ModulePermissions, PermissionLevel } from "./types";
+import { hasModuleAccess } from "./rbac";
 
 /**
  * Checks if a user has view or edit access to a specific module.
- * Admin always has full access.
+ * Admin always has full access. Commander has view access.
  */
 export function canViewModule(user: AuthUser, module: keyof ModulePermissions): boolean {
-  if (user?.role === "admin") return true;
-  return user?.permissions?.[module] === "view" || user?.permissions?.[module] === "edit";
+  return hasModuleAccess(user, module, "view");
 }
 
 /**
@@ -14,8 +14,7 @@ export function canViewModule(user: AuthUser, module: keyof ModulePermissions): 
  * Admin always has full access.
  */
 export function canEditModule(user: AuthUser, module: keyof ModulePermissions): boolean {
-  if (user?.role === "admin") return true;
-  return user?.permissions?.[module] === "edit";
+  return hasModuleAccess(user, module, "edit");
 }
 
 /**
@@ -27,15 +26,6 @@ export function requireModuleAccess(
   module: keyof ModulePermissions,
   requiredLevel: PermissionLevel
 ): boolean {
-  if (user?.role === "admin" || requiredLevel === "none") return true;
-  
-  const userLevel = user?.permissions?.[module];
-  if (requiredLevel === "edit") {
-    return userLevel === "edit";
-  }
-  if (requiredLevel === "view") {
-    return userLevel === "view" || userLevel === "edit";
-  }
-  
-  return false;
+  if (requiredLevel === "none") return true;
+  return hasModuleAccess(user, module, requiredLevel);
 }

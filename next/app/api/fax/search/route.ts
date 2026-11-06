@@ -5,6 +5,7 @@ import { errors } from "@/lib/auth/errors";
 import { Fax } from "@/lib/db/models/Fax";
 import { searchQuerySchema } from "@/lib/validations/fax";
 import { handleApiError } from "@/lib/utils/api-error";
+import { escapeRegex } from "@/lib/utils";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
 import type { Types } from "mongoose";
 
@@ -46,8 +47,15 @@ export async function GET(request: Request) {
     }
 
     const { q, exclude, limit } = parsed.data;
+    const trimmedQ = q.trim();
+    if (trimmedQ.length < 2) {
+      return NextResponse.json({
+        success: true,
+        data: [],
+      });
+    }
 
-    const searchRegex = { $regex: q, $options: "i" };
+    const searchRegex = { $regex: escapeRegex(trimmedQ), $options: "i" };
     const query: Record<string, unknown> = {
       $or: [{ faxNumber: searchRegex }, { subject: searchRegex }],
     };

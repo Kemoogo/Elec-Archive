@@ -2,12 +2,12 @@
 
 import React from "react";
 import { ModalShell, ModalBadge } from "@/components/ui/modal-shell";
+import { ModalActions } from "@/components/ui/modal-actions";
 import MainTable, { type TableColumn } from "@/components/ui/Table";
 import { RANK_LABELS, type OfficerRank } from "@/lib/db/models/Officer.shared";
 import { History, User, Briefcase, Award } from "lucide-react";
-import { format } from "date-fns";
-import { ar } from "date-fns/locale";
 import { mergeHistoryIntervals } from "@/lib/utils/history-merge";
+import { formatDateDisplay } from "@/lib/utils/date-display";
 
 interface OfficerOption {
   id?: string;
@@ -74,8 +74,8 @@ export function PositionHistoryModal({ isOpen, position, onClose }: PositionHist
       officerDisplay = h.officerId;
     }
 
-    const sDate = h.startDate ? format(new Date(h.startDate), "yyyy/MM/dd", { locale: ar }) : "-";
-    const eDate = h.endDate ? format(new Date(h.endDate), "yyyy/MM/dd", { locale: ar }) : "حالي ومستمر";
+    const sDate = h.startDate ? (formatDateDisplay(h.startDate) || "-") : "-";
+    const eDate = h.endDate ? (formatDateDisplay(h.endDate) || "حالي ومستمر") : "حالي ومستمر";
     const isCurrent = !h.endDate;
 
     return {
@@ -98,7 +98,7 @@ export function PositionHistoryModal({ isOpen, position, onClose }: PositionHist
       render: (val) => (
         <div className="flex items-center gap-2">
           <User className="w-3.5 h-3.5 text-(--app-muted-foreground) shrink-0" />
-          <span>{String(val)}</span>
+          <span className="font-black text-xs text-(--color-primary)">{String(val)}</span>
         </div>
       ),
     },
@@ -125,12 +125,8 @@ export function PositionHistoryModal({ isOpen, position, onClose }: PositionHist
       accessor: "endDate",
       cellAlign: "center",
       headerAlign: "center",
-      render: (val, row) => (
-        <span
-          className={`text-xs font-bold ${
-            row.isCurrent ? "text-(--color-primary) font-black" : "text-(--app-muted-foreground) font-mono"
-          }`}
-        >
+      render: (val) => (
+        <span className="text-xs font-bold text-(--app-muted-foreground) font-mono">
           {String(val)}
         </span>
       ),
@@ -150,17 +146,7 @@ export function PositionHistoryModal({ isOpen, position, onClose }: PositionHist
       overlayClassName="bg-black/40"
       panelClassName="max-w-3xl border-(--app-border) shadow-depth-xl"
       bodyClassName="p-5 space-y-4 no-scrollbar"
-      footer={
-        <div className="flex items-center justify-end w-full">
-          <button
-            type="button"
-            onClick={onClose}
-            className="btn-secondary text-xs"
-          >
-            إغلاق
-          </button>
-        </div>
-      }
+      footer={<ModalActions mode="view" onCancel={onClose} />}
     >
       {/* Position Header Info */}
       <div className="p-4 bg-(--color-primary)/5 border border-(--color-primary)/10 shadow-sm rounded-2xl flex items-center justify-between text-right">

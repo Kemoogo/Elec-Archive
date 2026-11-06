@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 
 import { useToast } from "@/components/ui/toast";
 import { ModalActions } from "@/components/ui/modal-actions";
-import { ModalShell } from "@/components/ui/modal-shell";
+import { ModalShell, ModalHeaderCard, ModalBadge } from "@/components/ui/modal-shell";
 import { DateField } from "@/components/ui/date-field";
 import { FormLabel, FormTextarea } from "@/components/ui/form-fields";
 import { extractApiError } from "@/lib/utils";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, User } from "lucide-react";
 
 interface OfficerSummary {
   id: string;
@@ -27,6 +27,12 @@ export function OfficerReturnModal({ officer, trigger }: { officer: OfficerSumma
   
   const { showToast } = useToast();
   const router = useRouter();
+
+  const handleOpen = () => {
+    setDate(new Date().toISOString().split("T")[0]);
+    setNotes("");
+    setOpen(true);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +70,7 @@ export function OfficerReturnModal({ officer, trigger }: { officer: OfficerSumma
 
   return (
     <>
-      <div onClick={() => setOpen(true)} className="cursor-pointer inline-block">
+      <div onClick={handleOpen} className="cursor-pointer inline-block">
         {trigger}
       </div>
       {open && (
@@ -72,20 +78,30 @@ export function OfficerReturnModal({ officer, trigger }: { officer: OfficerSumma
           title="تسجيل عودة للخدمة"
           icon={<RotateCcw className="w-4 h-4" />}
           onClose={() => setOpen(false)}
+          footer={
+            <ModalActions
+              form="officer-return-form"
+              submitText="تأكيد العودة"
+              submitLoading={loading}
+              cancelText="إلغاء"
+              onCancel={() => setOpen(false)}
+            />
+          }
         >
-          <div className="mb-6 p-4 bg-(--color-primary)/5 border border-(--color-primary)/10 shadow-sm rounded-2xl text-right flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-(--app-muted-foreground)">سيتم إعادة الضابط للحالة النشطة وتوثيق تاريخ العودة للخدمة.</p>
-              <h4 className="text-sm font-extrabold text-(--color-primary) mt-0.5">{officer.rankLabel || officer.rank} / {officer.fullName}</h4>
-            </div>
-            {officer.militaryId && (
-              <div className="px-3 py-1.5 bg-(--app-surface-container) border border-(--app-border) rounded-xl shadow-sm text-xs font-bold text-(--app-muted-foreground)">
-                الرقم العسكري: {officer.militaryId}
-              </div>
-            )}
-          </div>
+          <ModalHeaderCard
+            icon={<User className="w-5 h-5" />}
+            title={`${officer.rankLabel || officer.rank} / ${officer.fullName}`}
+            subtitle="سيتم إعادة الضابط للحالة النشطة وتوثيق تاريخ العودة للخدمة."
+            badge={
+              officer.militaryId ? (
+                <ModalBadge>
+                  الرقم العسكري: {officer.militaryId}
+                </ModalBadge>
+              ) : undefined
+            }
+          />
           
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form id="officer-return-form" onSubmit={handleSubmit} className="space-y-5">
             {/* تاريخ العودة */}
             <DateField
               id="return-date"
@@ -103,17 +119,8 @@ export function OfficerReturnModal({ officer, trigger }: { officer: OfficerSumma
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="أية ملاحظات إضافية..."
-                focusVariant="cyan"
+                focusVariant="blue"
                 className="h-24"
-              />
-            </div>
-            
-            <div className="pt-4">
-              <ModalActions
-                submitText="تأكيد العودة"
-                submitLoading={loading}
-                cancelText="إلغاء"
-                onCancel={() => setOpen(false)}
               />
             </div>
           </form>

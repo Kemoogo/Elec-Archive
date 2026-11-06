@@ -22,7 +22,7 @@ export function RestockButton({ medicineId, medicineName }: RestockButtonProps) 
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="btn-action-success"
+        className="btn-action-primary"
         title="توريد شحنة جديدة"
       >
         <PackagePlus className="w-4 h-4" />
@@ -101,24 +101,12 @@ function RestockModal({
   };
 
   const footer = (
-    <ModalActions className="sm:items-stretch w-full">
-      <button
-        type="submit"
-        form="restock-form"
-        className="btn-primary"
-        disabled={loading}
-      >
-        {loading ? "جاري الحفظ..." : "حفظ التوريد"}
-      </button>
-      <button
-        type="button"
-        onClick={onClose}
-        className="btn-secondary"
-        disabled={loading}
-      >
-        إلغاء
-      </button>
-    </ModalActions>
+    <ModalActions
+      form="restock-form"
+      submitText="حفظ التوريد"
+      submitLoading={loading}
+      onCancel={onClose}
+    />
   );
 
   return (

@@ -1,10 +1,15 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 
 export function SessionWatcher() {
   const pathname = usePathname();
+  const pathnameRef = useRef(pathname);
+
+  useEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
 
   useEffect(() => {
     // 1. Setup fetch interceptor
@@ -13,8 +18,9 @@ export function SessionWatcher() {
     window.fetch = async function (...args) {
       const response = await originalFetch.apply(this, args);
       
+      const currentPath = pathnameRef.current;
       // If we get a 401 and we are not already on the login page
-      if (response.status === 401 && pathname !== "/login" && pathname !== "/") {
+      if (response.status === 401 && currentPath !== "/login" && currentPath !== "/") {
         // Only redirect if the response isn't from the login API itself
         if (typeof args[0] === 'string' && !args[0].includes('/api/auth/login')) {
           window.location.href = "/login?expired=1";
@@ -27,9 +33,10 @@ export function SessionWatcher() {
     // 2. Setup periodic session check (every 1 minute)
     const checkSession = async () => {
       try {
-        // Ping auth endpoint to check if token is still valid
+        const currentPath = pathnameRef.current;
+        if (currentPath === "/login") return;
         const res = await originalFetch("/api/auth/me");
-        if (res.status === 401 && pathname !== "/login" && pathname !== "/") {
+        if (res.status === 401 && currentPath !== "/login" && currentPath !== "/") {
           window.location.href = "/login?expired=1";
         }
       } catch (err) {
@@ -43,7 +50,7 @@ export function SessionWatcher() {
       window.fetch = originalFetch;
       clearInterval(intervalId);
     };
-  }, [pathname]);
+  }, []);
 
   return null;
 }

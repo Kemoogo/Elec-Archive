@@ -7,6 +7,7 @@ import { FormField, FormInput } from "@/components/ui/form-fields";
 import { useToast } from "@/components/ui/toast";
 import { extractApiError } from "@/lib/utils";
 import { ShieldCheck } from "lucide-react";
+import { CustomSelect } from "@/components/ui/custom-select";
 
 interface BranchItem {
   _id: string;
@@ -97,23 +98,12 @@ export function CreateDepartmentModal({
       overlayClassName="bg-black/40"
       panelClassName="max-h-[85vh] max-w-lg border-(--app-border) shadow-depth-xl"
       footer={
-        <ModalActions>
-          <button
-            type="submit"
-            form="create-dept-form"
-            disabled={saving}
-            className="btn-primary disabled:opacity-50 cursor-pointer active:scale-95 transition-transform"
-          >
-            {saving ? "جاري الحفظ..." : "حفظ البيانات"}
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="btn-secondary cursor-pointer active:scale-95 transition-transform"
-          >
-            إلغاء
-          </button>
-        </ModalActions>
+        <ModalActions
+          form="create-dept-form"
+          submitText="حفظ البيانات"
+          submitLoading={saving}
+          onCancel={onClose}
+        />
       }
     >
       <form id="create-dept-form" onSubmit={handleSubmit} className="space-y-4 text-right">
@@ -158,21 +148,18 @@ export function CreateDepartmentModal({
           {/* Conditional DropdownList: Appears when checkbox is checked */}
           {isSubDepartment && (
             <div className="pt-2.5 border-t border-(--app-border)/60 animate-in fade-in slide-in-from-top-1 duration-150">
-              <FormField label="الفرع الرئيسي التابع له" required>
-                <select
-                  value={selectedParentBranchId}
-                  onChange={(e) => setSelectedParentBranchId(e.target.value)}
-                  className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-blue-500/20 focus:border-blue-500 transition-all text-right"
-                  required={isSubDepartment}
-                >
-                  <option value="">اختر الفرع الرئيسي...</option>
-                  {branches.map((b) => (
-                    <option key={b._id} value={b._id}>
-                      {b.name}
-                    </option>
-                  ))}
-                </select>
-              </FormField>
+              <CustomSelect
+                id="create-dept-parent-branch"
+                label="الفرع الرئيسي التابع له"
+                value={selectedParentBranchId}
+                onChange={setSelectedParentBranchId}
+                options={branches.map((b) => ({
+                  value: b._id,
+                  label: b.name,
+                }))}
+                placeholder="اختر الفرع الرئيسي..."
+                required={isSubDepartment}
+              />
             </div>
           )}
         </div>

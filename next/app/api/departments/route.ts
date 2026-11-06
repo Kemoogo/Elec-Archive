@@ -3,7 +3,7 @@ import { authenticate } from "@/lib/auth/middleware";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Department } from "@/lib/db/models/Department";
 import { Branch } from "@/lib/db/models/Branch";
-import { createDepartmentSchema } from "@/validations/department";
+import { createDepartmentSchema } from "@/lib/validations/department";
 import { logAuditEvent } from "@/lib/auth/audit";
 
 // Seed default branches & departments if empty

@@ -8,7 +8,12 @@ function subscribe() {
   return () => {};
 }
 
-export function ThemeToggle() {
+interface ThemeToggleProps {
+  variant?: "nav" | "surface";
+  className?: string;
+}
+
+export function ThemeToggle({ variant = "nav", className = "" }: ThemeToggleProps) {
   const { theme, setTheme } = useTheme();
   const mounted = useSyncExternalStore(subscribe, () => true, () => false);
   const [animating, setAnimating] = useState(false);
@@ -32,16 +37,28 @@ export function ThemeToggle() {
 
   const IconComponent = theme === "system" ? Monitor : theme === "light" ? Sun : Moon;
 
+  const buttonClasses =
+    variant === "surface"
+      ? "group relative flex items-center justify-center w-9 h-9 rounded-xl bg-(--app-surface-container) hover:bg-(--app-surface-container-high) border border-(--app-border) text-(--app-foreground) transition-all duration-300 ease-out active:scale-90 cursor-pointer"
+      : "group relative flex items-center justify-center w-9 h-9 rounded-[var(--app-radius-xl)] bg-white/8 hover:bg-white/20 border border-white/12 hover:border-white/30 transition-all duration-300 ease-out active:scale-90 cursor-pointer";
+
+  const iconClasses =
+    variant === "surface"
+      ? "w-[18px] h-[18px] text-(--app-muted-foreground) group-hover:text-(--color-primary) transition-colors duration-200"
+      : "w-[18px] h-[18px] text-white/80 group-hover:text-white transition-colors duration-200";
+
   return (
     <button
       onClick={cycleTheme}
-      className="group relative flex items-center justify-center w-9 h-9 rounded-[var(--app-radius-xl)] bg-white/8 hover:bg-white/20 border border-white/12 hover:border-white/30 transition-all duration-300 ease-out active:scale-90 cursor-pointer"
+      className={`${buttonClasses} ${className}`}
       aria-label="تبديل الوضع"
     >
-      {/* Premium glow */}
-      <span className="absolute inset-0 rounded-[var(--app-radius-xl)] opacity-0 group-hover:opacity-100
-        transition-opacity duration-300
-        bg-gradient-to-br from-white/15 to-transparent pointer-events-none" />
+      {/* Premium glow for nav variant */}
+      {variant === "nav" && (
+        <span className="absolute inset-0 rounded-[var(--app-radius-xl)] opacity-0 group-hover:opacity-100
+          transition-opacity duration-300
+          bg-gradient-to-br from-white/15 to-transparent pointer-events-none" />
+      )}
 
       {/* Premium animated icon */}
       <span
@@ -49,7 +66,7 @@ export function ThemeToggle() {
           animating ? "animate-[spin_0.5s_cubic-bezier(0.34,1.56,0.64,1)] scale-110" : "scale-100 transition-transform duration-200"
         }`}
       >
-        <IconComponent className="w-[18px] h-[18px] text-white/80 group-hover:text-white transition-colors duration-200" />
+        <IconComponent className={iconClasses} />
       </span>
 
       {/* Premium tooltip using --app-radius-sm */}

@@ -1,14 +1,14 @@
 import { parse, format } from 'date-fns';
 import { arEG } from 'date-fns/locale';
+import { formatDateDisplay } from './date-display';
 
 /**
- * Formats a date to Egyptian locale (dd/mm/yyyy) for display
+ * Formats a date for display in RTL layout with ASCII numbers and slashes
  * @param date - Date string or Date object
- * @returns Formatted date string in dd/mm/yyyy format
+ * @returns Formatted date string
  */
 export function formatDateEgForDisplay(date: string | Date): string {
-  const parsedDate = typeof date === 'string' ? parse(date, 'yyyy-MM-dd', new Date()) : date;
-  return format(parsedDate, 'dd/MM/yyyy', { locale: arEG });
+  return formatDateDisplay(date);
 }
 
 /**

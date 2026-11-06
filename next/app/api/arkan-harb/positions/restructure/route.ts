@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Types } from "mongoose";
 import { connectToDatabase } from "@/lib/db/connect";
 import { authenticate } from "@/lib/auth/middleware";
 import { canEditModule } from "@/lib/auth/authorization";
@@ -36,14 +37,21 @@ export async function POST(request: Request) {
 
     const { positionIdsToVacate } = parsed.data;
 
+    const now = new Date();
     const result = await PositionAssignment.updateMany(
       { _id: { $in: positionIdsToVacate } },
       {
         $set: {
-          officerId: null,
-          updatedBy: auth.user!.id,
+          primaryOfficerId: null,
+          primaryStartDate: null,
+          substituteOfficerIds: [],
+          substituteStartDates: [],
+          "assignmentHistory.$[elem].endDate": now,
+          "assignmentHistory.$[elem].notes": "إخلاء ضمن إعادة الهيكلة الشاملة للوظائف",
+          updatedBy: new Types.ObjectId(auth.user!.id),
         },
-      }
+      },
+      { arrayFilters: [{ "elem.endDate": null }] }
     );
 
     const count = result.modifiedCount;

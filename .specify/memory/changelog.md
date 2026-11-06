@@ -1,5 +1,43 @@
 ## Merged Features Log
 
+### 010-arkan-harb-upgrade — 2026-10-19
+**Branch:** 010-arkan-harb-upgrade
+**Spec:** specs/010-arkan-harb-upgrade
+
+**What was added:**
+- التكامل الثنائي بين الفاكسات والمأموريات (تحويل مباشر من الفاكس الوارد لمأمورية عمل مع ربط المستند الأصلي وشارة الفاكس المرفق).
+- المزامنة التلقائية للراحات الطبية والعيادة وحجز المستشفيات مع كشف التمام اليومي الميداني وقفل الحالة آلياً مع التنبيهات.
+- إصدار وطباعة أوامر التحرك العسكرية وخطوط السير الرسمية A4 مع محرك فحص التعارضات الاستباقي لمنع تداخل المأموريات مع الإجازات.
+- توثيق إنهاء وإغلاق المأمورية برفع مستندات إخلاء الطرف وتقارير الإنجاز (PDF/JPG/PNG).
+- ربط المسمى الوظيفي للضابط ديناميكياً بجدول التسكين وإضافة تبويب متكامل لسجل المأموريات في ملف الضابط بشئون الضباط.
+- منظومة جدول النوبتجيات والخدمات الشهرية للضباط مع محرك حساب عدالة التوزيع واختيار البدلاء والربط التلقائي بنوبتجي اليوم بالتمام.
+- يومية الحوادث والبلاغات والعمليات الطارئة لتوثيق الإشارات والوقائع وتوجيهات القائد اللحظية.
+
+**New Components & APIs:**
+- Components: `DutyRosterTab.tsx`, `IncidentLogTab.tsx`, `TravelOrderSheet.tsx`, `TravelOrderModal.tsx`, `ConvertFaxToMissionModal.tsx`, `OfficerMissionsTab.tsx`.
+- Models & Shared: `DutyRoster.ts`, `DutyRoster.shared.ts`, `IncidentLog.ts`, `IncidentLog.shared.ts`.
+- Engines: `roster-engine.ts`, updates to `rollcall-engine.ts`.
+- APIs: `/api/fax/[id]/convert-to-mission`, `/api/arkan-harb/missions/check-conflict`, `/api/arkan-harb/roster`, `/api/arkan-harb/incidents`.
+
+**Tasks Completed:** 30/30 tasks implemented & verified (100%).
+
+### 009-patient-medical-record — 2026-10-18
+**Branch:** polishing
+**Spec:** specs/009-patient-medical-record
+
+**What was added:**
+- سجل طبي شامل للمريض (Patient Medical Record) بصفحة موحدة تضم تبويبات: الملف الطبي (بيانات الحساسية والأمراض المزمنة)، سجل الزيارات، وتاريخ التشخيصات.
+- نموذج إضافة وتعديل الحساسيات (Allergies) والأمراض المزمنة (Chronic Diseases) مع الحفظ التلقائي والتحقق من صحة المدخلات عبر Zod.
+- تسجيل أحداث تدقيق النظام (Audit Logging) لكل عمليات الإنشاء والتعديل على السجل الطبي للمريض مع ربط دقيق لـ `targetId` كـ ObjectId.
+- تنظيف المكونات القديمة غير المستخدمة وإصلاح نقاط النهاية وتوافق الأنواع (Type-safety) بنسبة 100%.
+
+**New Components & APIs:**
+- `PatientProfilePageClient.tsx`, `MedicalDashboard.tsx`, `RecordTab.tsx`.
+- APIs: `/api/medical/patients/[patientId]/record`.
+- Schemas & Types: `next/lib/validations/patient-record.ts`, `@/types/medical.ts`.
+
+**Tasks Completed:** All tasks implemented & verified.
+
 ### 005-officers-affairs (121 PDF Extraction & UI Upgrade) — 2026-07-30
 **Branch:** main
 **Spec:** specs/005-officers-affairs

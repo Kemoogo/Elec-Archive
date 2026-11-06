@@ -7,6 +7,7 @@ import { PdfViewerModal } from "./PdfViewerModal";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { extractApiError } from "@/lib/utils";
+import { formatDateDisplay } from "@/lib/utils/date-display";
 
 interface OfficerDocumentsProps {
   officerId: string;
@@ -180,12 +181,12 @@ export function OfficerDocuments({ officerId, file121Url, file121UpdatedAt, file
                 </p>
                 {issueDate && (
                   <p className="text-xs font-bold text-blue-600 dark:text-blue-400">
-                    تاريخ تحرير الملف: <span className="font-mono">{issueDate}</span>
+                    تاريخ تحرير الملف: <span className="font-mono">{formatDateDisplay(issueDate)}</span>
                   </p>
                 )}
                 {updatedAt && (
                   <p className="text-xs text-(--app-muted-foreground) text-right">
-                    تاريخ الرفع: <span className="font-mono">{new Date(updatedAt).toLocaleDateString("ar-EG")}</span>
+                    تاريخ الرفع: <span className="font-mono">{formatDateDisplay(updatedAt)}</span>
                   </p>
                 )}
               </div>
@@ -224,34 +225,28 @@ export function OfficerDocuments({ officerId, file121Url, file121UpdatedAt, file
       {isDeleteModalOpen && (
         <ModalShell
           title="تأكيد حذف الملف"
-          icon={<Trash2 className="w-4 h-4" />}
+          icon={<Trash2 className="w-4 h-4 text-(--app-error)" />}
           titleVariant="danger"
           onClose={() => setIsDeleteModalOpen(false)}
+          footer={
+            <ModalActions
+              submitText="نعم، احذف المستند"
+              submitVariant="destructive"
+              submitLoading={deleting}
+              onConfirm={handleDelete}
+              cancelText="إلغاء"
+              onCancel={() => setIsDeleteModalOpen(false)}
+            />
+          }
         >
           <div className="p-6">
             <div className="flex items-center gap-3 mb-4 text-(--app-error)">
               <AlertCircle className="h-6 w-6 shrink-0" />
               <h3 className="text-sm font-bold">تنبيه إزالة المستند الرقمي</h3>
             </div>
-            <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-6 font-sans leading-relaxed text-right">
+            <p className="text-sm font-bold text-slate-700 dark:text-slate-200 font-sans leading-relaxed text-right">
               هل أنت متأكد من حذف وثيقة <span className="font-bold text-(--color-primary)">(121 ش ض)</span> الرقمية الخاصة بالضابط؟ سيترتب على هذا الإجراء إزالة المستند الرقمي المخزن نهائياً من الأرشيف.
             </p>
-            <ModalActions>
-              <button
-                onClick={handleDelete}
-                disabled={deleting}
-                className="btn-destructive"
-              >
-                {deleting ? "جاري الحذف..." : "نعم، احذف المستند"}
-              </button>
-              <button
-                onClick={() => setIsDeleteModalOpen(false)}
-                disabled={deleting}
-                className="btn-secondary"
-              >
-                إلغاء
-              </button>
-            </ModalActions>
           </div>
         </ModalShell>
       )}
@@ -263,33 +258,26 @@ export function OfficerDocuments({ officerId, file121Url, file121UpdatedAt, file
           icon={<AlertTriangle className="w-4 h-4" />}
           titleVariant="warning"
           onClose={() => setIsWarnBeforeSelectModalOpen(false)}
+          footer={
+            <ModalActions
+              submitText="المتابعة واختيار الملف الجديد"
+              onConfirm={handleProceedToFileSelect}
+              cancelText="إلغاء"
+              onCancel={() => setIsWarnBeforeSelectModalOpen(false)}
+            />
+          }
         >
           <div className="p-6">
-            <div className="flex items-center gap-3 mb-4 text-amber-500">
+            <div className="flex items-center gap-3 mb-4 text-(--color-primary)">
               <AlertTriangle className="h-6 w-6 shrink-0" />
               <h3 className="text-sm font-bold">تنبيه قبل اختيار الملف الجديد</h3>
             </div>
             <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 font-sans leading-relaxed text-right">
               يوجد ملف (121 ش ض) مرفوع حالياً للضابط في الأرشيف.
             </p>
-            <p className="text-xs font-semibold text-(--app-muted-foreground) mb-6 text-right leading-relaxed">
-              تحديث المستند سيؤدي إلى <span className="font-bold text-amber-600 dark:text-amber-400">حذف واستبدال الملف السابق نهائياً</span> بالملف الجديد الذي ستختاره، وإعادة استخراج تاريخ التحرير والبيانات وتخزين المستند الجديد. هل ترغب في المتابعة؟
+            <p className="text-xs font-semibold text-(--app-muted-foreground) text-right leading-relaxed">
+              تحديث المستند سيؤدي إلى <span className="font-bold text-(--color-primary)">حذف واستبدال الملف السابق نهائياً</span> بالملف الجديد الذي ستختاره، وإعادة استخراج تاريخ التحرير والبيانات وتخزين المستند الجديد. هل ترغب في المتابعة؟
             </p>
-            <ModalActions>
-              <button
-                onClick={handleProceedToFileSelect}
-                className="btn-primary flex items-center gap-2"
-              >
-                <Upload className="h-4 w-4" />
-                المتابعة واختيار الملف الجديد
-              </button>
-              <button
-                onClick={() => setIsWarnBeforeSelectModalOpen(false)}
-                className="btn-secondary"
-              >
-                إلغاء
-              </button>
-            </ModalActions>
           </div>
         </ModalShell>
       )}

@@ -31,7 +31,7 @@ export function canCloseFax(user: AuthUser, fax: IFax): boolean {
   if (fax.forwardedToType === "department") {
     return (
       fax.forwardedToDepartment === user.department &&
-      user.permissions.fax === "edit"
+      canEditModule(user, "fax")
     );
   }
 
@@ -43,9 +43,9 @@ export function canModifyFax(user: AuthUser, fax: IFax): boolean {
     return false;
   }
 
-  return user.permissions.fax === "edit";
+  return canEditModule(user, "fax");
 }
 
 export function canLinkFax(user: AuthUser): boolean {
-  return user.permissions.fax === "edit";
+  return canEditModule(user, "fax");
 }

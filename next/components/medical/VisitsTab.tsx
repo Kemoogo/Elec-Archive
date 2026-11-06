@@ -2,6 +2,7 @@
 
 import { Activity } from "lucide-react";
 import type { Visit } from "@/lib/medical/types";
+import { formatDateDisplay } from "@/lib/utils/date-display";
 
 interface VisitsTabProps {
   visits: Visit[];
@@ -25,12 +26,8 @@ export function VisitsTab({ visits }: VisitsTabProps) {
           className="rounded-xl border border-(--app-border) bg-(--app-surface-container) p-4 space-y-2"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-(--app-muted-foreground)">
-              {new Date(visit.visitDate).toLocaleDateString("ar-EG", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
+            <span className="text-xs font-bold text-(--app-muted-foreground) font-mono">
+              {formatDateDisplay(visit.visitDate)}
             </span>
             <div className="flex items-center gap-1.5">
               {visit.fitnessCategory && visit.fitnessCategory !== "fit" && (
@@ -42,7 +39,7 @@ export function VisitsTab({ visits }: VisitsTabProps) {
                 </span>
               )}
               {visit.restType && visit.restType !== "none" && visit.restDays && visit.restDays > 0 && (
-                <span className="text-[10px] font-black bg-(--app-warning)/10 text-(--app-warning) px-2 py-0.5 rounded-full border border-(--app-warning)/20">
+                <span className="text-[10px] font-black bg-(--color-primary)/10 text-(--color-primary) px-2 py-0.5 rounded-full border border-(--color-primary)/20">
                   {visit.restType === "ward" && "راحة عنبر"}
                   {visit.restType === "home" && "راحة منزلية"}
                   {visit.restType === "exemption" && "إعفاء مجهود"} ({visit.restDays} يوم)

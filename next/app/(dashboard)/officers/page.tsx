@@ -4,6 +4,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { Officer } from "@/lib/db/models/Officer";
 import { canViewOfficers, canEditOfficers } from "@/lib/officers/access";
 import { serializeOfficerListItem } from "@/lib/officers/queries";
+import { escapeRegex } from "@/lib/utils";
 import { OfficersPageClient } from "@/components/officers/OfficersPageClient";
 
 export default async function OfficersListPage({
@@ -37,7 +38,7 @@ export default async function OfficersListPage({
   }
   
   if (search) {
-    const searchRegex = { $regex: search, $options: "i" };
+    const searchRegex = { $regex: escapeRegex(search), $options: "i" };
     query.$or = [
       { fullName: searchRegex },
       { militaryId: searchRegex },

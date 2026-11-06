@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Palette, X, Check, AlertTriangle, Info, Search, Plus, Trash2, Edit, Sun, Moon, Monitor } from "lucide-react";
+import { Palette, X, Check, AlertCircle, Info, Search, Plus, Trash2, Edit, Sun, Moon, Monitor } from "lucide-react";
 import { useTheme } from "@/components/providers/ThemeProvider";
 
 const colors = [
@@ -120,8 +120,8 @@ export function ThemePlaygroundDropdown() {
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-(--app-success)/20 text-(--app-success)">
                 <Check className="w-3 h-3" /> نشط
               </span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-(--app-warning)/20 text-(--app-warning)">
-                <AlertTriangle className="w-3 h-3" /> معلق
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-(--color-primary)/10 text-(--color-primary) border border-(--color-primary)/20">
+                <AlertCircle className="w-3 h-3" /> معلق
               </span>
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-(--app-error)/20 text-(--app-error)">
                 <X className="w-3 h-3" /> مغلق

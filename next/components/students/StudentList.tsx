@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import MainTable from "@/components/ui/Table";
 import { Paginator } from "@/components/ui/paginator";
+import { formatDateDisplay } from "@/lib/utils/date-display";
 
 interface SerializedStudent {
   _id: string;
@@ -32,10 +33,10 @@ const statusLabels: Record<string, string> = {
 };
 
 const statusColors: Record<string, string> = {
-  active: "bg-(--app-success)/20 text-(--app-success) border-(--app-success)/30",
-  graduated: "bg-(--app-info)/20 text-(--app-info) border-(--app-info)/30",
-  inactive: "bg-(--app-border) text-(--app-muted-foreground) border-(--app-border)",
-  withdrawn: "bg-(--app-error)/20 text-(--app-error) border-(--app-error)/30",
+  active: "bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)",
+  graduated: "bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)",
+  inactive: "bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)",
+  withdrawn: "bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)",
 };
 
 export function StudentList({
@@ -50,7 +51,7 @@ export function StudentList({
   return (
     <div className="space-y-4" dir="rtl">
       {/* Results count */}
-      <p className="text-sm text-(--app-muted-foreground)">
+      <p className="text-sm font-bold text-(--app-muted-foreground)">
         إجمالي {total} طالب
       </p>
 
@@ -65,26 +66,26 @@ export function StudentList({
           {
             header: "رقم الطالب",
             accessor: "studentId",
-            tdClassName: "text-sm font-mono text-(--app-muted-foreground)",
+            tdClassName: "text-xs font-mono text-(--app-muted-foreground)",
           },
           {
             header: "الاسم الكامل",
             accessor: "fullName",
-            tdClassName: "font-medium text-(--color-primary)",
+            tdClassName: "font-black text-xs text-(--color-primary) hover:underline hover:text-(--app-info)",
           },
           {
             header: "تاريخ التسجيل",
             accessor: "enrollDate",
-            tdClassName: "text-(--app-muted-foreground)",
-            render: (val) => new Date(val as string).toLocaleDateString("ar-EG"),
+            tdClassName: "text-xs font-mono text-(--app-muted-foreground)",
+            render: (val) => formatDateDisplay(val as string),
           },
           {
             header: "الحالة",
             accessor: "status",
             render: (val) => (
               <span
-                className={`inline-block rounded-full px-3 py-1 text-xs font-medium border ${
-                  statusColors[val as string] ?? statusColors.active
+                className={`inline-block rounded-full px-3 py-1 text-xs font-bold border ${
+                  statusColors[val as string] ?? "bg-(--app-surface-container) text-(--app-muted-foreground) border-(--app-border)"
                 }`}
               >
                 {statusLabels[val as string] ?? val}

@@ -21,22 +21,26 @@ export function ParticipantPicker({ courseId, participantModel }: ParticipantPic
   const [isSearching, setIsSearching] = useState(false);
 
   async function handleSearch() {
-    if (!search.trim()) return;
+    const trimmed = search.trim();
+    if (trimmed.length < 2) {
+      setError("يرجى إدخال حرفين على الأقل للبحث");
+      return;
+    }
     setIsSearching(true);
     setError("");
     try {
       const endpoint = participantModel === "Officer" ? "/api/officers" : "/api/students";
-      const res = await fetch(`${endpoint}?search=${encodeURIComponent(search)}&limit=10`);
+      const res = await fetch(`${endpoint}?search=${encodeURIComponent(trimmed)}&limit=10`);
       const data = await res.json();
       if (res.ok) {
         const items = Array.isArray(data.data?.items) ? data.data.items : Array.isArray(data.data) ? data.data : [];
         const mapped = items
-          .filter((item: Record<string, unknown>) => typeof item?._id === "string" && typeof item?.fullName === "string")
           .map((item: Record<string, unknown>) => ({
-            _id: item._id as string,
-            name: item.fullName as string,
+            _id: (typeof item?._id === "string" ? item._id : typeof item?.id === "string" ? item.id : "") as string,
+            name: (item.fullName || item.name || "") as string,
             identifier: (typeof item.militaryId === "string" ? item.militaryId : typeof item.studentId === "string" ? item.studentId : "") as string,
-          }));
+          }))
+          .filter((item: { _id: string; name: string }) => Boolean(item._id && item.name));
         setResults(mapped);
       }
     } catch {
@@ -94,7 +98,13 @@ export function ParticipantPicker({ courseId, participantModel }: ParticipantPic
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="بحث بالاسم..."
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              handleSearch();
+            }
+          }}
+          placeholder="بحث بالاسم (حرفين على الأقل)..."
           className="flex-1 rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-foreground) placeholder:text-(--app-muted-foreground) focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
         />
         <button
@@ -120,7 +130,7 @@ className="flex items-center justify-between rounded-md border border-(--app-bor
               <button
                 onClick={() => handleAdd(r._id)}
                 disabled={isPending}
-                className="rounded-md bg-(--app-success) px-3 py-1 text-xs text-(--app-white) hover:bg-(--app-success)/90 disabled:opacity-50"
+                className="btn-primary text-xs px-3 py-1 disabled:opacity-50"
               >
                 {isPending ? "جاري..." : "إضافة"}
               </button>
@@ -131,7 +141,7 @@ className="flex items-center justify-between rounded-md border border-(--app-bor
       <div className="mt-3 flex justify-end">
         <button
           onClick={() => { setIsOpen(false); setResults([]); setSearch(""); setError(""); }}
-          className="rounded-md border border-(--app-border) px-4 py-2 text-sm text-foreground hover:bg-white/10"
+          className="btn-secondary text-xs"
         >
           إغلاق
         </button>

@@ -9,6 +9,7 @@ import { DateField } from "@/components/ui/date-field";
 import { FormLabel, FormTextarea } from "@/components/ui/form-fields";
 import { useToast } from "@/components/ui/toast";
 import { extractApiError } from "@/lib/utils";
+import { getDayName } from "@/lib/utils/date-display";
 
 interface CommanderDecisionModalProps {
   leaveId: string;
@@ -19,6 +20,7 @@ interface CommanderDecisionModalProps {
   initialEndDate: string;
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: (leaveId: string, action: string, startDate?: string, endDate?: string) => void;
 }
 
 export function CommanderDecisionModal({
@@ -30,6 +32,7 @@ export function CommanderDecisionModal({
   initialEndDate,
   isOpen,
   onClose,
+  onSuccess,
 }: CommanderDecisionModalProps) {
   const router = useRouter();
   const { showToast } = useToast();
@@ -74,7 +77,7 @@ export function CommanderDecisionModal({
       case "modify":
         return <Edit3 className="w-4 h-4 text-blue-600" />;
       case "other_orders":
-        return <MessageSquare className="w-4 h-4 text-amber-600" />;
+        return <MessageSquare className="w-4 h-4 text-(--color-primary)" />;
     }
   };
 
@@ -105,6 +108,7 @@ export function CommanderDecisionModal({
       }
 
       showToast(data.message || "تم تسجيل قرار القائد بنجاح", "success");
+      onSuccess?.(leaveId, actionType, actionType === "modify" ? startDate : undefined, actionType === "modify" ? endDate : undefined);
       onClose();
       router.refresh();
     } catch {
@@ -149,20 +153,41 @@ export function CommanderDecisionModal({
         {actionType === "modify" && (
           <div className="space-y-4 p-4 bg-blue-500/5 border border-blue-500/20 rounded-2xl">
             <div className="grid grid-cols-2 gap-3">
-              <DateField
-                id="mod-start"
-                label="يوم بداية الإجازة"
-                value={startDate}
-                onChange={setStartDate}
-                required
-              />
-              <DateField
-                id="mod-end"
-                label="يوم العودة"
-                value={endDate}
-                onChange={setEndDate}
-                required
-              />
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-(--app-muted-foreground)">يوم بداية الإجازة</span>
+                  {startDate && (
+                    <span className="text-[11px] font-black text-(--color-primary)">
+                      يوم {getDayName(startDate)}
+                    </span>
+                  )}
+                </div>
+                <DateField
+                  id="mod-start"
+                  label=""
+                  value={startDate}
+                  onChange={setStartDate}
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-(--app-muted-foreground)">يوم العودة</span>
+                  {endDate && (
+                    <span className="text-[11px] font-black text-(--color-primary)">
+                      يوم {getDayName(endDate)}
+                    </span>
+                  )}
+                </div>
+                <DateField
+                  id="mod-end"
+                  label=""
+                  value={endDate}
+                  onChange={setEndDate}
+                  required
+                />
+              </div>
             </div>
 
             {dayCount > 0 && (

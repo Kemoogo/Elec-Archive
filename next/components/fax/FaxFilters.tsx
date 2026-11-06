@@ -3,6 +3,14 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState } from "react";
 import { DateField } from "@/components/ui/date-field";
+import { CustomSelect, type CustomSelectOption } from "@/components/ui/custom-select";
+
+const FAX_STATUS_OPTIONS: CustomSelectOption[] = [
+  { value: "", label: "جميع الحالات" },
+  { value: "pending", label: "معلق" },
+  { value: "forwarded", label: "موجّه" },
+  { value: "closed", label: "مغلق" },
+];
 
 export function FaxFilters() {
   const router = useRouter();
@@ -37,20 +45,23 @@ export function FaxFilters() {
         type="text"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            applyFilters();
+          }
+        }}
         placeholder="بحث برقم الفاكس أو الموضوع أو الجهة..."
         className="min-w-[250px] flex-1 rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-foreground) placeholder-(--app-muted-foreground) focus:border-(--app-info) focus:outline-none"
       />
 
-      <select
+      <CustomSelect
         value={status}
-        onChange={(e) => setStatus(e.target.value)}
-        className="btn-filter-sm max-w-[180px]"
-      >
-        <option value="">جميع الحالات</option>
-        <option value="pending">معلق</option>
-        <option value="forwarded">موجّه</option>
-        <option value="closed">مغلق</option>
-      </select>
+        onChange={setStatus}
+        options={FAX_STATUS_OPTIONS}
+        placeholder="جميع الحالات"
+        containerClassName="w-44"
+      />
 
       <div className="flex gap-2 items-center">
         <DateField

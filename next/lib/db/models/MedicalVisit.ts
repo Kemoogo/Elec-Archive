@@ -35,6 +35,7 @@ const MedicalVisitSchema = new Schema<IMedicalVisit>(
   { timestamps: true },
 );
 
+MedicalVisitSchema.index({ patientId: 1, visitDate: -1 });
 MedicalVisitSchema.index({ patientId: 1 });
 MedicalVisitSchema.index({ visitDate: -1 });
 

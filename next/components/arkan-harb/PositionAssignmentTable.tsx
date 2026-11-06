@@ -6,19 +6,12 @@ import { SectionWrapper } from "@/components/ui/section-wrapper";
 import { ActionButton } from "@/components/officers/OfficersTable";
 import { RANK_LABELS, type OfficerRank } from "@/lib/db/models/Officer.shared";
 import { compareOfficers } from "@/lib/officers/seniority";
-import { Edit, UserPlus, Briefcase, History, Building2, Database } from "lucide-react";
+import { Edit, UserPlus, Briefcase, History, Building2, Database, AlertCircle } from "lucide-react";
 import { ModalBadge } from "@/components/ui/modal-shell";
 import type { PositionHistoryItem } from "./PositionHistoryModal";
+import type { OfficerOption } from "@/types";
 
-export interface OfficerInfo {
-  id: string;
-  fullName: string;
-  rank: string;
-  militaryId?: string;
-  seniorityNumber?: string;
-  isArkanHarb?: boolean;
-  officerLabel?: string;
-}
+export type OfficerInfo = OfficerOption;
 
 export interface PositionRowData {
   id: string;
@@ -194,7 +187,7 @@ export function PositionAssignmentTable({
                       <button
                         type="button"
                         onClick={() => onViewPosition(firstItem)}
-                        className="font-bold text-xs text-(--app-muted-foreground) hover:underline hover:text-(--app-info) cursor-pointer transition-colors text-right"
+                        className="font-black text-xs text-(--color-primary) hover:underline hover:text-(--app-info) cursor-pointer transition-colors text-right"
                         title="عرض تفاصيل وبيانات الوظيفة"
                       >
                         {firstItem.positionTitle}
@@ -204,9 +197,9 @@ export function PositionAssignmentTable({
                     {/* Primary Officer */}
                     <td className="px-5 py-3 text-xs font-bold text-(--app-muted-foreground) align-middle">
                       {!firstItem.primaryOfficer ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                        <ModalBadge icon={<AlertCircle className="w-3.5 h-3.5 text-(--app-muted-foreground) shrink-0" />}>
                           شاغر
-                        </span>
+                        </ModalBadge>
                       ) : (
                         <button
                           type="button"
@@ -240,14 +233,14 @@ export function PositionAssignmentTable({
                     <td className="px-5 py-3 text-center align-middle whitespace-nowrap" style={{ width: "1%" }}>
                       <div className="flex items-center justify-center gap-1">
                         <ActionButton
-                          icon={<History className="w-4 h-4 text-slate-500 hover:text-(--color-primary)" />}
+                          icon={<History className="w-4 h-4 text-(--color-primary) hover:text-(--app-info)" />}
                           color="btn-action-primary"
                           title="السجل التاريخي للوظيفة"
                           onClick={() => onViewHistory(firstItem)}
                         />
                         {canEdit && onAssignPosition && (
                           <ActionButton
-                            icon={<UserPlus className="w-4 h-4 text-slate-500 hover:text-(--color-primary)" />}
+                            icon={<UserPlus className="w-4 h-4 text-(--color-primary) hover:text-(--app-info)" />}
                             color="btn-action-primary"
                             title="تسكين وتكليف ضابط للوظيفة"
                             onClick={() => onAssignPosition(firstItem)}
@@ -255,7 +248,7 @@ export function PositionAssignmentTable({
                         )}
                         {canEdit && (
                           <ActionButton
-                            icon={<Edit className="w-4 h-4 text-slate-500 hover:text-(--color-primary)" />}
+                            icon={<Edit className="w-4 h-4 text-(--color-primary) hover:text-(--app-info)" />}
                             color="btn-action-primary"
                             title="تعديل بيانات الوظيفة"
                             onClick={() => onEditPosition(firstItem)}
@@ -281,7 +274,7 @@ export function PositionAssignmentTable({
                         <button
                           type="button"
                           onClick={() => onViewPosition(item)}
-                          className="font-bold text-xs text-(--app-muted-foreground) hover:underline hover:text-(--app-info) cursor-pointer transition-colors text-right"
+                          className="font-black text-xs text-(--color-primary) hover:underline hover:text-(--app-info) cursor-pointer transition-colors text-right"
                           title="عرض تفاصيل وبيانات الوظيفة"
                         >
                           {item.positionTitle}
@@ -291,9 +284,9 @@ export function PositionAssignmentTable({
                       {/* Primary Officer */}
                       <td className="px-5 py-3 text-xs font-bold text-(--app-muted-foreground) align-middle">
                         {!item.primaryOfficer ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                          <ModalBadge icon={<AlertCircle className="w-3.5 h-3.5 text-(--app-muted-foreground) shrink-0" />}>
                             شاغر
-                          </span>
+                          </ModalBadge>
                         ) : (
                           <button
                             type="button"
@@ -327,14 +320,14 @@ export function PositionAssignmentTable({
                       <td className="px-5 py-3 text-center align-middle whitespace-nowrap" style={{ width: "1%" }}>
                         <div className="flex items-center justify-center gap-1">
                           <ActionButton
-                            icon={<History className="w-4 h-4 text-slate-500 hover:text-(--color-primary)" />}
+                            icon={<History className="w-4 h-4 text-(--color-primary) hover:text-(--app-info)" />}
                             color="btn-action-primary"
                             title="السجل التاريخي للوظيفة"
                             onClick={() => onViewHistory(item)}
                           />
                           {canEdit && onAssignPosition && (
                             <ActionButton
-                              icon={<UserPlus className="w-4 h-4 text-slate-500 hover:text-(--color-primary)" />}
+                              icon={<UserPlus className="w-4 h-4 text-(--color-primary) hover:text-(--app-info)" />}
                               color="btn-action-primary"
                               title="تسكين وتكليف ضابط للوظيفة"
                               onClick={() => onAssignPosition(item)}
@@ -342,7 +335,7 @@ export function PositionAssignmentTable({
                           )}
                           {canEdit && (
                             <ActionButton
-                              icon={<Edit className="w-4 h-4 text-slate-500 hover:text-(--color-primary)" />}
+                              icon={<Edit className="w-4 h-4 text-(--color-primary) hover:text-(--app-info)" />}
                               color="btn-action-primary"
                               title="تعديل بيانات الوظيفة"
                               onClick={() => onEditPosition(item)}
@@ -434,7 +427,7 @@ export function PositionAssignmentTable({
         <button
           type="button"
           onClick={() => onSelectOfficer(row.officer)}
-          className="font-bold text-xs text-(--app-muted-foreground) hover:underline hover:text-(--app-info) cursor-pointer text-right transition-colors"
+          className="font-black text-xs text-(--color-primary) hover:underline hover:text-(--app-info) cursor-pointer text-right transition-colors"
           title="عرض وتعديل تكليفات الضابط"
         >
           {val as string}
@@ -501,7 +494,7 @@ export function PositionAssignmentTable({
             render: (_val: unknown, row: OfficerRowItem) => (
               <div className="flex items-center justify-center gap-1">
                 <ActionButton
-                  icon={<Briefcase className="w-4 h-4 text-slate-500 hover:text-(--color-primary)" />}
+                  icon={<Briefcase className="w-4 h-4 text-(--color-primary) hover:text-(--app-info)" />}
                   color="btn-action-primary"
                   title="عرض وتعديل تكليفات الضابط"
                   onClick={() => onSelectOfficer(row.officer)}

@@ -25,9 +25,9 @@ export function ArkanHarbSummaryCard({
           <CardContent>
             <div className="text-lg font-bold">
               {rollcallSubmitted ? (
-                <span className="text-(--app-success)">التمام مكتمل</span>
+                <span className="text-(--color-primary)">التمام مكتمل</span>
               ) : (
-                <span className="text-(--app-error)">التمام لم يكتمل</span>
+                <span className="text-(--app-muted-foreground)">التمام لم يكتمل</span>
               )}
             </div>
             <p className="text-sm text-(--app-muted-foreground)">

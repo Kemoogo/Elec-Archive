@@ -19,18 +19,31 @@ export async function dispenseMultipleMedicines(
   visitId: Types.ObjectId | string,
 ): Promise<DispenseResult> {
   await connectToDatabase();
+  if (items.length === 0) return { success: true };
 
-  // 1. Validation Phase: Check if all items are available and have enough unexpired stock
-  const medicinesToUpdate = [];
-
+  // 1. Merge duplicate items by medicineId
+  const mergedQtyMap = new Map<string, number>();
   for (const item of items) {
-    const medicine = await Medicine.findById(item.medicineId);
+    if (!item.medicineId || item.quantity <= 0) continue;
+    mergedQtyMap.set(item.medicineId, (mergedQtyMap.get(item.medicineId) ?? 0) + item.quantity);
+  }
+
+  // 2. Fetch all needed medicines in a single query
+  const uniqueIds = [...mergedQtyMap.keys()];
+  const medicines = await Medicine.find({ _id: { $in: uniqueIds } });
+  const medicineMap = new Map(medicines.map((m) => [m._id.toString(), m]));
+
+  const now = new Date();
+  const ledgerDocs: Array<Record<string, unknown>> = [];
+  const medicinesToSave: typeof medicines = [];
+
+  for (const [medId, requestedQty] of mergedQtyMap.entries()) {
+    const medicine = medicineMap.get(medId);
     if (!medicine) {
       return { success: false, error: "أحد الأدوية المطلوبة غير موجود" };
     }
 
     // Filter active batches (quantity > 0 and not expired)
-    const now = new Date();
     const activeBatches = medicine.batches.filter(
       (b: IMedicineBatch) => b.quantity > 0 && b.expiryDate > now
     );
@@ -39,7 +52,7 @@ export async function dispenseMultipleMedicines(
 
     const totalAvailable = activeBatches.reduce((sum: number, b: IMedicineBatch) => sum + b.quantity, 0);
 
-    if (activeBatches.length === 0 || totalAvailable < item.quantity) {
+    if (activeBatches.length === 0 || totalAvailable < requestedQty) {
       return {
         success: false,
         error: `الكمية المتاحة من ${medicine.name} غير كافية أو منتهية الصلاحية — المتوفر الصالح: ${totalAvailable}`,
@@ -47,45 +60,34 @@ export async function dispenseMultipleMedicines(
       };
     }
 
-    medicinesToUpdate.push({
-      medicine,
-      requestedQty: item.quantity,
-      activeBatches,
+    let remainingToDeduct = requestedQty;
+    for (const batch of activeBatches) {
+      if (remainingToDeduct <= 0) break;
+
+      const deductAmount = Math.min(batch.quantity, remainingToDeduct);
+      batch.quantity -= deductAmount;
+      remainingToDeduct -= deductAmount;
+    }
+
+    // Re-calculate totalQuantity
+    medicine.totalQuantity = medicine.batches.reduce((sum: number, b: IMedicineBatch) => sum + b.quantity, 0);
+    medicinesToSave.push(medicine);
+
+    ledgerDocs.push({
+      medicineId: medicine._id,
+      action: "DISPENSE",
+      quantityChange: -requestedQty,
+      balanceAfter: medicine.totalQuantity,
+      referenceId: visitId,
+      notes: "صرف لزيارة طبية",
     });
   }
 
-  // 2. Execution Phase: Deduct from batches
-  // We don't use strict transactions here to ensure compatibility with standalone MongoDB.
-  // Instead, we deduct sequentially. Since validation passed, failure is unlikely unless concurrent edits occur.
   try {
-    for (const update of medicinesToUpdate) {
-      let remainingToDeduct = update.requestedQty;
-      const { medicine, activeBatches } = update;
-
-      for (const batch of activeBatches) {
-        if (remainingToDeduct <= 0) break;
-
-        const deductAmount = Math.min(batch.quantity, remainingToDeduct);
-        batch.quantity -= deductAmount;
-        remainingToDeduct -= deductAmount;
-      }
-
-      // Re-calculate totalQuantity
-      medicine.totalQuantity = medicine.batches.reduce((sum: number, b: IMedicineBatch) => sum + b.quantity, 0);
-
-      // Save the medicine
-      await medicine.save();
-
-      // Log to ledger
-      await InventoryLedger.create({
-        medicineId: medicine._id,
-        action: "DISPENSE",
-        quantityChange: -update.requestedQty,
-        balanceAfter: medicine.totalQuantity,
-        referenceId: visitId,
-        notes: "صرف لزيارة طبية",
-      });
-    }
+    await Promise.all([
+      ...medicinesToSave.map((m) => m.save()),
+      InventoryLedger.insertMany(ledgerDocs),
+    ]);
 
     return { success: true };
   } catch (error) {

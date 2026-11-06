@@ -7,6 +7,7 @@ import { handleApiError } from "@/lib/utils/api-error";
 import { MedicalVisit } from "@/lib/db/models/MedicalVisit";
 import { Medicine } from "@/lib/db/models/Medicine";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
+import { canViewModule, canEditModule } from "@/lib/auth/authorization";
 import { Types } from "mongoose";
 import { createVisitSchema } from "@/lib/validations/medical";
 import { dispenseMultipleMedicines } from "@/lib/medical/stock";
@@ -44,8 +45,7 @@ export async function GET(
     );
   }
 
-  const medicalPermission = auth.user!.permissions.medical;
-  if (medicalPermission === "none") {
+  if (!canViewModule(auth.user!, "medical")) {
     return NextResponse.json(
       { success: false, error: errors.insufficientPermissions },
       { status: 403 },
@@ -128,7 +128,7 @@ export async function PUT(
     );
   }
 
-  if (auth.user!.permissions.medical !== "edit") {
+  if (!canEditModule(auth.user!, "medical")) {
     return NextResponse.json(
       { success: false, error: errors.insufficientPermissions },
       { status: 403 },
@@ -175,13 +175,32 @@ export async function PUT(
       fitnessCategory
     } = parsed.data;
 
-    // 1. Return previously dispensed medicines back to the inventory
+    // 1. Validate new medicines IDs upfront BEFORE touching inventory
+    if (dispensedMedicines && dispensedMedicines.length > 0) {
+      const invalidId = dispensedMedicines.find((d) => !/^[a-f\d]{24}$/i.test(d.medicineId));
+      if (invalidId) {
+        return NextResponse.json(
+          { success: false, error: "معرف الدواء غير صالح" },
+          { status: 400 },
+        );
+      }
+    }
+
+    const now = new Date();
+
+    // 2. Return previously dispensed medicines back to the inventory
     if (visit.dispensedMedicines && visit.dispensedMedicines.length > 0) {
       for (const oldItem of visit.dispensedMedicines) {
         const med = await Medicine.findById(oldItem.medicineId);
         if (med) {
           if (med.batches && med.batches.length > 0) {
-            med.batches[0].quantity += oldItem.quantity;
+            // Pick earliest unexpired batch, or latest batch if all expired
+            const targetBatch =
+              med.batches
+                .filter((b: { expiryDate: Date }) => new Date(b.expiryDate) > now)
+                .sort((a: { expiryDate: Date }, b: { expiryDate: Date }) => new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime())[0] ??
+              med.batches[med.batches.length - 1];
+            targetBatch.quantity += oldItem.quantity;
           } else {
             med.batches.push({
               quantity: oldItem.quantity,
@@ -203,16 +222,8 @@ export async function PUT(
       }
     }
 
-    // 2. Dispense the new set of medicines
+    // 3. Dispense the new set of medicines
     if (dispensedMedicines && dispensedMedicines.length > 0) {
-      const invalidId = dispensedMedicines.find((d) => !/^[a-f\d]{24}$/i.test(d.medicineId));
-      if (invalidId) {
-        return NextResponse.json(
-          { success: false, error: "معرف الدواء غير صالح" },
-          { status: 400 },
-        );
-      }
-
       const dispenseResult = await dispenseMultipleMedicines(
         dispensedMedicines.map((d) => ({ medicineId: d.medicineId, quantity: d.quantity })),
         visit._id
@@ -235,11 +246,19 @@ export async function PUT(
       }
     }
 
-    // 3. Update Patient's name if changed
-    const patient = await MedicalPatient.findOne({ patientId: patientId.trim() });
-    if (patient && patient.patientName !== patientName.trim()) {
-      patient.patientName = patientName.trim();
-      await patient.save();
+    // 4. Update or link MedicalPatient
+    const patient = await MedicalPatient.findOneAndUpdate(
+      { patientId: patientId.trim() },
+      {
+        $set: {
+          patientName: patientName.trim(),
+        },
+        $setOnInsert: { patientId: patientId.trim() },
+      },
+      { upsert: true, returnDocument: "after" }
+    );
+    if (patient) {
+      visit.patientId = patient._id;
     }
 
     // 4. Update the visit details

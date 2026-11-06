@@ -14,10 +14,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
   }
 
-  if (auth.user!.role !== "commander") {
-    return NextResponse.json({ success: false, error: "غير مصرح" }, { status: 403 });
-  }
-
   const ip = request.headers.get("x-forwarded-for") ?? "";
   const rl = checkApiRateLimit(auth.user!.id, ip, "read");
   if (!rl.allowed) {
@@ -26,9 +22,9 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const parsed = notificationQuerySchema.safeParse({
-    page: url.searchParams.get("page"),
-    limit: url.searchParams.get("limit"),
-    unreadOnly: url.searchParams.get("unreadOnly"),
+    page: url.searchParams.get("page") ?? undefined,
+    limit: url.searchParams.get("limit") ?? undefined,
+    unreadOnly: url.searchParams.get("unreadOnly") ?? undefined,
   });
 
   if (!parsed.success) {
@@ -42,9 +38,34 @@ export async function GET(request: Request) {
 
     const userId = auth.user!.id;
 
-    const query: Record<string, unknown> = { userId };
-    if (unreadOnly) {
-      query.isRead = false;
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const query: Record<string, unknown> = {
+      userId,
+      ...(unreadOnly
+        ? { isRead: false }
+        : {
+            $or: [
+              { isRead: false },
+              {
+                isRead: true,
+                $or: [
+                  { readAt: { $gte: startOfDay } },
+                  { createdAt: { $gte: startOfDay } },
+                ],
+              },
+            ],
+          }),
+    };
+
+    // When commander views notifications, mark any unviewed pending leaves as viewed
+    if (auth.user!.role === "commander") {
+      const { Leave } = await import("@/lib/db/models/Leave");
+      await Leave.updateMany(
+        { status: { $in: ["pending_commander", "extension_pending"] }, viewedByCommander: false },
+        { $set: { viewedByCommander: true } }
+      );
     }
 
     const total = await Notification.countDocuments(query);
@@ -87,10 +108,6 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
   }
 
-  if (auth.user!.role !== "commander") {
-    return NextResponse.json({ success: false, error: "غير مصرح" }, { status: 403 });
-  }
-
   const ip = request.headers.get("x-forwarded-for") ?? "";
   const rl = checkApiRateLimit(auth.user!.id, ip, "write");
   if (!rl.allowed) {
@@ -114,7 +131,7 @@ export async function PATCH(request: Request) {
     if (parsed.data.action === "mark_all_read") {
       const result = await Notification.updateMany(
         { userId, isRead: false },
-        { $set: { isRead: true } },
+        { $set: { isRead: true, readAt: new Date() } },
       );
       modifiedCount = result.modifiedCount;
     } else {
@@ -123,7 +140,7 @@ export async function PATCH(request: Request) {
 
       const result = await Notification.updateMany(
         { userId, _id: { $in: validIds }, isRead: false },
-        { $set: { isRead: true } },
+        { $set: { isRead: true, readAt: new Date() } },
       );
       modifiedCount = result.modifiedCount;
     }

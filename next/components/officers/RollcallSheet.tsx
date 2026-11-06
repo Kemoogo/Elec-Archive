@@ -45,12 +45,12 @@ const STATUS_OPTIONS = [
   { value: "present", label: "داخل الوحدة", color: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20" },
   { value: "daily_mission", label: "مأمورية يومية", color: "bg-blue-500/10 text-blue-700 border-blue-500/20" },
   { value: "clinic", label: "عيادة", color: "bg-teal-500/10 text-teal-700 border-teal-500/20" },
-  { value: "leave", label: "إجازة", color: "bg-amber-500/10 text-amber-700 border-amber-500/20" },
+  { value: "leave", label: "إجازة", color: "bg-(--color-primary)/10 text-(--color-primary) border-(--color-primary)/20" },
   { value: "external_mission", label: "مأمورية خارجية", color: "bg-indigo-500/10 text-indigo-700 border-indigo-500/20" },
   { value: "course", label: "فرقة", color: "bg-purple-500/10 text-purple-700 border-purple-500/20" },
   { value: "rest", label: "راحة", color: "bg-sky-500/10 text-sky-700 border-sky-500/20" },
   { value: "absent", label: "غياب", color: "bg-red-500/10 text-red-700 border-red-500/20" },
-  { value: "attached", label: "ملحق", color: "bg-orange-500/10 text-orange-700 border-orange-500/20" },
+  { value: "attached", label: "ملحق", color: "bg-(--app-surface-container) text-(--app-muted-foreground) border-(--app-border)" },
   { value: "hospital", label: "مستشفى", color: "bg-rose-500/10 text-rose-700 border-rose-500/20" },
   { value: "custom_out", label: "سبب آخر", color: "bg-slate-500/10 text-slate-700 border-slate-500/20" },
 ];
@@ -251,7 +251,7 @@ export function RollcallSheet({ date, roster, existingEntries, isDraft }: Rollca
 
           <div className="flex items-center gap-3 shrink-0">
              {existingEntries.length > 0 && isDraft && (
-                <div className="px-3 py-1.5 bg-(--app-warning)/10 text-(--app-warning) border border-(--app-warning)/20 text-xs font-medium rounded-full flex items-center gap-2">
+                <div className="px-3 py-1.5 bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border) text-xs font-medium rounded-full flex items-center gap-2">
                   <Info className="h-3 w-3" />
                   مسودة مؤرشفة
                 </div>
@@ -299,20 +299,14 @@ export function RollcallSheet({ date, roster, existingEntries, isDraft }: Rollca
                     </td>
                     <td className="px-5 py-3">
                        <div className="flex flex-col text-right">
-                          <span className="text-sm font-extrabold text-(--app-foreground)">{officer.fullName}</span>
+                          <span className="text-sm font-black text-(--color-primary)">{officer.fullName}</span>
                           <span className="text-xs font-mono text-(--app-muted-foreground)">عسكري: #{officer.militaryId}</span>
                        </div>
                     </td>
                     <td className="px-5 py-3">
                       {officer.isLocked ? (
                         <div className="flex flex-col items-center gap-1.5 py-1">
-                          <div
-                            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border flex items-center gap-2 shadow-xs ${
-                              officer.sourceType === "leave"
-                                ? "bg-amber-500/10 text-amber-800 border-amber-500/30"
-                                : "bg-indigo-500/10 text-indigo-800 border-indigo-500/30"
-                            }`}
-                          >
+                          <div className="px-3.5 py-1.5 rounded-xl text-xs font-bold border flex items-center gap-2 shadow-xs bg-(--app-surface-container) text-(--app-muted-foreground) border-(--app-border)">
                             <Lock className="w-3.5 h-3.5 shrink-0 opacity-80" />
                             <span>
                               {STATUS_OPTIONS.find((o) => o.value === entry?.status)?.label ||

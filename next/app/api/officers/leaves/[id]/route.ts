@@ -10,8 +10,8 @@ import { patchLeaveSchema } from "@/lib/validations/officers";
 import { checkOfficersRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
-  draft: ["approved", "cancelled"],
-  approved: ["closed", "cancelled"],
+  pending_commander: ["approved", "rejected", "other_orders"],
+  approved: ["closed", "interrupted"],
 };
 
 export async function PATCH(
@@ -51,6 +51,12 @@ export async function PATCH(
     const data = parsed.data;
 
     if (data.status && data.status !== leave.status) {
+      if (data.status === "approved" && auth.user!.role !== "commander" && auth.user!.role !== "admin") {
+        return NextResponse.json(
+          { success: false, error: "التصديق على الإجازات يتطلب صلاحية القائد أو مدير النظام" },
+          { status: 403 }
+        );
+      }
       const allowed = VALID_TRANSITIONS[leave.status];
       if (!allowed || !allowed.includes(data.status)) {
         return NextResponse.json({
@@ -61,10 +67,28 @@ export async function PATCH(
       leave.status = data.status;
     }
 
+    const isAdmin = auth.user!.role === "admin";
+    if (!isAdmin && leave.status === "pending_commander" && leave.viewedByCommander) {
+      return NextResponse.json({
+        success: false,
+        error: "تعذر تعديل الطلب: لقد تم الاطلاع على هذا الطلب من قبل السيد القائد بالفعل",
+      }, { status: 400 });
+    }
+
     if (data.type !== undefined) leave.type = data.type;
     if (data.startDate !== undefined) leave.startDate = new Date(data.startDate);
     if (data.endDate !== undefined) leave.endDate = new Date(data.endDate);
     if (data.reason !== undefined) leave.reason = data.reason;
+    if (data.actingOfficerId !== undefined) {
+      leave.actingOfficerId = data.actingOfficerId
+        ? new (await import("mongoose")).Types.ObjectId(data.actingOfficerId)
+        : undefined;
+    }
+    if (data.isActingOfficerPresentConfirmed !== undefined) {
+      leave.isActingOfficerPresentConfirmed = Boolean(leave.actingOfficerId && data.isActingOfficerPresentConfirmed);
+    } else if (!leave.actingOfficerId) {
+      leave.isActingOfficerPresentConfirmed = false;
+    }
     leave.updatedBy = new (await import("mongoose")).Types.ObjectId(auth.user!.id);
 
     await leave.save();

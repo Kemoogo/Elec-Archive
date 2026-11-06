@@ -48,8 +48,10 @@ export function OfficersPageClient({
 
   const handleSearchChange = useCallback(
     (query: string) => {
-      setSearchQuery(query);
-      applyFilters(query, statusFilter, showAll);
+      const trimmed = query.trim();
+      if (trimmed.length === 1) return;
+      setSearchQuery(trimmed);
+      applyFilters(trimmed, statusFilter, showAll);
     },
     [applyFilters, statusFilter, showAll],
   );

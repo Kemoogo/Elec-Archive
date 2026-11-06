@@ -33,12 +33,15 @@ import {
   ModalSection,
   ModalBadge,
 } from "@/components/ui/modal-shell";
+import { ModalActions } from "@/components/ui/modal-actions";
 import { MonoBadge } from "@/components/ui/mono-badge";
 import { DateField } from "@/components/ui/date-field";
-import { FormLabel, FormInput, FormSelect, FormTextarea } from "@/components/ui/form-fields";
+import { CustomSelect, type CustomSelectOption } from "@/components/ui/custom-select";
+import { FormLabel, FormInput, FormTextarea } from "@/components/ui/form-fields";
 import { SectionWrapper } from "@/components/ui/section-wrapper";
 import { FolderTabs, type TabItem } from "@/components/ui/folder-tabs";
 import MainTable, { type TableColumn } from "@/components/ui/Table";
+import { LoadingState } from "@/components/ui/loading-state";
 import { ActionButton } from "@/components/officers/OfficersTable";
 import { ModernPageHeader as PageHeader, PrimaryHeaderBtn, SecondaryHeaderBtn } from "@/components/layout/ModernPageHeader";
 import { useToast } from "@/components/ui/toast";
@@ -58,7 +61,21 @@ export default function ThemePlaygroundPage() {
   const [demoDate, setDemoDate] = useState("2026-08-28");
   const [inputVal, setInputVal] = useState("نص تجريبي");
   const [selectVal, setSelectVal] = useState("branch-1");
+  const [customSelectVal, setCustomSelectVal] = useState("field");
   const [textareaVal, setTextareaVal] = useState("ملاحظات تجريبية موثقة وفق الهوية البصرية الموحدة.");
+
+  const customSelectOptions: CustomSelectOption[] = [
+    { value: "field", label: "ميدانية", description: "نظام الإجازات الميدانية الرسمية للضباط", badge: "افتراضي" },
+    { value: "daily_sleep", label: "مبيت يومي", description: "تنفيذ الراحة الأسبوعية مباشرة دون طلب تصديق القائد", badge: "تلقائي" },
+    { value: "weekly_rest", label: "راحة أسبوعية", description: "نظام الراحة الدورية لعناصر النوبتجيات بالوحدة" },
+    { value: "annual", label: "سنوية اعتيادية", description: "رصيد الإجازات السنوية المستحقة قانوناً" },
+  ];
+
+  const branchOptions: CustomSelectOption[] = [
+    { value: "branch-1", label: "فرع القيادة" },
+    { value: "branch-2", label: "فرع التعليم" },
+    { value: "branch-3", label: "فرع أركان حرب" },
+  ];
 
   const demoData: DemoTableRow[] = [
     { id: "1", rank: "لواء أ ح", name: "احمد عبد اللطيف الجرف", department: "القيادة", role: "قائد المركز", status: "active" },
@@ -79,10 +96,10 @@ export default function ThemePlaygroundPage() {
       render: (val, row) => (
         <span
           onClick={() => setIsDemoModalOpen(true)}
-          className={`text-xs font-bold ${
+          className={`text-xs font-black ${
             row.status === "vacant"
-              ? "text-amber-600"
-              : "text-(--app-muted-foreground) hover:underline hover:text-(--app-info) cursor-pointer"
+              ? "text-(--app-muted-foreground)"
+              : "text-(--color-primary) hover:underline hover:text-(--app-info) cursor-pointer"
           }`}
         >
           {String(val)}
@@ -97,7 +114,7 @@ export default function ThemePlaygroundPage() {
     {
       header: "الوظيفة",
       accessor: "role",
-      render: (val) => <span className="font-extrabold text-xs text-(--color-primary)">{String(val)}</span>,
+      render: (val) => <span className="font-bold text-xs text-(--app-muted-foreground)">{String(val)}</span>,
     },
     {
       header: "حالة التسكين",
@@ -119,20 +136,20 @@ export default function ThemePlaygroundPage() {
       render: (_val) => (
         <div className="flex items-center justify-center gap-1">
           <ActionButton
-            icon={<Eye className="w-4 h-4 text-slate-500 hover:text-(--color-primary)" />}
+            icon={<Eye className="w-4 h-4 text-(--color-primary) hover:text-(--app-info)" />}
             color="btn-action-primary"
             title="معاينة التفاصيل"
             onClick={() => setIsDemoModalOpen(true)}
           />
           <ActionButton
-            icon={<Edit className="w-4 h-4 text-slate-500 hover:text-(--color-primary)" />}
+            icon={<Edit className="w-4 h-4 text-(--color-primary) hover:text-(--app-info)" />}
             color="btn-action-primary"
             title="تعديل"
             onClick={() => {}}
           />
           <ActionButton
-            icon={<Trash2 className="w-4 h-4 text-red-500" />}
-            color="btn-action-danger"
+            icon={<Trash2 className="w-4 h-4 text-(--color-primary) hover:text-(--app-info)" />}
+            color="btn-action-primary"
             title="حذف"
             onClick={() => {}}
           />
@@ -234,8 +251,8 @@ export default function ThemePlaygroundPage() {
                   استخدام `ModalBadge` (تأخذ تلقائياً `bg-(--app-surface-container)` مع `shadow-sm`).
                 </div>
                 <div className="p-3 bg-(--app-surface) rounded-xl border border-(--app-border)">
-                  <span className="text-(--color-primary) font-black block mb-1">4. الأزرار والتذييل:</span>
-                  استخدام الأزرار القياسية الموحدة `btn-primary`، `btn-secondary`، `btn-destructive`.
+                  <span className="text-(--color-primary) font-black block mb-1">4. الأزرار والتذييل (ModalActions):</span>
+                  استخدام `ModalActions` دائماً في تذييل المودال لتوحيد موقع الأزرار (الزر الأساسي في أقصى اليسار، والزر الثانوي بجواره، وزر الحذف أو العناصر المساعدة في أقصى اليمين، مع الالتزام بتسمية &apos;إلغاء&apos; لنماذج الإدخال و&apos;إغلاق&apos; لنوافذ العرض).
                 </div>
               </div>
             </div>
@@ -260,6 +277,12 @@ export default function ThemePlaygroundPage() {
           <p className="text-xs font-bold text-(--app-muted-foreground) text-right">
             * الجداول تدعم الترقيم التلقائي، دمج الخلايا متعددة الصفوف (`rowSpan`)، تلميحات التحويم للأزرار، والتنقل السلس.
           </p>
+          <div className="space-y-2 pt-2">
+            <h4 className="text-xs font-black text-(--color-primary) text-right">
+              مؤشر التحميل الموحد (`LoadingState` / `LoadingWrapper`)
+            </h4>
+            <LoadingState message="جاري تحميل جدول نوبتجيات الأسبوع..." />
+          </div>
         </div>
       ),
     },
@@ -268,55 +291,79 @@ export default function ThemePlaygroundPage() {
       label: "النماذج والمدخلات",
       icon: <FileText className="w-4 h-4" />,
       content: (
-        <div className="p-6 bg-(--app-surface) border border-(--app-border) rounded-2xl shadow-xs grid grid-cols-1 md:grid-cols-2 gap-5 text-right">
-          <div className="space-y-1.5">
-            <FormLabel htmlFor="form-input-demo" required>
-              حقل نصي قياسي (FormInput)
-            </FormLabel>
-            <FormInput
-              id="form-input-demo"
-              type="text"
-              value={inputVal}
-              onChange={(e) => setInputVal(e.target.value)}
-              placeholder="أدخل النص هنا..."
-            />
-          </div>
+        <div className="space-y-6 text-right">
+          <div className="p-6 bg-(--app-surface) border border-(--app-border) rounded-2xl shadow-xs grid grid-cols-1 md:grid-cols-2 gap-5 text-right">
+            <div className="space-y-1.5">
+              <FormLabel htmlFor="form-input-demo" required>
+                حقل نصي قياسي (FormInput)
+              </FormLabel>
+              <FormInput
+                id="form-input-demo"
+                type="text"
+                value={inputVal}
+                onChange={(e) => setInputVal(e.target.value)}
+                placeholder="أدخل النص هنا..."
+              />
+            </div>
 
-          <div className="space-y-1.5">
-            <FormLabel htmlFor="form-select-demo" required>
-              قائمة منسدلة قياسية (FormSelect)
-            </FormLabel>
-            <FormSelect
+            <div className="space-y-1.5">
+              <CustomSelect
+                id="custom-select-demo"
+                label="قائمة اختيار حديثة موحدة (CustomSelect) — المعيار المعتمد"
+                value={customSelectVal}
+                onChange={setCustomSelectVal}
+                options={customSelectOptions}
+                required
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <DateField
+                id="form-date-demo"
+                label="حقل التاريخ الذكي (DateField)"
+                value={demoDate}
+                onChange={setDemoDate}
+                required
+              />
+            </div>
+
+            <CustomSelect
               id="form-select-demo"
+              label="قائمة منسدلة قياسية (CustomSelect)"
               value={selectVal}
-              onChange={(e) => setSelectVal(e.target.value)}
-            >
-              <option value="branch-1">فرع القيادة</option>
-              <option value="branch-2">فرع التعليم</option>
-              <option value="branch-3">فرع أركان حرب</option>
-            </FormSelect>
+              onChange={setSelectVal}
+              options={branchOptions}
+            />
+
+            <div className="space-y-1.5 md:col-span-2">
+              <FormLabel htmlFor="form-textarea-demo">
+                مربع نص متعدد الأسطر (FormTextarea)
+              </FormLabel>
+              <FormTextarea
+                id="form-textarea-demo"
+                value={textareaVal}
+                onChange={(e) => setTextareaVal(e.target.value)}
+                rows={3}
+              />
+            </div>
           </div>
 
-          <div className="space-y-1.5">
-            <DateField
-              id="form-date-demo"
-              label="حقل التاريخ الذكي (DateField)"
-              value={demoDate}
-              onChange={setDemoDate}
-              required
-            />
-          </div>
-
-          <div className="space-y-1.5 md:col-span-2">
-            <FormLabel htmlFor="form-textarea-demo">
-              مربع نص متعدد الأسطر (FormTextarea)
-            </FormLabel>
-            <FormTextarea
-              id="form-textarea-demo"
-              value={textareaVal}
-              onChange={(e) => setTextareaVal(e.target.value)}
-              rows={3}
-            />
+          {/* Form Rules Card */}
+          <div className="p-5 bg-(--app-surface-container) border border-(--app-border) rounded-2xl space-y-2">
+            <h5 className="text-xs font-black text-(--color-primary)">
+              المعايير المعتمدة للمدخلات والقوائم المنسدلة:
+            </h5>
+            <ul className="list-disc list-inside text-xs font-bold text-(--app-muted-foreground) space-y-1">
+              <li>
+                <strong>CustomSelect:</strong> هي القائمة المنسدلة المعتمدة رسمياً للنظام، تدعم الشارات التوضيحية (Badges)، الوصف الإضافي (Description)، والتنقل عبر لوحة المفاتيح.
+              </li>
+              <li>
+                <strong>DateField:</strong> المكون المعتمد لإدخال التواريخ الذكية مع التحقق والتنسيق التلقائي.
+              </li>
+              <li>
+                <strong>حلقات التركيز:</strong> جميع الحقول تستخدم حلقة تركيز زرقاء ملكية موحدة: <code className="font-mono text-[11px] bg-(--app-surface) px-1.5 py-0.5 rounded border border-(--app-border)">focus:ring-blue-500/20 focus:border-blue-500</code>.
+              </li>
+            </ul>
           </div>
         </div>
       ),
@@ -412,7 +459,7 @@ export default function ThemePlaygroundPage() {
                 onClick={() => showToast("تم حفظ وتحديث البيانات بنجاح", "success")}
                 className="btn-secondary text-xs"
               >
-                <Check className="w-4 h-4 text-emerald-500" />
+                <Check className="w-4 h-4 text-(--color-primary)" />
                 <span>Toast نجاح (Success)</span>
               </button>
               <button
@@ -420,7 +467,7 @@ export default function ThemePlaygroundPage() {
                 onClick={() => showToast("حدث خطأ أثناء الاتصال بالخادم", "error")}
                 className="btn-secondary text-xs"
               >
-                <X className="w-4 h-4 text-red-500" />
+                <X className="w-4 h-4 text-(--color-primary)" />
                 <span>Toast خطأ (Error)</span>
               </button>
               <button
@@ -428,7 +475,7 @@ export default function ThemePlaygroundPage() {
                 onClick={() => showToast("تنبيه: يرجى استكمال البيانات المطلوبة", "info")}
                 className="btn-secondary text-xs"
               >
-                <AlertTriangle className="w-4 h-4 text-amber-500" />
+                <AlertTriangle className="w-4 h-4 text-(--color-primary)" />
                 <span>Toast تنبيه (Warning/Info)</span>
               </button>
               <button
@@ -436,7 +483,7 @@ export default function ThemePlaygroundPage() {
                 onClick={() => showToast("معلومة: تم تطبيق التحديث في النظام", "info")}
                 className="btn-secondary text-xs"
               >
-                <Info className="w-4 h-4 text-blue-500" />
+                <Info className="w-4 h-4 text-(--color-primary)" />
                 <span>Toast معلومة (Info)</span>
               </button>
             </div>
@@ -457,19 +504,19 @@ export default function ThemePlaygroundPage() {
             subtitle="ضابط على قوة المركز"
           />
           <StatCard
-            icon={<CheckCircle2 className="w-6 h-6 text-emerald-600" />}
+            icon={<CheckCircle2 className="w-6 h-6 text-(--color-primary)" />}
             title="الوظائف المسكنة"
             value="38"
             subtitle="وظيفة مأهولة حالياً"
           />
           <StatCard
-            icon={<AlertCircle className="w-6 h-6 text-amber-600" />}
+            icon={<AlertCircle className="w-6 h-6 text-(--color-primary)" />}
             title="الوظائف الشاغرة"
             value="6"
             subtitle="تتطلب تسكين ضابط"
           />
           <StatCard
-            icon={<Activity className="w-6 h-6 text-blue-600" />}
+            icon={<Activity className="w-6 h-6 text-(--color-primary)" />}
             title="الزيارات الطبية اليومية"
             value="14"
             subtitle="كشف ومتابعة بالعيادة"
@@ -494,7 +541,6 @@ export default function ThemePlaygroundPage() {
             <ColorSwatch name="Foreground" hex="#172b53" varName="--app-foreground" />
             <ColorSwatch name="Info Blue" hex="#3b82f6" varName="--app-info" />
             <ColorSwatch name="Success Green" hex="#10b981" varName="--app-success" />
-            <ColorSwatch name="Warning Amber" hex="#f59e0b" varName="--app-warning" />
             <ColorSwatch name="Error Red" hex="#ef4444" varName="--app-error" />
           </div>
         </div>
@@ -549,34 +595,14 @@ export default function ThemePlaygroundPage() {
           panelClassName="max-w-xl border-(--app-border) shadow-depth-xl"
           bodyClassName="p-5 space-y-4 no-scrollbar"
           footer={
-            <div className="flex items-center justify-between w-full flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setIsDemoModalOpen(false)}
-                className="btn-destructive text-xs"
-              >
-                <Trash2 className="w-4 h-4 text-white" />
-                <span>حذف الوظيفة</span>
-              </button>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsDemoModalOpen(false)}
-                  className="btn-secondary text-xs"
-                >
-                  إلغاء
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsDemoModalOpen(false)}
-                  className="btn-primary text-xs"
-                >
-                  <Edit className="w-4 h-4" />
-                  <span>تعديل الوظيفة</span>
-                </button>
-              </div>
-            </div>
+            <ModalActions
+              mode="view"
+              destructiveText="حذف الوظيفة"
+              onDestructive={() => setIsDemoModalOpen(false)}
+              submitText="تعديل الوظيفة"
+              onConfirm={() => setIsDemoModalOpen(false)}
+              onCancel={() => setIsDemoModalOpen(false)}
+            />
           }
         >
           {/* Header Card */}

@@ -179,7 +179,10 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const parsed = patientMedicalRecordSchema.safeParse(body);
+    const parsed = patientMedicalRecordSchema.safeParse({
+      ...body,
+      patientId: body.patientId || patientId.trim(),
+    });
 
     if (!parsed.success) {
       return NextResponse.json(

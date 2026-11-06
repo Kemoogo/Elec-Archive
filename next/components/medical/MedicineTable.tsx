@@ -5,6 +5,7 @@ import MainTable, { TableColumn } from "@/components/ui/Table";
 import { RestockButton } from "@/components/medical/RestockButton";
 import { EditMedicineButton } from "@/components/medical/EditMedicineButton";
 import { MedicineDetailModal } from "@/components/medical/MedicineDetailModal";
+import { formatDateDisplay } from "@/lib/utils/date-display";
 
 interface MedicineSummary {
   _id: string;
@@ -37,7 +38,7 @@ export function MedicineTable({ medicines, now, emptyTitle, emptyDescription }: 
       render: (val, med) => (
         <button
           onClick={() => setSelectedMedicineId(med._id)}
-          className="text-right font-bold text-(--color-primary) hover:underline hover:text-(--app-info) cursor-pointer transition-all"
+          className="text-right font-black text-xs text-(--color-primary) hover:underline hover:text-(--app-info) cursor-pointer transition-all"
         >
           {val as string}
         </button>
@@ -67,7 +68,7 @@ export function MedicineTable({ medicines, now, emptyTitle, emptyDescription }: 
       accessor: "expiryDate",
       isNumeric: true,
       cellAlign: "center",
-      render: (val) => <span className="font-mono">{new Date(val as string).toLocaleDateString("ar-EG")}</span>,
+      render: (val) => <span className="font-mono text-xs text-(--app-muted-foreground)">{formatDateDisplay(val as string)}</span>,
     },
     {
       header: "الحد الأدنى",
@@ -85,17 +86,17 @@ export function MedicineTable({ medicines, now, emptyTitle, emptyDescription }: 
         return (
           <div className="flex gap-1">
             {isExpired && (
-              <span className="bg-(--app-error)/20 text-(--app-error) px-2 py-1 rounded text-xs">
+              <span className="bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border) px-2 py-1 rounded text-xs font-bold">
                 منتهي الصلاحية
               </span>
             )}
             {isLowStock && !isExpired && (
-              <span className="bg-(--app-warning)/20 text-(--app-warning) px-2 py-1 rounded text-xs">
+              <span className="bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border) px-2 py-1 rounded text-xs font-bold">
                 مخزون منخفض
               </span>
             )}
             {!isLowStock && !isExpired && (
-              <span className="bg-(--app-success)/20 text-(--app-success) px-2 py-1 rounded text-xs">
+              <span className="bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border) px-2 py-1 rounded text-xs font-bold">
                 متوفر
               </span>
             )}

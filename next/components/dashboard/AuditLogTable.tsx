@@ -42,15 +42,15 @@ const moduleLabels: Record<string, string> = {
 };
 
 const actionColors: Record<string, string> = {
-  CREATE: "bg-(--app-success)/20 text-(--app-success)",
-  UPDATE: "bg-(--app-info)/20 text-(--app-info)",
-  DELETE: "bg-(--app-error)/20 text-(--app-error)",
-  VIEW: "bg-(--app-border) text-(--app-muted-foreground)",
-  LOGIN: "bg-(--app-success)/20 text-(--app-success)",
-  LOGIN_FAILED: "bg-(--app-error)/20 text-(--app-error)",
-  LOGOUT: "bg-(--app-warning)/20 text-(--app-warning)",
-  LOCK: "bg-(--app-warning)/20 text-(--app-warning)",
-  UNLOCK: "bg-(--app-info)/20 text-(--app-info)",
+  CREATE: "bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)",
+  UPDATE: "bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)",
+  DELETE: "bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)",
+  VIEW: "bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)",
+  LOGIN: "bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)",
+  LOGIN_FAILED: "bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)",
+  LOGOUT: "bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)",
+  LOCK: "bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)",
+  UNLOCK: "bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)",
 };
 
 interface AuditLogTableProps {
@@ -109,13 +109,13 @@ export function AuditLogTable({ action, module, startDate, endDate, page = 1 }: 
           {
             header: "المستخدم",
             accessor: "userName",
-            className: "font-bold text-(--color-primary)",
+            className: "font-black text-xs text-(--color-primary)",
           },
           {
             header: "العملية",
             accessor: "action",
             render: (val) => (
-              <span className={`rounded-lg px-2.5 py-1 text-[10px] font-black tracking-wider ${actionColors[val as string] ?? "bg-(--app-border) text-foreground"}`}>
+              <span className={`rounded-lg px-2.5 py-1 text-[10px] font-bold border ${actionColors[val as string] ?? "bg-(--app-surface-container) text-(--app-muted-foreground) border-(--app-border)"}`}>
                 {(actionLabels[val as string] ?? val).toUpperCase()}
               </span>
             ),
@@ -123,17 +123,17 @@ export function AuditLogTable({ action, module, startDate, endDate, page = 1 }: 
           {
             header: "الوحدة",
             accessor: "module",
-            render: (val) => <span className="text-xs font-bold">{moduleLabels[val as string] ?? val}</span>,
+            render: (val) => <span className="text-xs font-bold text-(--app-muted-foreground)">{moduleLabels[val as string] ?? val}</span>,
           },
           {
             header: "الوصف",
             accessor: "description",
-            render: (val) => <span className="text-[11px] leading-relaxed">{val as string}</span>
+            render: (val) => <span className="text-xs font-bold text-(--app-muted-foreground) leading-relaxed">{val as string}</span>
           },
           {
             header: "التاريخ",
             accessor: "createdAt",
-            render: (val) => <span className="text-[11px] font-mono">{new Date(val as string).toLocaleString("ar")}</span>,
+            render: (val) => <span className="text-xs font-mono font-bold text-(--app-muted-foreground)">{new Date(val as string).toLocaleString("ar")}</span>,
           },
         ]}
         data={entries}

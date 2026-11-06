@@ -5,20 +5,13 @@ import { ModalShell, ModalBadge } from "@/components/ui/modal-shell";
 import { ModalActions } from "@/components/ui/modal-actions";
 import MainTable, { type TableColumn } from "@/components/ui/Table";
 import { useToast } from "@/components/ui/toast";
-import { User, Briefcase, Plus, Trash2, ChevronDown, Award, AlertTriangle, ArrowDown } from "lucide-react";
+import { User, Briefcase, Plus, Trash2, Award, AlertTriangle, ArrowDown } from "lucide-react";
 import { ActionButton } from "@/components/officers/OfficersTable";
+import { CustomSelect, type CustomSelectOption } from "@/components/ui/custom-select";
 import { RANK_LABELS, type OfficerRank } from "@/lib/db/models/Officer.shared";
+import type { OfficerOption } from "@/types";
 
-export interface OfficerData {
-  id?: string;
-  _id?: string;
-  fullName: string;
-  rank: string;
-  militaryId?: string;
-  seniorityNumber?: string;
-  isArkanHarb?: boolean;
-  officerLabel?: string;
-}
+export type OfficerData = OfficerOption;
 
 export interface PositionItem {
   id: string;
@@ -200,12 +193,17 @@ function OfficerPositionsModalContent({
       return;
     }
 
-    const alreadyExists = assignedList.some(
-      (r) => r.id === selectedPositionId && r.role === selectedRole
+    const existingPositionAssignment = assignedList.find(
+      (r) => r.id === selectedPositionId
     );
 
-    if (alreadyExists) {
-      showToast("الضابط مسكن بالفعل على هذه الوظيفة بهذه الصفة", "info");
+    if (existingPositionAssignment) {
+      showToast(
+        existingPositionAssignment.role === selectedRole
+          ? "الضابط مسكن بالفعل على هذه الوظيفة بهذه الصفة"
+          : "لا يمكن تسكين الضابط كـ (ضابط أساسي) و(ضابط بديل) لنفس الوظيفة في آنٍ واحد",
+        "info"
+      );
       return;
     }
 
@@ -323,7 +321,7 @@ function OfficerPositionsModalContent({
     {
       header: "الوظيفة",
       accessor: "positionTitle",
-      render: (val) => <span className="font-extrabold text-xs text-(--color-primary)">{String(val)}</span>,
+      render: (val) => <span className="font-black text-xs text-(--color-primary)">{String(val)}</span>,
     },
     {
       header: "نوع التكليف",
@@ -343,8 +341,8 @@ function OfficerPositionsModalContent({
             render: (_val: unknown, row: AssignedRow) => (
               <div className="flex items-center justify-center">
                 <ActionButton
-                  icon={<Trash2 className="w-4 h-4 text-red-500" />}
-                  color="btn-action-danger"
+                  icon={<Trash2 className="w-4 h-4 text-(--color-primary) hover:text-(--app-info)" />}
+                  color="btn-action-primary"
                   title="إلغاء التسكين عن هذه الوظيفة"
                   onClick={() => handleRemoveAssignment(row.id, row.role)}
                 />
@@ -360,6 +358,23 @@ function OfficerPositionsModalContent({
 
   const selectedPos = allPositions.find((p) => p.id === selectedPositionId);
 
+  const positionSelectOptions: CustomSelectOption[] = useMemo(() => {
+    return allPositions.map((p) => ({
+      value: p.id,
+      label: `${p.positionTitle} (${p.department || "عام"})`,
+      description: p.hasNoSubstitute ? "وظيفة بدون بديل" : undefined,
+      badge: p.hasNoSubstitute ? "بدون بديل" : undefined,
+    }));
+  }, [allPositions]);
+
+  const roleSelectOptions: CustomSelectOption[] = useMemo(
+    () => [
+      { value: "primary", label: "ضابط أساسي" },
+      { value: "substitute", label: "ضابط بديل", disabled: Boolean(selectedPos?.hasNoSubstitute) },
+    ],
+    [selectedPos]
+  );
+
   return (
     <ModalShell
       title={`تكليفات ووظائف الضابط: ${officerLabel}`}
@@ -369,24 +384,13 @@ function OfficerPositionsModalContent({
       panelClassName="max-w-2xl border-(--app-border) shadow-depth-xl"
       bodyClassName="p-5 space-y-4 no-scrollbar"
       footer={
-        canEdit ? (
-          <ModalActions
-            submitText="حفظ التغييرات"
-            submitLoading={loading}
-            onCancel={onClose}
-            onConfirm={handleSaveAll}
-          />
-        ) : (
-          <div className="flex items-center justify-end w-full">
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn-secondary text-xs"
-            >
-              إغلاق
-            </button>
-          </div>
-        )
+        <ModalActions
+          mode={canEdit ? "action" : "view"}
+          submitText={canEdit ? "حفظ التغييرات" : undefined}
+          submitLoading={loading}
+          onConfirm={canEdit ? handleSaveAll : undefined}
+          onCancel={onClose}
+        />
       }
     >
       {/* Officer Summary Card */}
@@ -446,66 +450,33 @@ function OfficerPositionsModalContent({
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
             {/* 1. Position Select */}
             <div className="sm:col-span-6 space-y-1.5">
-              <label
-                htmlFor="modal-pos-select"
-                className="text-xs font-bold text-(--app-muted-foreground) block mr-1"
-              >
-                الوظيفة المراد التسكين عليها <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <select
-                  id="modal-pos-select"
-                  value={selectedPositionId}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setSelectedPositionId(val);
-                    const p = allPositions.find((item) => item.id === val);
-                    if (p?.hasNoSubstitute) {
-                      setSelectedRole("primary");
-                    }
-                  }}
-                  className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none text-right cursor-pointer"
-                >
-                  <option value="">-- اختر الوظيفة المراد التسكين عليها --</option>
-                  {groupedPositions.map((grp) => (
-                    <optgroup key={grp.department} label={`فرع / ${grp.department}`}>
-                      {grp.items.map((pos) => (
-                        <option key={pos.id} value={pos.id}>
-                          {pos.positionTitle} {pos.hasNoSubstitute ? "(بدون بديل)" : ""}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-                <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-              </div>
+              <CustomSelect
+                id="modal-pos-select"
+                label="الوظيفة المراد التسكين عليها"
+                value={selectedPositionId}
+                onChange={(val) => {
+                  setSelectedPositionId(val);
+                  const p = allPositions.find((item) => item.id === val);
+                  if (p?.hasNoSubstitute) {
+                    setSelectedRole("primary");
+                  }
+                }}
+                options={positionSelectOptions}
+                placeholder="-- اختر الوظيفة المراد التسكين عليها --"
+                required
+              />
             </div>
 
             {/* 2. Role Select */}
             <div className="sm:col-span-4 space-y-1.5">
-              <label
-                htmlFor="modal-role-select"
-                className="text-xs font-bold text-(--app-muted-foreground) block mr-1"
-              >
-                نوع التكليف <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <select
-                  id="modal-role-select"
-                  value={selectedRole}
-                  onChange={(e) => setSelectedRole(e.target.value as "primary" | "substitute")}
-                  className="w-full px-3 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-sm font-bold text-slate-500 focus:outline-none focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none text-right cursor-pointer"
-                >
-                  <option value="primary">ضابط أساسي</option>
-                  <option
-                    value="substitute"
-                    disabled={Boolean(selectedPos?.hasNoSubstitute)}
-                  >
-                    {selectedPos?.hasNoSubstitute ? "بديل (غير متاح)" : "ضابط بديل"}
-                  </option>
-                </select>
-                <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-              </div>
+              <CustomSelect
+                id="modal-role-select"
+                label="نوع التكليف"
+                value={selectedRole}
+                onChange={(val) => setSelectedRole(val as "primary" | "substitute")}
+                options={roleSelectOptions}
+                required
+              />
             </div>
 
             {/* 3. Add Button */}
@@ -528,28 +499,17 @@ function OfficerPositionsModalContent({
       {confirmTargetPos && (
         <ModalShell
           title="تأكيد استبدال الضابط الأساسي"
-          icon={<AlertTriangle className="w-4 h-4 text-amber-500" />}
+          icon={<AlertTriangle className="w-4 h-4 text-(--color-primary)" />}
           onClose={() => setConfirmTargetPos(null)}
           overlayClassName="bg-black/40"
           panelClassName="max-w-md border-(--app-border) shadow-depth-xl z-[70]"
           bodyClassName="p-5 space-y-4 text-right"
           footer={
-            <div className="flex items-center justify-end gap-2 w-full">
-              <button
-                type="button"
-                onClick={() => setConfirmTargetPos(null)}
-                className="btn-secondary text-xs"
-              >
-                إلغاء
-              </button>
-              <button
-                type="button"
-                onClick={() => commitAddAssignment(confirmTargetPos)}
-                className="btn-primary text-xs flex items-center gap-1.5"
-              >
-                <span>تأكيد الاستبدال والإضافة</span>
-              </button>
-            </div>
+            <ModalActions
+              submitText="تأكيد الاستبدال والإضافة"
+              onConfirm={() => commitAddAssignment(confirmTargetPos)}
+              onCancel={() => setConfirmTargetPos(null)}
+            />
           }
         >
           {/* Position Info Banner */}
@@ -597,7 +557,7 @@ function OfficerPositionsModalContent({
 
           {/* Notice Note */}
           <div className="flex items-start gap-2 p-2.5 bg-(--app-surface-container)/60 rounded-xl border border-(--app-border)/60 text-[11px] font-bold text-(--app-muted-foreground)">
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+            <AlertTriangle className="w-3.5 h-3.5 text-(--color-primary) shrink-0 mt-0.5" />
             <p className="leading-relaxed">
               سيتم إنهاء تكليف الضابط الحالي كضابط أساسي تلقائياً وأرشفة فترته السابقة في السجل التاريخي للوظيفة عند حفظ التغييرات.
             </p>

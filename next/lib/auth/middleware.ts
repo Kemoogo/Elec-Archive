@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { getTokenFromCookie, verifyToken } from "./jwt";
 import { connectToDatabase } from "@/lib/db/connect";
 import { User } from "@/lib/db/models/User";
@@ -11,7 +12,7 @@ export interface AuthResult {
   status?: number;
 }
 
-export async function authenticate(): Promise<AuthResult> {
+export const authenticate = cache(async (): Promise<AuthResult> => {
   const token = await getTokenFromCookie();
 
   if (!token) {
@@ -68,7 +69,7 @@ export async function authenticate(): Promise<AuthResult> {
   };
 
   return { success: true, user: authUser };
-}
+});
 
 export async function requireAuth(): Promise<AuthResult> {
   return authenticate();

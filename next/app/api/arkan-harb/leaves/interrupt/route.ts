@@ -24,7 +24,12 @@ export async function POST(request: Request) {
     return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
   }
 
-  if (!canEditModule(auth.user!, "arkan_harb") && !canEditModule(auth.user!, "officers")) {
+  const hasPermission =
+    auth.user?.role === "commander" ||
+    auth.user?.role === "admin" ||
+    canEditModule(auth.user!, "arkan_harb") ||
+    canEditModule(auth.user!, "officers");
+  if (!hasPermission) {
     return NextResponse.json({ success: false, error: errors.insufficientPermissions }, { status: 403 });
   }
 
@@ -43,18 +48,31 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "الإجازة غير موجودة" }, { status: 404 });
     }
 
-    const returnDateObj = new Date(actualReturnDate);
-    returnDateObj.setHours(0, 0, 0, 0);
+    const returnDateStr = actualReturnDate.split("T")[0];
+    const startDateStr = new Date(leave.startDate).toISOString().split("T")[0];
+    const todayStr = new Date().toISOString().split("T")[0];
 
-    const startDateObj = new Date(leave.startDate);
-    startDateObj.setHours(0, 0, 0, 0);
-
-    if (returnDateObj < startDateObj) {
+    if (returnDateStr < startDateStr) {
       return NextResponse.json({ success: false, error: "تاريخ العودة الفعلي لا يمكن أن يكون قبل تاريخ بداية الإجازة" }, { status: 400 });
     }
 
+    if (returnDateStr > todayStr) {
+      return NextResponse.json({ success: false, error: "قطع الإجازة يجب أن يكون في يوم التنفيذ (اليوم) ولا يمكن أن يكون تاريخاً مستقبلياً" }, { status: 400 });
+    }
+
+    const returnDateObj = new Date(returnDateStr + "T00:00:00.000Z");
+
+    if (!leave.originalEndDate) {
+      leave.originalEndDate = leave.endDate;
+    }
     leave.status = "interrupted";
     leave.actualReturnDate = returnDateObj;
+    leave.endDate = returnDateObj;
+    if (body.reason && typeof body.reason === "string" && body.reason.trim()) {
+      leave.reason = leave.reason
+        ? `${leave.reason} (قطع الإجازة: ${body.reason.trim()})`
+        : `قطع الإجازة: ${body.reason.trim()}`;
+    }
     leave.updatedBy = auth.user!.id as unknown as typeof leave.updatedBy;
     await leave.save();
 
@@ -64,7 +82,7 @@ export async function POST(request: Request) {
       action: "UPDATE",
       module: "arkan_harb",
       targetId: leave._id.toString(),
-      description: `قطع الإجازة وتحديد تاريخ العودة الفعلي: ${returnDateObj.toISOString().split("T")[0]}`,
+      description: `قطع الإجازة وتحديد تاريخ العودة الفعلي: ${returnDateStr}`,
     });
 
     return NextResponse.json({ success: true, data: { leaveId: leave._id.toString() } });

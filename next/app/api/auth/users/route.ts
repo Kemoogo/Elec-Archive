@@ -3,9 +3,10 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { User } from "@/lib/db/models/User";
 import { requireAdmin } from "@/lib/auth/middleware";
 import { logAuditEvent } from "@/lib/auth/audit";
-import { createUserSchema } from "@/validations/auth";
+import { createUserSchema } from "@/lib/validations/auth";
 import { errors } from "@/lib/auth/errors";
 import { handleApiError } from "@/lib/utils/api-error";
+import { escapeRegex } from "@/lib/utils";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
 
 export async function GET(request: Request) {
@@ -47,8 +48,8 @@ export async function GET(request: Request) {
     if (isActive) filter.isActive = isActive === "true";
 
     // Full-text search across username, fullName, department
-    if (search) {
-      const regex = { $regex: search, $options: "i" };
+    if (search && search.length >= 2) {
+      const regex = { $regex: escapeRegex(search), $options: "i" };
       filter.$or = [
         { username: regex },
         { fullName: regex },

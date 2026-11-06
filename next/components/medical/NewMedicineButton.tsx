@@ -41,7 +41,7 @@ export function NewMedicineModal({ onClose }: { onClose: () => void }) {
     minThreshold: 10,
   });
 
-  const handleSubmit = async (e: React.FormEvent, exitAfterSave: boolean) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
@@ -64,20 +64,7 @@ export function NewMedicineModal({ onClose }: { onClose: () => void }) {
 
       showToast("تم إضافة الدواء بنجاح", "success");
       router.refresh();
-
-      if (exitAfterSave) {
-        onClose();
-      } else {
-        setForm({
-          name: "",
-          unit: "",
-          concentration: "",
-          quantity: 1,
-          expiryDate: new Date().toISOString().split('T')[0],
-          minThreshold: 10,
-        });
-        setLoading(false);
-      }
+      onClose();
     } catch {
       setError("حدث خطأ في الخادم");
       setLoading(false);
@@ -85,32 +72,13 @@ export function NewMedicineModal({ onClose }: { onClose: () => void }) {
   };
 
   const footer = (
-    <ModalActions className="sm:items-stretch w-full">
-      <button
-        type="submit"
-        form="medicine-form"
-        className="btn-primary flex-1 justify-center"
-        disabled={loading}
-      >
-        حفظ وخروج
-      </button>
-      <button
-        type="button"
-        onClick={(e) => handleSubmit(e as unknown as React.FormEvent, false)}
-        className="btn-secondary flex-1 justify-center"
-        disabled={loading}
-      >
-        حفظ
-      </button>
-      <button
-        type="button"
-        onClick={onClose}
-        className="btn-secondary flex-1 justify-center border-transparent"
-        disabled={loading}
-      >
-        إلغاء
-      </button>
-    </ModalActions>
+    <ModalActions
+      form="medicine-form"
+      submitText="حفظ"
+      submitLoading={loading}
+      cancelText="إلغاء"
+      onCancel={onClose}
+    />
   );
 
   return (
@@ -123,7 +91,7 @@ export function NewMedicineModal({ onClose }: { onClose: () => void }) {
       bodyClassName="p-6 no-scrollbar"
       footer={footer}
     >
-      <form id="medicine-form" onSubmit={(e) => handleSubmit(e, true)} className="space-y-4">
+      <form id="medicine-form" onSubmit={handleSubmit} className="space-y-4">
         {error && (
           <div className="p-3 bg-(--app-error)/10 border border-(--app-error)/20 rounded-xl text-(--app-error) text-xs font-bold">
             {error}

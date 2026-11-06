@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { LeaveRegister, type LeaveItem, type OfficerLeaveStatusRow } from "@/components/officers/LeaveRegister";
-import { LeaveRequestModal, type OfficerOption } from "@/components/officers/LeaveRequestModal";
+import { LeaveRequestModal } from "@/components/officers/LeaveRequestModal";
+import type { OfficerOption } from "@/types/officer";
 import { ModernPageHeader as PageHeader, PrimaryHeaderBtn, SecondaryHeaderBtn } from "@/components/layout/ModernPageHeader";
 import { ScrollText, Plus, Filter } from "lucide-react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
@@ -13,6 +14,7 @@ interface LeavesPageClientProps {
   pendingRequests: LeaveItem[];
   canEdit: boolean;
   isCommander: boolean;
+  isAdmin?: boolean;
   hideHeader?: boolean;
 }
 
@@ -22,16 +24,22 @@ export function LeavesPageClient({
   pendingRequests = [],
   canEdit,
   isCommander,
+  isAdmin = false,
   hideHeader = false,
 }: LeavesPageClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
+  const urlSearch = searchParams.get("search") || "";
+  const [searchQuery, setSearchQuery] = useState(urlSearch);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
 
-  // Active search query: either from header (URL search) or local header input
-  const effectiveSearch = (searchParams.get("search") ?? searchQuery).trim().toLowerCase();
+  useEffect(() => {
+    setSearchQuery(urlSearch);
+  }, [urlSearch]);
+
+  // Active search query: when header is hidden (inside ArkanHarbClient), use URL search; otherwise use local searchQuery
+  const effectiveSearch = (hideHeader ? urlSearch : searchQuery).trim().toLowerCase();
 
   // Toggle for requests only (like positions by-officer / by-position toggle)
   const showRequestsOnly = searchParams.get("requestsOnly") === "true";
@@ -46,16 +54,18 @@ export function LeavesPageClient({
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
-  // Filter officer rows by search query
-  const filteredRows = (officerRows || []).filter((row) => {
-    if (!effectiveSearch) return true;
-    return (
-      (row?.fullName && row.fullName.toLowerCase().includes(effectiveSearch)) ||
-      (row?.militaryId && row.militaryId.toLowerCase().includes(effectiveSearch)) ||
-      (row?.rankLabel && row.rankLabel.toLowerCase().includes(effectiveSearch)) ||
-      (row?.defaultLeaveSystem && row.defaultLeaveSystem.toLowerCase().includes(effectiveSearch))
-    );
-  });
+  // Filter officer rows by search query (memoized to preserve reference stability)
+  const filteredRows = useMemo(() => {
+    return (officerRows || []).filter((row) => {
+      if (!effectiveSearch) return true;
+      return (
+        (row?.fullName && row.fullName.toLowerCase().includes(effectiveSearch)) ||
+        (row?.militaryId && row.militaryId.toLowerCase().includes(effectiveSearch)) ||
+        (row?.rankLabel && row.rankLabel.toLowerCase().includes(effectiveSearch)) ||
+        (row?.defaultLeaveSystem && row.defaultLeaveSystem.toLowerCase().includes(effectiveSearch))
+      );
+    });
+  }, [officerRows, effectiveSearch]);
 
   return (
     <div className="space-y-6">
@@ -94,6 +104,7 @@ export function LeavesPageClient({
         pendingRequests={pendingRequests}
         canEdit={canEdit}
         isCommander={isCommander}
+        isAdmin={isAdmin}
         showRequestsOnly={showRequestsOnly}
       />
 

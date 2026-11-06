@@ -6,6 +6,7 @@ import { PatientProfilePageClient } from "@/components/medical/PatientProfilePag
 import MainTable, { TableColumn } from "@/components/ui/Table";
 import { SectionWrapper } from "@/components/ui/section-wrapper";
 import { Users, Calendar } from "lucide-react";
+import { formatDateDisplay } from "@/lib/utils/date-display";
 
 interface PatientRow {
   _id: string;
@@ -35,11 +36,8 @@ interface PatientAffairsTabProps {
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "—";
     try {
-      return new Date(dateStr).toLocaleDateString("ar-EG", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      });
+      const res = formatDateDisplay(dateStr);
+      return res || dateStr;
     } catch {
       return dateStr;
     }
@@ -58,7 +56,7 @@ interface PatientAffairsTabProps {
         <button
           type="button"
           onClick={() => handleViewProfile(row.patientId)}
-          className="hover:underline hover:text-(--app-info) cursor-pointer border-none bg-transparent text-inherit"
+          className="font-black text-xs text-(--color-primary) hover:underline hover:text-(--app-info) cursor-pointer border-none bg-transparent text-right transition-colors"
         >
           {val as string}
         </button>
@@ -72,7 +70,7 @@ interface PatientAffairsTabProps {
       render: (val) => {
         const count = val as number;
         return (
-          <span className="font-bold text-(--color-primary)">
+          <span className="font-bold text-xs text-(--app-muted-foreground)">
             {count}
           </span>
         );
@@ -84,17 +82,9 @@ interface PatientAffairsTabProps {
       render: (val) => {
         const dateStr = val as string | null;
         if (!dateStr) return "—";
-        const date = new Date(dateStr);
-        const now = new Date();
-        const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-
-        let color = "text-(--app-muted-foreground)";
-        if (diffDays <= 7) color = "text-(--app-success)";
-        else if (diffDays <= 30) color = "text-(--app-warning)";
-        else color = "text-(--app-error)";
 
         return (
-          <span className={`font-bold ${color}`}>
+          <span className="font-bold text-xs text-(--app-muted-foreground)">
             {formatDate(dateStr)}
           </span>
         );
@@ -130,9 +120,9 @@ interface PatientAffairsTabProps {
         </div>
         <div className="w-px h-6 bg-(--app-border)" />
         <div className="flex items-center gap-2">
-          <Calendar className="w-5 h-5 text-(--app-success)" />
+          <Calendar className="w-5 h-5 text-(--color-primary)" />
           <span className="text-sm font-bold text-(--app-muted-foreground)">
-            آخر 7 أيام: <span className="text-(--app-success)">{patients.filter((p) => {
+            آخر 7 أيام: <span className="text-(--color-primary)">{patients.filter((p) => {
               if (!p.lastVisitDate) return false;
               const diff = Math.floor((now - new Date(p.lastVisitDate).getTime()) / (1000 * 60 * 60 * 24));
               return diff <= 7;

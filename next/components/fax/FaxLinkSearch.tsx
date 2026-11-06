@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useToast } from "@/components/ui/toast";
 import { extractApiError } from "@/lib/utils";
+import { formatDateDisplay } from "@/lib/utils/date-display";
 
 interface FaxLinkSearchProps {
   faxId: string;
@@ -19,12 +20,16 @@ export function FaxLinkSearch({ faxId, onLinked }: FaxLinkSearchProps) {
   const [linking, setLinking] = useState(false);
 
   async function handleSearch() {
-    if (!query.trim()) return;
+    const trimmed = query.trim();
+    if (trimmed.length < 2) {
+      showToast("يرجى إدخال حرفين على الأقل للبحث", "info");
+      return;
+    }
 
     setLoading(true);
     try {
       const params = new URLSearchParams({
-        q: query,
+        q: trimmed,
         exclude: faxId,
         limit: "10",
       });
@@ -102,14 +107,14 @@ export function FaxLinkSearch({ faxId, onLinked }: FaxLinkSearchProps) {
               <div>
                 <span className="font-medium text-(--app-foreground)">{fax.faxNumber}</span>
                 <span className="mr-3 text-sm text-(--app-muted-foreground)">
-                  {new Date(fax.date).toLocaleDateString("ar-EG")}
+                  {formatDateDisplay(fax.date)}
                 </span>
                 <p className="text-sm text-foreground">{fax.subject}</p>
               </div>
               <button
                 onClick={() => handleLink(fax._id)}
                 disabled={linking}
-                className="rounded-md bg-(--app-success) px-3 py-1 text-sm text-(--app-white) hover:bg-(--app-success)/90 disabled:opacity-50">
+                className="btn-primary text-xs px-3 py-1.5 disabled:opacity-50">
                 ربط
               </button>
             </div>

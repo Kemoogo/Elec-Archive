@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { ModernPageHeader as PageHeader } from "@/components/layout/ModernPageHeader";
 import { SectionWrapper } from "@/components/ui/section-wrapper";
+import { LoadingState } from "@/components/ui/loading-state";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { useToast } from "@/components/ui/toast";
@@ -21,7 +23,9 @@ import {
   ArrowUp, 
   ArrowDown, 
   ArrowUpDown, 
-  X 
+  X,
+  Shield,
+  Edit
 } from "lucide-react";
 
 interface BranchItem {
@@ -53,19 +57,28 @@ interface SelectedReorderItem {
 interface DepartmentsPageClientProps {
   initialBranches: BranchItem[];
   initialDepartments: DepartmentItem[];
+  initialUnitName?: string;
   canEdit: boolean;
 }
 
 export function DepartmentsPageClient({
   initialBranches,
   initialDepartments,
+  initialUnitName = "قيادة الوحدة العسكرية",
   canEdit,
 }: DepartmentsPageClientProps) {
   const { showToast } = useToast();
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [branches, setBranches] = useState<BranchItem[]>(initialBranches);
   const [departments, setDepartments] = useState<DepartmentItem[]>(initialDepartments);
   const [loading, setLoading] = useState(false);
+
+  // Unit Name State
+  const [unitName, setUnitName] = useState(initialUnitName);
+  const [unitNameInput, setUnitNameInput] = useState(initialUnitName);
+  const [isEditingUnitName, setIsEditingUnitName] = useState(false);
+  const [savingUnitName, setSavingUnitName] = useState(false);
 
   const [showCreate, setShowCreate] = useState(false);
   const [editingItem, setEditingItem] = useState<EditItemType | null>(null);
@@ -96,12 +109,13 @@ export function DepartmentsPageClient({
 
       if (dataB.success) setBranches(dataB.branches || []);
       if (dataD.success) setDepartments(dataD.departments || []);
+      router.refresh();
     } catch {
       showToast("فشل في تحديث البيانات", "error");
     } finally {
       setLoading(false);
     }
-  }, [showToast]);
+  }, [showToast, router]);
 
   async function handleConfirmDelete() {
     if (!deleteConfirm) return;
@@ -177,6 +191,31 @@ export function DepartmentsPageClient({
     return matchBranch || matchChildDep;
   });
 
+  async function handleSaveUnitName() {
+    if (!unitNameInput.trim()) return;
+    try {
+      setSavingUnitName(true);
+      const res = await fetch("/api/settings/unit-name", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ unitName: unitNameInput.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(extractApiError(data, "فشل في تحديث اسم الوحدة"), "error");
+        return;
+      }
+      setUnitName(data.data.unitName);
+      setIsEditingUnitName(false);
+      showToast("تم تحديث وتخصيص اسم الوحدة العسكرية بنجاح", "success");
+      router.refresh();
+    } catch {
+      showToast("حدث خطأ في الاتصال بالخادم", "error");
+    } finally {
+      setSavingUnitName(false);
+    }
+  }
+
   return (
     <PageContainer className="max-w-[1600px] mx-auto pb-12">
       {/* Modern Page Header */}
@@ -242,6 +281,68 @@ export function DepartmentsPageClient({
         }
       />
 
+      {/* Unit Name Management Card (Admin Only Customization) */}
+      <div className="p-5 bg-(--app-surface) border border-(--app-border) rounded-2xl shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4" dir="rtl">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-(--color-primary)/10 border border-(--color-primary)/20 rounded-xl text-(--color-primary) shrink-0">
+            <Shield className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-(--app-muted-foreground)">اسم الوحدة العسكرية المعتمد:</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-(--color-primary)/10 text-(--color-primary) font-bold">
+                يظهر في الترويسة والطباعة
+              </span>
+            </div>
+            {isEditingUnitName ? (
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                <input
+                  type="text"
+                  value={unitNameInput}
+                  onChange={(e) => setUnitNameInput(e.target.value)}
+                  className="px-3 py-1.5 bg-(--app-surface-container) border border-(--app-border) rounded-xl text-sm font-black text-(--color-primary) focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-64 sm:w-80"
+                  placeholder="أدخل اسم الوحدة العسكرية..."
+                  dir="rtl"
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveUnitName}
+                  disabled={savingUnitName || !unitNameInput.trim()}
+                  className="btn-primary px-3.5 py-1.5 text-xs font-bold disabled:opacity-50 cursor-pointer"
+                >
+                  {savingUnitName ? "جاري الحفظ..." : "حفظ"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditingUnitName(false);
+                    setUnitNameInput(unitName);
+                  }}
+                  className="btn-secondary px-3.5 py-1.5 text-xs font-bold cursor-pointer"
+                >
+                  إلغاء
+                </button>
+              </div>
+            ) : (
+              <h3 className="text-base font-black text-(--color-primary) mt-1">
+                {unitName}
+              </h3>
+            )}
+          </div>
+        </div>
+
+        {canEdit && !isEditingUnitName && (
+          <button
+            type="button"
+            onClick={() => setIsEditingUnitName(true)}
+            className="btn-secondary px-3.5 py-1.5 text-xs font-bold flex items-center gap-1.5 self-start md:self-auto cursor-pointer"
+          >
+            <Edit className="w-3.5 h-3.5 text-(--color-primary)" />
+            <span>تخصيص اسم الوحدة</span>
+          </button>
+        )}
+      </div>
+
       <div className="space-y-3 mt-4" dir="rtl">
         {/* Reordering Mode Helper Banner */}
         {isReorderMode && (
@@ -269,7 +370,7 @@ export function DepartmentsPageClient({
               <button
                 type="button"
                 onClick={() => setSelectedItem(null)}
-                className="text-xs font-bold text-slate-500 hover:text-red-500 flex items-center gap-1 cursor-pointer"
+                className="text-xs font-bold text-slate-500 hover:text-(--color-primary) flex items-center gap-1 cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
                 <span>إلغاء التحديد</span>
@@ -281,10 +382,7 @@ export function DepartmentsPageClient({
         {/* Main Table */}
         <SectionWrapper noPadding className="overflow-hidden rounded-2xl border border-(--app-border)/80 shadow-sm">
           {loading ? (
-            <div className="p-12 flex flex-col items-center justify-center gap-4">
-              <div className="w-10 h-10 border-4 border-(--color-primary)/20 border-t-(--color-primary) rounded-full animate-spin" />
-              <p className="text-sm font-bold text-(--app-muted-foreground)">جاري تحميل الفروع والأقسام...</p>
-            </div>
+            <LoadingState message="جاري تحميل الفروع والأقسام..." variant="inline" />
           ) : filteredBranches.length === 0 ? (
             <div className="p-12 text-center flex flex-col items-center justify-center gap-3">
               <Database className="w-12 h-12 text-slate-300 dark:text-slate-600" />
@@ -367,12 +465,12 @@ export function DepartmentsPageClient({
                                 <button
                                   type="button"
                                   onClick={() => setEditingItem({ type: "branch", data: branch })}
-                                  className="font-extrabold text-sm text-(--color-primary) hover:underline hover:text-(--app-info) cursor-pointer transition-colors text-right"
+                                  className="font-black text-sm text-(--color-primary) hover:underline hover:text-(--app-info) cursor-pointer transition-colors text-right"
                                 >
                                   {branch.name}
                                 </button>
                               ) : (
-                                <span className="font-extrabold text-sm text-(--color-primary)">{branch.name}</span>
+                                <span className="font-black text-sm text-(--color-primary)">{branch.name}</span>
                               )}
 
                               {branch.description ? (
@@ -392,8 +490,8 @@ export function DepartmentsPageClient({
                             <td className="px-5 py-3.5 text-center align-middle whitespace-nowrap" style={{ width: "1%" }}>
                               <div className="flex items-center justify-center">
                                 <ActionButton
-                                  icon={<Trash2 className="w-4 h-4 text-red-500" />}
-                                  color="btn-action-danger"
+                                  icon={<Trash2 className="w-4 h-4 text-(--color-primary) hover:text-(--app-info)" />}
+                                  color="btn-action-primary"
                                   title="حذف الفرع"
                                   onClick={() => setDeleteConfirm({ type: "branch", id: branch._id, name: branch.name })}
                                 />
@@ -455,12 +553,12 @@ export function DepartmentsPageClient({
                               <button
                                 type="button"
                                 onClick={() => setEditingItem({ type: "branch", data: branch })}
-                                className="font-extrabold text-sm text-(--color-primary) hover:underline hover:text-(--app-info) cursor-pointer transition-colors text-right"
+                                className="font-black text-sm text-(--color-primary) hover:underline hover:text-(--app-info) cursor-pointer transition-colors text-right"
                               >
                                 {branch.name}
                               </button>
                             ) : (
-                              <span className="font-extrabold text-sm text-(--color-primary)">{branch.name}</span>
+                              <span className="font-black text-sm text-(--color-primary)">{branch.name}</span>
                             )}
 
                             {branch.description ? (
@@ -476,7 +574,7 @@ export function DepartmentsPageClient({
                         </td>
 
                         {/* Column 3: Department 0 Name */}
-                        <td className={`px-5 py-3.5 font-bold text-(--app-muted-foreground) ${selectedItem?.type === "department" && selectedItem.id === firstDep._id ? "bg-emerald-500/10" : ""}`}>
+                        <td className={`px-5 py-3.5 font-bold text-(--app-muted-foreground) ${selectedItem?.type === "department" && selectedItem.id === firstDep._id ? "bg-blue-500/10 ring-1 ring-blue-500/30" : ""}`}>
                           <div className="flex items-center gap-2 group/tooltip relative w-fit">
                             {isReorderMode && (
                               <input
@@ -490,7 +588,7 @@ export function DepartmentsPageClient({
                                     setSelectedItem({ type: "department", id: firstDep._id, name: firstDep.name, branchId: branch._id });
                                   }
                                 }}
-                                className="w-3.5 h-3.5 text-emerald-600 rounded cursor-pointer accent-emerald-600 mr-1"
+                                className="w-3.5 h-3.5 text-blue-600 rounded cursor-pointer accent-blue-600 mr-1"
                                 title="تحديد القسم للترتيب"
                               />
                             )}
@@ -524,8 +622,8 @@ export function DepartmentsPageClient({
                           <td className="px-5 py-3.5 text-center align-middle whitespace-nowrap" style={{ width: "1%" }}>
                             <div className="flex items-center justify-center">
                               <ActionButton
-                                icon={<Trash2 className="w-4 h-4 text-red-500" />}
-                                color="btn-action-danger"
+                                icon={<Trash2 className="w-4 h-4 text-(--color-primary) hover:text-(--app-info)" />}
+                                color="btn-action-primary"
                                 title="حذف القسم"
                                 onClick={() => setDeleteConfirm({ type: "department", id: firstDep._id, name: firstDep.name })}
                               />
@@ -538,7 +636,7 @@ export function DepartmentsPageClient({
                       {branchDeps.slice(1).map((dep) => {
                         const isDepSelected = selectedItem?.type === "department" && selectedItem.id === dep._id;
                         return (
-                          <tr key={dep._id} className={`hover:bg-(--app-surface-container) group-has-[.branch-cell:hover]/branch:bg-(--app-surface-container) transition-colors duration-150 ${isDepSelected ? "bg-emerald-500/10" : ""}`}>
+                          <tr key={dep._id} className={`hover:bg-(--app-surface-container) group-has-[.branch-cell:hover]/branch:bg-(--app-surface-container) transition-colors duration-150 ${isDepSelected ? "bg-blue-500/10 ring-1 ring-blue-500/30" : ""}`}>
                             {/* Department Name */}
                             <td className="px-5 py-3.5 font-bold text-(--app-muted-foreground)">
                               <div className="flex items-center gap-2 group/tooltip relative w-fit">
@@ -554,7 +652,7 @@ export function DepartmentsPageClient({
                                         setSelectedItem({ type: "department", id: dep._id, name: dep.name, branchId: branch._id });
                                       }
                                     }}
-                                    className="w-3.5 h-3.5 text-emerald-600 rounded cursor-pointer accent-emerald-600 mr-1"
+                                    className="w-3.5 h-3.5 text-blue-600 rounded cursor-pointer accent-blue-600 mr-1"
                                     title="تحديد القسم للترتيب"
                                   />
                                 )}
@@ -588,8 +686,8 @@ export function DepartmentsPageClient({
                               <td className="px-5 py-3.5 text-center align-middle whitespace-nowrap" style={{ width: "1%" }}>
                                 <div className="flex items-center justify-center">
                                   <ActionButton
-                                    icon={<Trash2 className="w-4 h-4 text-red-500" />}
-                                    color="btn-action-danger"
+                                    icon={<Trash2 className="w-4 h-4 text-(--color-primary) hover:text-(--app-info)" />}
+                                    color="btn-action-primary"
                                     title="حذف القسم"
                                     onClick={() => setDeleteConfirm({ type: "department", id: dep._id, name: dep.name })}
                                   />

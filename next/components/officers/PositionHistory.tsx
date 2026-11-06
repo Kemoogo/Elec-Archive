@@ -4,12 +4,14 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import MainTable, { type TableColumn } from "@/components/ui/Table";
 import { ModalShell, ModalBadge } from "@/components/ui/modal-shell";
+import { ModalActions } from "@/components/ui/modal-actions";
 import { SectionWrapper } from "@/components/ui/section-wrapper";
-import { Briefcase, History, User, Award, Loader2, Calendar } from "lucide-react";
+import { LoadingState } from "@/components/ui/loading-state";
+import { Briefcase, History, User, Award, Calendar } from "lucide-react";
 import { extractApiError } from "@/lib/utils";
 import type { SerializedPositionGroup, SerializedPositionInterval } from "@/lib/officers/queries";
-import { format, intervalToDuration } from "date-fns";
-import { ar } from "date-fns/locale";
+import { intervalToDuration } from "date-fns";
+import { formatDateDisplay } from "@/lib/utils/date-display";
 
 interface PositionHistoryProps {
   officerId: string;
@@ -60,9 +62,8 @@ function formatArabicDuration(startDateStr: string, endDateStr?: string | null):
 function safeFormatDate(val: unknown, defaultText = "-"): string {
   if (!val || val === "null" || val === "undefined") return defaultText;
   try {
-    const d = new Date(val as string | number | Date);
-    if (isNaN(d.getTime())) return defaultText;
-    return format(d, "yyyy/MM/dd", { locale: ar });
+    const formatted = formatDateDisplay(val as string | Date);
+    return formatted || defaultText;
   } catch {
     return defaultText;
   }
@@ -74,6 +75,12 @@ export function PositionHistory({ officerId, initialData }: PositionHistoryProps
   const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState<string | null>(null);
   const [selectedPosition, setSelectedPosition] = useState<SerializedPositionGroup | null>(null);
+
+  useEffect(() => {
+    if (initialData) {
+      setData(initialData);
+    }
+  }, [initialData]);
 
   const showActiveOnly = searchParams.get("view") !== "all";
 
@@ -190,7 +197,13 @@ export function PositionHistory({ officerId, initialData }: PositionHistoryProps
         headerAlign: "right",
         render: (_val, row) => (
           <div className="flex flex-col text-right">
-            <span className="text-xs font-bold text-(--app-muted-foreground)">{row.positionTitle}</span>
+            <button
+              type="button"
+              onClick={() => setSelectedPosition(row)}
+              className="text-xs font-black text-(--color-primary) hover:underline hover:text-(--app-info) text-right cursor-pointer transition-colors"
+            >
+              {row.positionTitle}
+            </button>
             <span className="text-[11px] font-bold text-(--app-muted-foreground)/60">فرع / {row.department}</span>
           </div>
         ),
@@ -223,7 +236,7 @@ export function PositionHistory({ officerId, initialData }: PositionHistoryProps
           <button
             type="button"
             onClick={() => setSelectedPosition(row)}
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-(--app-surface-container) border border-(--app-border) shadow-xs font-mono text-xs font-black text-(--color-primary) hover:border-(--color-primary)/40 hover:text-(--app-info) hover:underline cursor-pointer transition-all"
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-(--app-surface-container) border border-(--app-border) shadow-xs font-mono text-xs font-bold text-(--app-muted-foreground) hover:border-(--color-primary)/40 hover:text-(--color-primary) cursor-pointer transition-all"
             title="اضغط لعرض فترات وتواريخ التكليف للوظيفة بالتفصيل"
           >
             <History className="w-3.5 h-3.5 text-(--app-muted-foreground)" />
@@ -323,15 +336,11 @@ export function PositionHistory({ officerId, initialData }: PositionHistoryProps
         headerAlign: "center",
         render: (_val, row) => (
           <span
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold ${
-              row.status === "active"
-                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20"
-                : "bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)"
-            }`}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-(--app-surface-container) text-(--app-muted-foreground) border border-(--app-border)"
           >
             {row.status === "active" ? (
               <>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-(--color-primary) animate-pulse" />
                 <span>سارٍ</span>
               </>
             ) : (
@@ -345,14 +354,7 @@ export function PositionHistory({ officerId, initialData }: PositionHistoryProps
   );
 
   if (loading) {
-    return (
-      <div className="flex h-48 items-center justify-center rounded-2xl border border-dashed border-(--app-border) bg-(--app-surface-container)/30">
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="h-7 w-7 animate-spin text-(--color-primary)" />
-          <p className="text-xs text-(--app-muted-foreground) font-bold">جاري تحميل السجل الوظيفي للضابط...</p>
-        </div>
-      </div>
-    );
+    return <LoadingState message="جاري تحميل السجل الوظيفي للضابط..." />;
   }
 
   if (error) {
@@ -389,17 +391,7 @@ export function PositionHistory({ officerId, initialData }: PositionHistoryProps
           overlayClassName="bg-black/40"
           panelClassName="max-w-2xl border-(--app-border) shadow-depth-xl"
           bodyClassName="p-5 space-y-4 no-scrollbar text-right"
-          footer={
-            <div className="flex items-center justify-end w-full">
-              <button
-                type="button"
-                onClick={() => setSelectedPosition(null)}
-                className="btn-secondary text-xs"
-              >
-                إغلاق
-              </button>
-            </div>
-          }
+          footer={<ModalActions mode="view" onCancel={() => setSelectedPosition(null)} />}
         >
           {/* Position Info Banner */}
           <div className="p-3.5 bg-(--color-primary)/5 border border-(--color-primary)/10 shadow-sm rounded-2xl flex items-center justify-between text-right">

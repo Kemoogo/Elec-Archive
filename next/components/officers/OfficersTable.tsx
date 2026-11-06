@@ -13,12 +13,13 @@ import { OfficerReturnModal } from "./OfficerReturnModal";
 interface ActionButtonProps {
   icon: React.ReactNode;
   color: string;
-  title: string;
+  title?: string;
   onClick?: () => void;
+  onDoubleClick?: () => void;
   placement?: "top" | "bottom";
 }
 
-export const ActionButton = ({ icon, color, title, onClick, placement = "top" }: ActionButtonProps) => {
+export const ActionButton = ({ icon, color, title, onClick, onDoubleClick, placement = "top" }: ActionButtonProps) => {
   const isBottom = placement === "bottom";
 
   return (
@@ -26,6 +27,7 @@ export const ActionButton = ({ icon, color, title, onClick, placement = "top" }:
       <button
         type="button"
         onClick={onClick}
+        onDoubleClick={onDoubleClick}
         className={`p-1.5 rounded-lg transition-all ${color} relative cursor-pointer`}
       >
         {icon}
@@ -144,7 +146,7 @@ export function OfficersTable({ officers, page, totalPages, total, canEdit }: Of
       cellAlign: "right",
       headerAlign: "right",
       render: (val, row) => (
-        <Link href={`/officers/${row.id}`} className="hover:underline hover:text-(--app-info) cursor-pointer">
+        <Link href={`/officers/${row.id}`} className="font-black text-(--color-primary) hover:underline hover:text-(--app-info) cursor-pointer">
           {val as string}
         </Link>
       ),
@@ -206,8 +208,8 @@ export function OfficersTable({ officers, page, totalPages, total, canEdit }: Of
                   highlightIncomplete={true}
                   trigger={
                     <ActionButton
-                      icon={<AlertTriangle className="w-4 h-4 text-amber-500 animate-pulse" />}
-                      color="btn-action-warning"
+                      icon={<AlertTriangle className="w-4 h-4 text-(--color-primary) animate-pulse" />}
+                      color="btn-action-primary"
                       title={`بيانات غير مكتملة (${row._missingFields?.join("، ") || "بيانات تنظيمية"})`}
                       placement={placement}
                     />
@@ -215,8 +217,8 @@ export function OfficersTable({ officers, page, totalPages, total, canEdit }: Of
                 />
               ) : (
                 <ActionButton
-                  icon={<AlertTriangle className="w-4 h-4 text-amber-500" />}
-                  color="btn-action-warning !cursor-default"
+                  icon={<AlertTriangle className="w-4 h-4 text-(--color-primary)" />}
+                  color="btn-action-primary !cursor-default"
                   title={`بيانات غير مكتملة (${row._missingFields?.join("، ") || "بيانات تنظيمية"})`}
                   placement={placement}
                 />
@@ -229,8 +231,8 @@ export function OfficersTable({ officers, page, totalPages, total, canEdit }: Of
                   officer={row}
                   trigger={
                     <ActionButton
-                      icon={<Award className="w-4 h-4" />}
-                      color="btn-action-warning"
+                      icon={<Award className="w-4 h-4 text-(--color-primary) hover:text-(--app-info)" />}
+                      color="btn-action-primary"
                       title="تسجيل ترقية"
                       placement={placement}
                     />
@@ -241,8 +243,8 @@ export function OfficersTable({ officers, page, totalPages, total, canEdit }: Of
                   officer={row}
                   trigger={
                     <ActionButton
-                      icon={<ArrowRightCircle className="w-4 h-4" />}
-                      color="btn-action-warning"
+                      icon={<ArrowRightCircle className="w-4 h-4 text-(--color-primary) hover:text-(--app-info)" />}
+                      color="btn-action-primary"
                       title="نقل / إنهاء خدمة"
                       placement={placement}
                     />
@@ -256,8 +258,8 @@ export function OfficersTable({ officers, page, totalPages, total, canEdit }: Of
                 officer={row}
                 trigger={
                   <ActionButton
-                    icon={<ArrowRightCircle className="w-4 h-4 -rotate-180" />}
-                    color="btn-action-info"
+                    icon={<ArrowRightCircle className="w-4 h-4 -rotate-180 text-(--color-primary) hover:text-(--app-info)" />}
+                    color="btn-action-primary"
                     title="عودة للخدمة / إعادة انضمام"
                     placement={placement}
                   />

@@ -21,7 +21,7 @@ export const auditQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   userId: z.string().optional(),
   action: z.enum(["CREATE", "UPDATE", "DELETE", "VIEW", "LOGIN", "LOGIN_FAILED", "LOGOUT", "LOCK", "UNLOCK"]).optional(),
-  module: z.enum(["auth", "users", "fax", "officers", "medical", "students", "education", "notifications"]).optional(),
+  module: z.enum(["auth", "users", "fax", "officers", "medical", "students", "education", "notifications", "arkan_harb", "app_ideas"]).optional(),
   startDate: z.string().refine((v) => !isNaN(Date.parse(v)), "invalid").optional(),
   endDate: z.string().refine((v) => !isNaN(Date.parse(v)), "invalid").optional(),
 });

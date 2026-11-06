@@ -2,10 +2,9 @@ import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db/connect";
 import { authenticate } from "@/lib/auth/middleware";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
-import { canEditModule } from "@/lib/auth/authorization";
+import { getUtcDayRange } from "@/lib/arkan-harb/rollcall-engine";
 import { DailyRollcall } from "@/lib/db/models/DailyRollcall";
 import { logAuditEvent } from "@/lib/auth/audit";
-import { errors } from "@/lib/auth/errors";
 import { handleApiError } from "@/lib/utils/api-error";
 import { z } from "zod";
 
@@ -23,9 +22,15 @@ export async function POST(request: Request) {
     return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
   }
 
-  // Admin or authorized staff can reopen rollcalls
-  if (auth.user!.role !== "admin" && !canEditModule(auth.user!, "arkan_harb")) {
-    return NextResponse.json({ success: false, error: errors.insufficientPermissions }, { status: 403 });
+  // Enforce that ONLY Admin (user.role === "admin") can reopen rollcalls
+  if (auth.user!.role !== "admin") {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "عفواً، إعادة فتح كشف التمام المعتمد هي صلاحية حصرية لمدير النظام (Admin) فقط.",
+      },
+      { status: 403 }
+    );
   }
 
   await connectToDatabase();
@@ -38,10 +43,7 @@ export async function POST(request: Request) {
     }
 
     const { date } = parsed.data;
-    const queryDate = new Date(date);
-    queryDate.setHours(0, 0, 0, 0);
-    const nextDay = new Date(queryDate);
-    nextDay.setDate(nextDay.getDate() + 1);
+    const { startOfDay: queryDate, nextDay } = getUtcDayRange(date);
 
     const rollcall = await DailyRollcall.findOne({
       date: { $gte: queryDate, $lt: nextDay },
@@ -61,6 +63,7 @@ export async function POST(request: Request) {
       module: "arkan_harb",
       targetId: rollcall._id.toString(),
       description: `إعادة فتح التمام المعتمد ليوم ${date} كمسودة للتعديل`,
+      ipAddress: ip,
     });
 
     return NextResponse.json({ success: true, data: { status: "draft", date } });

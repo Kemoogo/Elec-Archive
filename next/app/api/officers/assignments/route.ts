@@ -103,8 +103,8 @@ export async function POST(request: Request) {
 
     const data = parsed.data;
     const officer = await Officer.findById(data.officerId);
-    if (!officer) {
-      return NextResponse.json({ success: false, error: "الضابط غير موجود" }, { status: 404 });
+    if (!officer || !officer.isInUnit || officer.employmentStatus !== "active") {
+      return NextResponse.json({ success: false, error: "الضابط غير موجود أو خارج قوة الوحدة (مؤرشف)" }, { status: 400 });
     }
 
     const assignment = await Assignment.create({

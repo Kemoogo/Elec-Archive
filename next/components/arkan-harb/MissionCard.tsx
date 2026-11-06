@@ -4,11 +4,12 @@ import { getStatusBadgeClass, getMissionStatusLabel } from "@/lib/utils/status-b
 import { formatDistanceToNow } from "date-fns";
 import { ar } from "date-fns/locale";
 
+import { formatDateDisplay } from "@/lib/utils/date-display";
+
 // Helper function to format date for display
 function formatDate(date: Date | string): string {
   if (!date) return "";
-  const d = typeof date === "string" ? new Date(date) : date;
-  return d.toLocaleDateString("ar-EG");
+  return formatDateDisplay(date);
 }
 
 interface MissionCardProps {

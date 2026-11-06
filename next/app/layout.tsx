@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Cairo } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/toast";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
@@ -33,9 +32,9 @@ export default function RootLayout({
     <html lang="ar" dir="rtl" className={`h-full antialiased ${cairo.variable}`} data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <meta name="color-scheme" content="light dark" />
-        <Script
+        <script
           id="theme-initializer"
-          strategy="beforeInteractive"
+          suppressHydrationWarning
           dangerouslySetInnerHTML={{
             __html: `
               try {

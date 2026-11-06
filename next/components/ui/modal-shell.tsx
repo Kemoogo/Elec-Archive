@@ -38,7 +38,7 @@ export function ModalShell({
   closeOnOverlayClick = true,
   hideCloseButton = false,
   dir = "rtl",
-  overlayClassName,
+  overlayClassName = "bg-black/40",
   panelClassName,
   headerClassName,
   bodyClassName,
@@ -155,7 +155,7 @@ export function ModalShell({
   const modalContent = (
     <div
       className={cn(
-        "fixed inset-0 z-60 flex items-center justify-center bg-slate-950/75 p-4 sm:p-6 no-print animate-fade-in-up transition-opacity transform-gpu",
+        "fixed inset-0 z-60 flex items-center justify-center p-4 sm:p-6 no-print animate-fade-in-up transition-opacity transform-gpu",
         overlayClassName
       )}
       onClick={closeOnOverlayClick ? () => onCloseRef.current?.() : undefined}
@@ -186,8 +186,6 @@ export function ModalShell({
                     "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border",
                     titleVariant === "danger"
                       ? "bg-red-500/10 border-red-500/20 text-red-600"
-                      : titleVariant === "warning"
-                      ? "bg-amber-500/10 border-amber-500/20 text-amber-600"
                       : "bg-(--color-primary)/10 border-(--color-primary)/20 text-(--color-primary)"
                   )}
                 >
@@ -195,18 +193,29 @@ export function ModalShell({
                 </div>
               )}
               {title ? (
-                <h2
-                  className={cn(
-                    "truncate text-base font-extrabold tracking-tight",
-                    titleVariant === "danger"
-                      ? "text-red-600 dark:text-red-400"
-                      : titleVariant === "warning"
-                      ? "text-amber-600 dark:text-amber-400"
-                      : "text-(--color-primary)"
-                  )}
-                >
-                  {title}
-                </h2>
+                typeof title === "string" ? (
+                  <h2
+                    className={cn(
+                      "truncate text-base font-extrabold tracking-tight",
+                      titleVariant === "danger"
+                        ? "text-red-600 dark:text-red-400"
+                        : "text-(--color-primary)"
+                    )}
+                  >
+                    {title}
+                  </h2>
+                ) : (
+                  <div
+                    className={cn(
+                      "text-base font-extrabold tracking-tight min-w-0",
+                      titleVariant === "danger"
+                        ? "text-red-600 dark:text-red-400"
+                        : "text-(--color-primary)"
+                    )}
+                  >
+                    {title}
+                  </div>
+                )
               ) : null}
             </div>
 

@@ -1,24 +1,18 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { FolderTabs, type TabItem } from "@/components/ui/folder-tabs";
-import { ClipboardList, ScrollText, FileText, Shield, LayoutDashboard, Plus, ChevronDown, Briefcase, History, Filter } from "lucide-react";
+import { ClipboardList, ScrollText, FileText, Shield, LayoutDashboard, Plus, Briefcase, History, Filter, Bell, Printer, Unlock, CheckCircle2, Save, ArrowRight, CalendarPlus, Calendar, ShieldCheck, RefreshCw } from "lucide-react";
 import { PageHeader, PrimaryHeaderBtn, SecondaryHeaderBtn } from "@/components/layout/ModernPageHeader";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { LeaveRequestModal } from "@/components/officers/LeaveRequestModal";
 import { MissionForm } from "./MissionForm";
-
-interface OfficerOption {
-  id: string;
-  name: string;
-  fullName: string;
-  militaryId: string;
-  rank: string;
-  officerLabel?: string;
-  defaultLeaveSystem?: string;
-}
+import type { OfficerOption } from "@/lib/db/models/Officer.shared";
+import { format } from "date-fns";
+import { getSmartWeekRangeInfo, type SmartWeekRangeInfo } from "@/lib/arkan-harb/roster-engine";
+import { RosterWeekDisplay } from "@/components/arkan-harb/RosterWeekDisplay";
 
 interface ArkanHarbClientProps {
   dashboardContent: React.ReactNode;
@@ -26,8 +20,15 @@ interface ArkanHarbClientProps {
   leavesContent: React.ReactNode;
   missionsContent: React.ReactNode;
   positionsContent: React.ReactNode;
+  rosterContent?: React.ReactNode;
+  notificationsContent?: React.ReactNode;
   officers: OfficerOption[];
   canEdit: boolean;
+  isAdmin?: boolean;
+  isCommander?: boolean;
+  rollcallDate?: string;
+  rollcallDateDisplay?: string;
+  isRollcallSubmitted?: boolean;
 }
 
 const TAB_NAMES: Record<string, string> = {
@@ -36,6 +37,8 @@ const TAB_NAMES: Record<string, string> = {
   leaves: "سجل الإجازات",
   missions: "المأموريات",
   positions: "الوظائف",
+  roster: "جدول النوبتجيات",
+  decisions: "قرارات القائد والتنبيهات",
 };
 
 const TAB_DESCRIPTIONS: Record<string, string> = {
@@ -44,6 +47,8 @@ const TAB_DESCRIPTIONS: Record<string, string> = {
   leaves: "سجل متابعة وإدارة إجازات وانقطاعات القوة بالوحدة",
   missions: "سجل وتتبع المأموريات الخارجية والمهام الرسمية المكلف بها الضباط",
   positions: "التنظيم الإداري وتسكين الضباط على الهيكل الوظيفي ومتابعة السجل التاريخي والشواغر",
+  roster: "إدارة وتوزيع جدول النوبتجيات والخدمات الأسبوعية للضباط وحساب عدالة التوزيع",
+  decisions: "سجل متابعة قرارات وتوجيهات السيد القائد بخصوص طلبات الإجازات وتحديثات التمام",
 };
 
 export function ArkanHarbClient({
@@ -52,16 +57,67 @@ export function ArkanHarbClient({
   leavesContent,
   missionsContent,
   positionsContent,
+  rosterContent,
+  notificationsContent,
   officers,
   canEdit,
+  isAdmin = false,
+  isCommander = false,
+  rollcallDate = "",
+  rollcallDateDisplay = "",
+  isRollcallSubmitted = false,
 }: ArkanHarbClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [, startTransition] = useTransition();
   const activeTab = searchParams.get("tab") || "dashboard";
 
   const [isMissionModalOpen, setIsMissionModalOpen] = useState(false);
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+  const [rosterStatus, setRosterStatus] = useState<"draft" | "approved">("draft");
+  const [isRosterSaving, setIsRosterSaving] = useState(false);
+  const [rosterSavingAction, setRosterSavingAction] = useState<"draft" | "approve" | "reopen" | null>(null);
+
+  useEffect(() => {
+    const handleStatus = (e: Event) => {
+      const customEvent = e as CustomEvent<{ status: "draft" | "approved" }>;
+      if (customEvent.detail?.status) {
+        setRosterStatus(customEvent.detail.status);
+      }
+    };
+    const handleSaving = (e: Event) => {
+      const customEvent = e as CustomEvent<{ isSaving: boolean; action?: "draft" | "approve" | "reopen" | null }>;
+      if (typeof customEvent.detail?.isSaving === "boolean") {
+        setIsRosterSaving(customEvent.detail.isSaving);
+        setRosterSavingAction(customEvent.detail.action ?? (customEvent.detail.isSaving ? "draft" : null));
+      }
+    };
+
+    window.addEventListener("roster-status-changed", handleStatus);
+    window.addEventListener("roster-saving-state", handleSaving);
+    return () => {
+      window.removeEventListener("roster-status-changed", handleStatus);
+      window.removeEventListener("roster-saving-state", handleSaving);
+    };
+  }, []);
+
+  // Time & Date Computations for Rollcall workflow
+  const now = new Date();
+  const todayStr = format(now, "yyyy-MM-dd");
+  const tomorrowDate = new Date(now);
+  tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+  const tomorrowStr = format(tomorrowDate, "yyyy-MM-dd");
+
+  const isAfter6PM = now.getHours() >= 18;
+  const currentRollcallDate = rollcallDate || todayStr;
+  const isViewingTomorrowRollcall = currentRollcallDate === tomorrowStr;
+  const canSaveOrSubmitRollcall = currentRollcallDate === todayStr || currentRollcallDate === tomorrowStr;
+
+  // Time & Date Computations for Roster workflow
+  const rosterDateParam = searchParams.get("date");
+  const rosterDate = rosterDateParam && !isNaN(Date.parse(rosterDateParam)) ? new Date(rosterDateParam) : now;
+  const rosterSmartWeekInfo: SmartWeekRangeInfo = getSmartWeekRangeInfo(rosterDate, now);
 
   const updateParams = React.useCallback(
     (newParams: Record<string, string>) => {
@@ -73,7 +129,9 @@ export function ArkanHarbClient({
           params.delete(key);
         }
       });
-      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+      startTransition(() => {
+        router.push(`${pathname}?${params.toString()}`, { scroll: false });
+      });
     },
     [router, pathname, searchParams],
   );
@@ -97,6 +155,7 @@ export function ArkanHarbClient({
       id: "rollcall",
       label: "التمام اليومي",
       icon: <ClipboardList className="w-4 h-4" />,
+      badge: officers.length,
       content: rollcallContent,
     },
     {
@@ -117,10 +176,106 @@ export function ArkanHarbClient({
       icon: <Briefcase className="w-4 h-4" />,
       content: positionsContent,
     },
+    ...(rosterContent ? [{
+      id: "roster",
+      label: "جدول النوبتجيات",
+      icon: <Calendar className="w-4 h-4" />,
+      content: rosterContent,
+    }] : []),
+    ...(notificationsContent ? [{
+      id: "decisions",
+      label: "قرارات القائد والتنبيهات",
+      icon: <Bell className="w-4 h-4" />,
+      content: notificationsContent,
+    }] : []),
   ];
 
   // Render header action controls per active tab using Sapphire Archive design system buttons
   const renderHeaderActions = () => {
+    if (activeTab === "rollcall") {
+      return (
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* 1. History Button */}
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent("rollcall-open-history"))}
+            className="p-2 rounded-xl text-sm font-bold transition-all active:scale-95 focus:outline-none cursor-pointer bg-(--app-surface-container-low) text-(--color-primary) hover:bg-(--app-surface-container)"
+            title="سجل التمامات السابقة"
+          >
+            <History className="w-5 h-5" />
+          </button>
+
+          {/* 2. Print Button (Icon-only) */}
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent("rollcall-print"))}
+            className="p-2 rounded-xl text-sm font-bold transition-all active:scale-95 focus:outline-none cursor-pointer bg-(--app-surface-container-low) text-(--color-primary) hover:bg-(--app-surface-container)"
+            title="طباعة التمام"
+          >
+            <Printer className="w-5 h-5" />
+          </button>
+
+          {/* 3. Save Draft Button (Icon-only) */}
+          {!isRollcallSubmitted && canEdit && canSaveOrSubmitRollcall && (
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent("rollcall-save-draft"))}
+              className="p-2 rounded-xl text-sm font-bold transition-all active:scale-95 focus:outline-none cursor-pointer bg-(--app-surface-container-low) text-(--color-primary) hover:bg-(--app-surface-container)"
+              title="حفظ مسودة مؤقتة"
+            >
+              <Save className="w-5 h-5" />
+            </button>
+          )}
+
+          {/* 4. Add Custom Table Button (SecondaryHeaderBtn) */}
+          {!isRollcallSubmitted && canEdit && canSaveOrSubmitRollcall && (
+            <SecondaryHeaderBtn
+              label="إضافة جدول مخصص"
+              icon={<Plus className="w-4 h-4" />}
+              onClick={() => window.dispatchEvent(new CustomEvent("rollcall-add-custom-table"))}
+            />
+          )}
+
+          {/* 5. Prepare Tomorrow Rollcall Button (after 6 PM, if not already viewing tomorrow) */}
+          {isAfter6PM && !isViewingTomorrowRollcall && canEdit && (
+            <SecondaryHeaderBtn
+              label="تجهيز تمام باكر"
+              icon={<CalendarPlus className="w-4 h-4" />}
+              onClick={() => router.push(`/arkan-harb?tab=rollcall&date=${tomorrowStr}`)}
+            />
+          )}
+
+          {/* 6. Return to Today Button (SecondaryHeaderBtn to guarantee single primary button) */}
+          {currentRollcallDate !== todayStr && (
+            <SecondaryHeaderBtn
+              label="العودة لتمام اليوم"
+              icon={<ArrowRight className="w-4 h-4" />}
+              onClick={() => router.push(`/arkan-harb?tab=rollcall&date=${todayStr}`)}
+            />
+          )}
+
+          {/* 7. Reopen Button (Admin only, when submitted - Sole Primary Button in submitted state) */}
+          {isRollcallSubmitted && isAdmin && (
+            <PrimaryHeaderBtn
+              label="إعادة فتح التمام"
+              icon={<Unlock className="w-4 h-4" />}
+              title="إعادة فتح التمام للتعديل بعد اعتماده"
+              onClick={() => window.dispatchEvent(new CustomEvent("rollcall-reopen"))}
+            />
+          )}
+
+          {/* 8. Final Submit Button (Sole Primary Button in active editing state) */}
+          {!isRollcallSubmitted && canEdit && canSaveOrSubmitRollcall && (
+            <PrimaryHeaderBtn
+              label="تسليم التمام"
+              icon={<CheckCircle2 className="w-4 h-4" />}
+              title="اعتماد التمام اليومي رسمياً وإغلاق التعديل وإرسال الإخطارات للقيادة"
+              onClick={() => window.dispatchEvent(new CustomEvent("rollcall-submit-final"))}
+            />
+          )}
+        </div>
+      );
+    }
     if (activeTab === "leaves") {
       const showRequestsOnly = searchParams.get("requestsOnly") === "true";
       return (
@@ -146,29 +301,34 @@ export function ArkanHarbClient({
     }
 
     if (activeTab === "missions") {
-      const status = searchParams.get("status") || "";
       return (
         <div className="flex items-center gap-2">
-          <div className="relative">
-            <select
-              value={status}
-              onChange={(e) => updateParams({ status: e.target.value, page: "1" })}
-              className="px-3.5 py-2 bg-(--app-surface) border border-(--app-border) rounded-xl text-xs font-bold text-(--app-foreground) focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none cursor-pointer pr-3 pl-8 shadow-xs"
-            >
-              <option value="">كل الحالات</option>
-              <option value="scheduled">مجدولة</option>
-              <option value="active">نشطة</option>
-              <option value="completed">مكتملة</option>
-              <option value="postponed">مؤجلة</option>
-              <option value="cancelled">ملغاة</option>
-            </select>
-            <ChevronDown className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-(--app-muted-foreground) pointer-events-none" />
-          </div>
+          {/* 1. مفتاح سجل المأموريات (مطابق لمفتاح أرشيف الوظائف) */}
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent("open-missions-archive"))}
+            className="p-2 rounded-xl text-sm font-bold transition-all active:scale-95 focus:outline-none cursor-pointer bg-(--app-surface-container-low) text-(--color-primary) hover:bg-(--app-surface-container)"
+            title="سجل وأرشيف المأموريات"
+          >
+            <History className="w-5 h-5" />
+          </button>
+
+          {/* 2. مفتاح طباعة كشف المأموريات */}
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent("print-missions-report"))}
+            className="p-2 rounded-xl text-sm font-bold transition-all active:scale-95 focus:outline-none cursor-pointer bg-(--app-surface-container-low) text-(--color-primary) hover:bg-(--app-surface-container)"
+            title="طباعة كشف مأموريات القوة"
+          >
+            <Printer className="w-5 h-5" />
+          </button>
+
+          {/* 3. إضافة مأمورية / فرقة / سفرية */}
           {canEdit && (
             <PrimaryHeaderBtn
-              label="إضافة مأمورية"
+              label="إضافة مأمورية / فرقة / سفرية"
               icon={<Plus className="w-4 h-4" />}
-              onClick={() => setIsMissionModalOpen(true)}
+              onClick={() => window.dispatchEvent(new CustomEvent("open-create-mission"))}
             />
           )}
         </div>
@@ -212,11 +372,80 @@ export function ArkanHarbClient({
       );
     }
 
+    if (activeTab === "roster") {
+      return (
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* 1. مفتاح History لعرض جدول النوبتجيات الأسبوعي لتاريخ ما (رمز) */}
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent("roster-open-history"))}
+            className="p-2 rounded-xl text-sm font-bold transition-all active:scale-95 focus:outline-none cursor-pointer bg-(--app-surface-container-low) text-(--color-primary) hover:bg-(--app-surface-container)"
+            title="سجل النوبتجيات الأسبوعية لتاريخ محدد"
+          >
+            <History className="w-5 h-5" />
+          </button>
+
+          {/* 2. مفتاح الطباعة (رمز) */}
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent("roster-print"))}
+            className="p-2 rounded-xl text-sm font-bold transition-all active:scale-95 focus:outline-none cursor-pointer bg-(--app-surface-container-low) text-(--color-primary) hover:bg-(--app-surface-container)"
+            title="طباعة جدول الأسبوع"
+          >
+            <Printer className="w-5 h-5" />
+          </button>
+
+          {/* 3. مفتاح حفظ كمسودة / حفظ التعديلات (رمز فقط) */}
+          {canEdit && (
+            <button
+              type="button"
+              disabled={isRosterSaving}
+              onClick={() =>
+                window.dispatchEvent(
+                  new CustomEvent(rosterStatus === "approved" ? "roster-save" : "roster-save-draft")
+                )
+              }
+              className="p-2 rounded-xl text-sm font-bold transition-all active:scale-95 focus:outline-none cursor-pointer bg-(--app-surface-container-low) text-(--color-primary) hover:bg-(--app-surface-container) disabled:opacity-50"
+              title={rosterStatus === "approved" ? "حفظ التعديلات" : "حفظ مسودة مؤقتة"}
+            >
+              {isRosterSaving && rosterSavingAction === "draft" ? (
+                <RefreshCw className="w-5 h-5 animate-spin" />
+              ) : (
+                <Save className="w-5 h-5" />
+              )}
+            </button>
+          )}
+
+          {/* 4. مفتاح اعتماد الجدول (في وضع المسودة فقط) */}
+          {canEdit && rosterStatus !== "approved" && (
+            <PrimaryHeaderBtn
+              label={isRosterSaving && rosterSavingAction === "approve" ? "جاري الاعتماد..." : "اعتماد الجدول"}
+              icon={isRosterSaving && rosterSavingAction === "approve" ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+              title="اعتماد جدول النوبتجيات وقفل التعديل المباشر"
+              disabled={isRosterSaving}
+              onClick={() => window.dispatchEvent(new CustomEvent("roster-approve"))}
+            />
+          )}
+
+          {/* 5. Approved Mode: Revert to Draft (Commander or Admin only) */}
+          {rosterStatus === "approved" && (isAdmin || isCommander) && (
+            <PrimaryHeaderBtn
+              label={isRosterSaving && rosterSavingAction === "reopen" ? "جاري إلغاء الاعتماد..." : "إلغاء الاعتماد"}
+              icon={isRosterSaving && rosterSavingAction === "reopen" ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Unlock className="w-4 h-4" />}
+              title="إلغاء الاعتماد وإعادة فتح الجدول كمسودة للتعديل"
+              disabled={isRosterSaving}
+              onClick={() => window.dispatchEvent(new CustomEvent("roster-reopen"))}
+            />
+          )}
+        </div>
+      );
+    }
+
     return null;
   };
 
-  const showSearch = ["leaves", "missions", "positions"].includes(activeTab);
-  const urlSearchQuery = searchParams.get("officerId") || searchParams.get("search") || "";
+  const showSearch = true; // البحث مفعل في جميع تبويبات أركان حرب
+  const urlSearchQuery = searchParams.get("search") || "";
 
   const [localSearch, setLocalSearch] = useState(urlSearchQuery);
   const [prevUrlSearch, setPrevUrlSearch] = useState(urlSearchQuery);
@@ -227,17 +456,39 @@ export function ArkanHarbClient({
   }
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (localSearch !== urlSearchQuery) {
-        if (activeTab === "leaves" || activeTab === "positions") {
-          updateParamsRef.current({ search: localSearch });
-        } else {
-          updateParamsRef.current({ officerId: localSearch, page: "1" });
-        }
+    const trimmed = localSearch.trim();
+    if (trimmed.length === 1) return; // Ignore single-character searches to reduce server load
+    if (trimmed !== urlSearchQuery) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("officerId"); // إزالة أي بارامتر قديم لمنع التعارض
+      if (trimmed) {
+        params.set("search", trimmed);
+      } else {
+        params.delete("search");
       }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [localSearch, activeTab, urlSearchQuery]);
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    }
+  }, [localSearch, urlSearchQuery, pathname, router, searchParams]);
+
+  const getSearchPlaceholder = () => {
+    switch (activeTab) {
+      case "rollcall":
+        return "بحث بالاسم، الرتبة، أو الرقم العسكري في التمام...";
+      case "leaves":
+        return "بحث باسم الضابط، الرتبة، أو الرقم العسكري...";
+      case "missions":
+        return "بحث باسم الضابط، عنوان المأمورية، أو الجهة...";
+      case "positions":
+        return "بحث في الوظائف أو الفروع أو أسماء ورتب الضباط...";
+      case "roster":
+        return "بحث في جدول النوبتجيات بالاسم، الرتبة أو الخدمة...";
+      case "decisions":
+        return "بحث في قرارات وتوجيهات السيد القائد...";
+      case "dashboard":
+      default:
+        return "بحث عام بالاسم، الرتبة، أو الرقم العسكري...";
+    }
+  };
 
   return (
     <PageContainer>
@@ -252,23 +503,29 @@ export function ArkanHarbClient({
               فرع أركان الحرب
             </Link>
             <span className="text-(--app-muted-foreground)/50 font-semibold">-</span>
-            <span>{currentTabName}</span>
+            <span className="text-(--color-primary)">{currentTabName}</span>
+            {activeTab === "rollcall" && rollcallDateDisplay && (
+              <>
+                <span className="text-(--app-muted-foreground)/50 font-semibold">-</span>
+                <span>تمام يوم {rollcallDateDisplay}</span>
+              </>
+            )}
+            {activeTab === "roster" && (
+              <>
+                <span className="text-(--app-muted-foreground)/50 font-semibold">-</span>
+                <RosterWeekDisplay info={rosterSmartWeekInfo} showPresetLabel={true} />
+              </>
+            )}
           </span>
         }
         description={currentDescription}
         showSearch={showSearch}
         searchQuery={localSearch}
         onSearchChange={setLocalSearch}
-        searchPlaceholder={
-          activeTab === "leaves"
-            ? "بحث باسم الضابط أو السبب..."
-            : activeTab === "positions"
-            ? "بحث في الوظائف أو الفروع أو أسماء ورتب الضباط..."
-            : "بحث بمعرف الضابط..."
-        }
+        searchPlaceholder={getSearchPlaceholder()}
         action={renderHeaderActions()}
       />
-      
+
       <div className="mt-8">
         <FolderTabs
           tabs={tabs}

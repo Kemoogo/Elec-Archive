@@ -13,7 +13,7 @@ export class DatabaseConnectionError extends Error {
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
-if (!MONGODB_URI && process.env.NODE_ENV === "production") {
+if (!MONGODB_URI && process.env.NODE_ENV === "production" && process.env.NEXT_PHASE !== "phase-production-build") {
   throw new Error("MONGODB_URI environment variable is required in production");
 }
 
@@ -81,6 +81,8 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
     const opts = {
       bufferCommands: false,
       maxPoolSize: 10,
+      minPoolSize: 2,
+      serverSelectionTimeoutMS: 5000,
     };
 
     cached.promise = mongoose.connect(RESOLVED_URI, opts).then((m) => {

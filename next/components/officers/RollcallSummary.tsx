@@ -111,7 +111,11 @@ export function RollcallSummary({ rollcall, isCommander: _isCommander, isAdmin =
           <div className="flex items-center gap-3">
             <RollcallPrintReport
               date={rollcall.date}
-              entries={rollcall.entries as unknown as Parameters<typeof computeRollcallBreakdown>[0]}
+              entries={rollcall.entries.map((e) => ({
+                officerId: String(e.officerId),
+                status: e.status as import("@/lib/db/models/DailyRollcall.shared").RollcallStatus,
+                note: e.note,
+              }))}
               targetOfficerCount={rollcall.targetOfficerCount}
             />
 
@@ -119,7 +123,7 @@ export function RollcallSummary({ rollcall, isCommander: _isCommander, isAdmin =
               <button
                 onClick={handleReopen}
                 disabled={isReopening}
-                className="px-3.5 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 border border-amber-500/30 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                className="px-3.5 py-2 bg-(--color-primary)/10 hover:bg-(--color-primary)/20 text-(--color-primary) border border-(--color-primary)/30 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
               >
                 <Unlock className="w-4 h-4" />
                 {isReopening ? "جاري الفتح..." : "إعادة فتح التمام للتعديل"}
@@ -172,16 +176,12 @@ export function RollcallSummary({ rollcall, isCommander: _isCommander, isAdmin =
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex flex-col text-right">
-                        <span className="text-sm font-extrabold text-(--app-foreground)">{entry.fullName}</span>
+                        <span className="text-sm font-black text-(--color-primary)">{entry.fullName}</span>
                         <span className="text-xs font-mono text-(--app-muted-foreground)">رقم عسكري: #{entry.militaryId}</span>
                       </div>
                     </td>
                     <td className="px-5 py-3 text-center">
-                      <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold border ${
-                        isPresent
-                          ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20"
-                          : "bg-amber-500/10 text-amber-700 border-amber-500/20"
-                      }`}>
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold border bg-(--app-surface-container) border-(--app-border) text-(--app-muted-foreground)">
                         <span>{statusLabel}</span>
                       </div>
                     </td>
@@ -238,13 +238,13 @@ export function RollcallSummary({ rollcall, isCommander: _isCommander, isAdmin =
           </div>
 
           {/* Out (الخارج) Card */}
-          <div className="p-5 bg-amber-500/5 border border-amber-500/20 rounded-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-amber-500/20 pb-3">
+          <div className="p-5 bg-(--app-surface-container) border border-(--app-border) rounded-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-(--app-border)/60 pb-3">
               <div className="flex items-center gap-2">
-                <Plane className="w-5 h-5 text-amber-600" />
-                <span className="text-sm font-black text-amber-900">الخارج (الإجازات والمأموريات والخوارج)</span>
+                <Plane className="w-5 h-5 text-(--color-primary)" />
+                <span className="text-sm font-black text-(--app-foreground)">الخارج (الإجازات والمأموريات والخوارج)</span>
               </div>
-              <span className="text-xl font-black text-amber-700 bg-amber-500/10 px-3 py-0.5 rounded-full border border-amber-500/20">
+              <span className="text-xl font-black text-(--app-foreground) bg-(--app-surface) px-3 py-0.5 rounded-full border border-(--app-border)">
                 {breakdown.out.total}
               </span>
             </div>
@@ -252,14 +252,14 @@ export function RollcallSummary({ rollcall, isCommander: _isCommander, isAdmin =
             {outItems.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {outItems.map((item, idx) => (
-                  <div key={idx} className="flex-1 min-w-[100px] p-2.5 bg-white/80 dark:bg-slate-900/50 rounded-xl border border-amber-500/20 text-center">
-                    <div className="text-[11px] text-slate-500 font-bold mb-0.5">{item.label}</div>
-                    <div className="text-base font-black text-amber-800 dark:text-amber-300">{item.count}</div>
+                  <div key={idx} className="flex-1 min-w-[100px] p-2.5 bg-(--app-surface) rounded-xl border border-(--app-border) text-center">
+                    <div className="text-[11px] text-(--app-muted-foreground) font-bold mb-0.5">{item.label}</div>
+                    <div className="text-base font-black text-(--app-foreground)">{item.count}</div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-2 text-xs font-bold text-amber-700 dark:text-amber-300">
+              <div className="text-center py-2 text-xs font-bold text-(--app-muted-foreground)">
                 لا يوجد خوارج اليوم (جميع الضباط متواجدين بالوحدة)
               </div>
             )}

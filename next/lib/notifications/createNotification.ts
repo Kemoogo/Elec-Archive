@@ -17,19 +17,19 @@ export async function createNotificationForCommanders(
 ): Promise<void> {
   await connectToDatabase();
 
-  const commanders = await User.find({ role: "commander", isActive: true }).select("_id");
+  const commanders = await User.find({ role: "commander", isActive: true }).select("_id").lean();
+  if (commanders.length === 0) return;
 
-  const notifications = await Promise.all(
-    commanders.map((commander) =>
-      Notification.create({
-        userId: commander._id,
-        type: params.type,
-        title: params.title,
-        body: params.body,
-        refId: params.refId,
-        refModel: params.refModel,
-      }),
-    ),
+  const notifications = await Notification.insertMany(
+    commanders.map((commander) => ({
+      userId: commander._id,
+      type: params.type,
+      title: params.title,
+      body: params.body,
+      refId: params.refId,
+      refModel: params.refModel,
+      isRead: false,
+    }))
   );
 
   for (const notification of notifications) {
@@ -54,19 +54,19 @@ export async function createNotificationForOfficersEditors(
   const editors = await User.find({
     isActive: true,
     "permissions.officers": "edit",
-  }).select("_id");
+  }).select("_id").lean();
+  if (editors.length === 0) return;
 
-  const notifications = await Promise.all(
-    editors.map((editor) =>
-      Notification.create({
-        userId: editor._id,
-        type: params.type,
-        title: params.title,
-        body: params.body,
-        refId: params.refId,
-        refModel: params.refModel,
-      }),
-    ),
+  const notifications = await Notification.insertMany(
+    editors.map((editor) => ({
+      userId: editor._id,
+      type: params.type,
+      title: params.title,
+      body: params.body,
+      refId: params.refId,
+      refModel: params.refModel,
+      isRead: false,
+    }))
   );
 
   for (const notification of notifications) {
@@ -91,19 +91,19 @@ export async function createNotificationForStaffOps(
   const staffOps = await User.find({
     isActive: true,
     $or: [{ role: "admin" }, { "permissions.arkan_harb": { $in: ["view", "edit"] } }],
-  }).select("_id");
+  }).select("_id").lean();
+  if (staffOps.length === 0) return;
 
-  const notifications = await Promise.all(
-    staffOps.map((user) =>
-      Notification.create({
-        userId: user._id,
-        type: params.type,
-        title: params.title,
-        body: params.body,
-        refId: params.refId,
-        refModel: params.refModel,
-      }),
-    ),
+  const notifications = await Notification.insertMany(
+    staffOps.map((user) => ({
+      userId: user._id,
+      type: params.type,
+      title: params.title,
+      body: params.body,
+      refId: params.refId,
+      refModel: params.refModel,
+      isRead: false,
+    }))
   );
 
   for (const notification of notifications) {

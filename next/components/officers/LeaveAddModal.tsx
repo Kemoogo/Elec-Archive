@@ -7,27 +7,17 @@ import { ModalShell } from "@/components/ui/modal-shell";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { PrimaryHeaderBtn } from "@/components/layout/ModernPageHeader";
 import { DateField } from "@/components/ui/date-field";
-import { FormLabel, FormSelect, FormTextarea } from "@/components/ui/form-fields";
+import { FormLabel, FormTextarea } from "@/components/ui/form-fields";
+import { CustomSelect } from "@/components/ui/custom-select";
 import { useToast } from "@/components/ui/toast";
 import { extractApiError } from "@/lib/utils";
+import { LEAVE_TYPES, LEAVE_TYPE_LABELS } from "@/lib/db/models/Leave.shared";
+import type { OfficerOption } from "@/types";
 
-const LEAVE_TYPE_OPTIONS = [
-  { value: "annual", label: "سنوية" },
-  { value: "sick", label: "مرضية" },
-  { value: "emergency", label: "طارئة" },
-  { value: "rest", label: "راحة" },
-  { value: "overnight", label: "مبيت" },
-  { value: "field", label: "ميدانية" },
-  { value: "casual", label: "عارضة" },
-];
-
-interface OfficerOption {
-  id: string;
-  fullName: string;
-  militaryId: string;
-  rank?: string;
-  officerLabel?: string;
-}
+const LEAVE_TYPE_OPTIONS = LEAVE_TYPES.map((value) => ({
+  value,
+  label: LEAVE_TYPE_LABELS[value],
+}));
 
 export function LeaveAddModal({ officers }: { officers: OfficerOption[] }) {
   const router = useRouter();
@@ -36,14 +26,27 @@ export function LeaveAddModal({ officers }: { officers: OfficerOption[] }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const [form, setForm] = useState({
+  const initialForm = {
     officerId: "",
     category: "leave",
     type: "annual",
     startDate: "",
     endDate: "",
     reason: "",
-  });
+  };
+
+  const [form, setForm] = useState(initialForm);
+
+  const handleOpen = () => {
+    setForm(initialForm);
+    setError("");
+    setOpen(true);
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    setError("");
+  };
 
    const handleCreate = async (e: React.FormEvent) => {
      e.preventDefault();
@@ -81,39 +84,44 @@ export function LeaveAddModal({ officers }: { officers: OfficerOption[] }) {
       <PrimaryHeaderBtn
         label="توثيق سجل جديد"
         icon={<Plus className="w-4 h-4" />}
-        onClick={() => setOpen(true)}
+        onClick={handleOpen}
       />
 
       {open && (
         <ModalShell
           title="إضافة سجل حركة جديد"
           icon={<Plus className="w-4 h-4" />}
-          onClose={() => setOpen(false)}
+          onClose={handleClose}
+          footer={
+            <ModalActions
+              form="add-leave-form"
+              submitText="حفظ السجل"
+              submitLoading={loading}
+              cancelText="إلغاء"
+              onCancel={handleClose}
+            />
+          }
         >
           {error && (
-            <div className="mb-4 rounded-lg bg-(--app-error)/10 border border-(--app-error)/20 p-4 text-(--app-error) font-bold text-sm text-right">
+            <div className="mb-4 rounded-lg bg-(--app-error)/10 border border-(--app-error)/20 p-4 text-(--app-error) font-bold text-sm text-right whitespace-pre-line leading-relaxed">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleCreate} className="space-y-4 text-right">
+          <form id="add-leave-form" onSubmit={handleCreate} className="space-y-4 text-right">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <FormLabel htmlFor="leave-officerId" required>الضابط المعني</FormLabel>
-                <FormSelect
-                  id="leave-officerId"
-                  value={form.officerId}
-                  onChange={(e) => setForm({ ...form, officerId: e.target.value })}
-                  required
-                >
-                  <option value="">اختر ضابط من القائمة</option>
-                  {officers.map((o) => (
-                    <option key={o.id} value={o.id}>
-                      {o.officerLabel || (o.rank ? `${o.rank} / ${o.fullName}` : o.fullName)} ({o.militaryId})
-                    </option>
-                  ))}
-                </FormSelect>
-              </div>
+              <CustomSelect
+                id="leave-officerId"
+                label="الضابط المعني"
+                value={form.officerId}
+                onChange={(val) => setForm({ ...form, officerId: val })}
+                options={officers.map((o) => ({
+                  value: o.id,
+                  label: `${o.officerLabel || (o.rank ? `${o.rank} / ${o.fullName}` : o.fullName)} (${o.militaryId})`,
+                }))}
+                placeholder="اختر ضابط من القائمة"
+                required
+              />
               <div className="space-y-1.5">
                 <FormLabel required>الفئة الرئيسية</FormLabel>
                 <div className="grid grid-cols-2 gap-2">
@@ -180,15 +188,6 @@ export function LeaveAddModal({ officers }: { officers: OfficerOption[] }) {
                 onChange={(e) => setForm({ ...form, reason: e.target.value })}
                 rows={2}
                 placeholder="تفاصيل إضافية حول السجل..."
-              />
-            </div>
-
-            <div className="pt-4">
-              <ModalActions
-                submitText="حفظ السجل"
-                submitLoading={loading}
-                cancelText="إلغاء"
-                onCancel={() => setOpen(false)}
               />
             </div>
           </form>

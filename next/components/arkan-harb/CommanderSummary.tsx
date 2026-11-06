@@ -23,10 +23,10 @@ export const CommanderSummary: React.FC<CommanderSummaryProps> = ({
   absent
 }) => {
   const stats: Stat[] = [
-    { label: "حاضر", value: present, color: "bg-(--app-success)" },
-    { label: "مأمورية", value: mission, color: "bg-(--app-warning)" },
-    { label: "إجازة", value: leave, color: "bg-(--app-info)" },
-    { label: "غياب", value: absent, color: "bg-(--app-error)" },
+    { label: "حاضر", value: present, color: "bg-(--color-primary)" },
+    { label: "مأمورية", value: mission, color: "bg-(--app-info)" },
+    { label: "إجازة", value: leave, color: "bg-(--color-primary-hover)" },
+    { label: "غياب", value: absent, color: "bg-slate-300 dark:bg-slate-700" },
   ];
 
   return (

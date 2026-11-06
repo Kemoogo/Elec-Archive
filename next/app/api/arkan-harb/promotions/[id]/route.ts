@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Types } from "mongoose";
 import { connectToDatabase } from "@/lib/db/connect";
 import { authenticate } from "@/lib/auth/middleware";
 import { canEditModule } from "@/lib/auth/authorization";
@@ -64,7 +65,7 @@ export async function PATCH(
     // As mentioned in the spec: We do not attempt to rollback the officer's rank if toRank changes.
     // It just updates the record itself to simplify the process.
     
-    promotion.updatedBy = promotion.updatedBy; // preserve reference; handled by schema if needed
+    promotion.updatedBy = new Types.ObjectId(auth.user!.id);
     await promotion.save();
 
     // 7. Audit

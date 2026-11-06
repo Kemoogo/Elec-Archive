@@ -4,6 +4,7 @@ import { authenticate } from "@/lib/auth/middleware";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Department } from "@/lib/db/models/Department";
 import { logAuditEvent } from "@/lib/auth/audit";
+import { Types } from "mongoose";
 
 export async function POST(req: Request) {
   const auth = await authenticate();
@@ -30,10 +31,29 @@ export async function POST(req: Request) {
 
     // 1. If explicit orderedIds array provided
     if (Array.isArray(orderedIds) && orderedIds.length > 0) {
-      const updatePromises = orderedIds.map((depId, index) =>
-        Department.findByIdAndUpdate(depId, { order: index + 1 })
-      );
-      await Promise.all(updatePromises);
+      const validIds = orderedIds.filter((did) => Types.ObjectId.isValid(did));
+      if (validIds.length > 0) {
+        await Department.bulkWrite(
+          validIds.map((depId, index) => ({
+            updateOne: {
+              filter: { _id: new Types.ObjectId(depId) },
+              update: { $set: { order: index + 1 } },
+            },
+          }))
+        );
+
+        await logAuditEvent({
+          userId: user.id,
+          userName: user.fullName || user.username,
+          action: "UPDATE",
+          module: "users",
+          targetId: validIds[0],
+          description: "إعادة ترتيب الأقسام بالكامل",
+        });
+
+        revalidatePath("/arkan-harb");
+        revalidatePath("/admin/departments");
+      }
       return NextResponse.json({ success: true, message: "تم تحديث ترتيب الأقسام بنجاح" });
     }
 
@@ -42,13 +62,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "بيانات الترتيب غير مكتملة" }, { status: 400 });
     }
 
-    const currentDep = await Department.findById(id);
+    const currentDep = await Department.findById(id).lean();
     if (!currentDep) {
       return NextResponse.json({ success: false, error: "القسم غير موجود" }, { status: 404 });
     }
 
     const targetBranchId = branchId || currentDep.branchId;
-    const siblingDeps = await Department.find({ branchId: targetBranchId }).sort({ order: 1, name: 1 });
+    const siblingDeps = await Department.find({ branchId: targetBranchId }).sort({ order: 1, name: 1 }).lean();
 
     const currentIndex = siblingDeps.findIndex((d) => d._id.toString() === id);
     if (currentIndex === -1) {
@@ -67,11 +87,15 @@ export async function POST(req: Request) {
     siblingDeps[currentIndex] = siblingDeps[targetIndex];
     siblingDeps[targetIndex] = temp;
 
-    // Persist new orders sequentially
-    const updateOps = siblingDeps.map((dep, index) =>
-      Department.findByIdAndUpdate(dep._id, { order: index + 1 })
+    // Persist new orders using bulkWrite
+    await Department.bulkWrite(
+      siblingDeps.map((dep, index) => ({
+        updateOne: {
+          filter: { _id: dep._id },
+          update: { $set: { order: index + 1 } },
+        },
+      }))
     );
-    await Promise.all(updateOps);
 
     await logAuditEvent({
       userId: user.id,

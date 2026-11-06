@@ -2,8 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { ModalShell } from "@/components/ui/modal-shell";
+import { ModalActions } from "@/components/ui/modal-actions";
+import { LoadingState } from "@/components/ui/loading-state";
 import { Calendar, Activity, Stethoscope, Pill, User, ClipboardList } from "lucide-react";
 import { extractApiError } from "@/lib/utils";
+import { formatDateDisplay } from "@/lib/utils/date-display";
 
 interface DispensedItem {
   medicineId: string;
@@ -93,11 +96,8 @@ export function ViewVisitModal({ visitId, onClose }: ViewVisitModalProps) {
 
   const formatDate = (dateStr: string) => {
     try {
-      return new Date(dateStr).toLocaleDateString("ar-EG", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
+      const res = formatDateDisplay(dateStr);
+      return res || dateStr;
     } catch {
       return dateStr;
     }
@@ -111,12 +111,18 @@ export function ViewVisitModal({ visitId, onClose }: ViewVisitModalProps) {
       overlayClassName="bg-black/40"
       panelClassName="max-h-[85vh] max-w-lg border-(--app-border) shadow-depth-xl"
       bodyClassName="p-0 no-scrollbar"
+      footer={
+        visit ? (
+          <ModalActions
+            onCancel={onClose}
+            cancelText="إغلاق"
+            readOnly={true}
+          />
+        ) : undefined
+      }
     >
       {loading ? (
-        <div className="py-16 text-center">
-          <div className="w-10 h-10 border-4 border-(--app-info)/20 border-t-(--app-info) rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-sm font-bold text-(--app-muted-foreground)">جاري تحميل بيانات الزيارة...</p>
-        </div>
+        <LoadingState message="جاري تحميل بيانات الزيارة..." variant="inline" />
       ) : error ? (
         <div className="py-16 text-center">
           <div className="w-12 h-12 rounded-full bg-(--app-error)/10 text-(--app-error) flex items-center justify-center mx-auto mb-3">
@@ -223,16 +229,6 @@ export function ViewVisitModal({ visitId, onClose }: ViewVisitModalProps) {
             </div>
           )}
 
-          {/* Footer */}
-          <div className="px-6 py-4 flex justify-center">
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn-secondary !px-8"
-            >
-              إلغاء
-            </button>
-          </div>
         </div>
       ) : null}
     </ModalShell>

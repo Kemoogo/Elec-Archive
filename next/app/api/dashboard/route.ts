@@ -8,6 +8,7 @@ import { Course } from "@/lib/db/models/Course";
 import { Student } from "@/lib/db/models/Student";
 import { handleApiError } from "@/lib/utils/api-error";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
+import { canViewModule } from "@/lib/auth/authorization";
 
 export async function GET(request: Request) {
   const auth = await authenticate();
@@ -31,29 +32,57 @@ export async function GET(request: Request) {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const isAdminOrCommander = user.role === "admin" || user.role === "commander";
+    const canFax = canViewModule(user, "fax");
+    const canOfficers = canViewModule(user, "officers") || canViewModule(user, "arkan_harb");
+    const canMedical = canViewModule(user, "medical");
+    const canEducation = canViewModule(user, "education");
+    const canStudents = canViewModule(user, "students");
+
+    const [
+      faxResult,
+      rollcallDoc,
+      medicalResult,
+      educationResult,
+      studentsResult,
+    ] = await Promise.all([
+      canFax
+        ? Promise.all([
+            Fax.countDocuments({ status: "pending" }),
+            Fax.countDocuments(),
+          ])
+        : Promise.resolve(null),
+      canOfficers
+        ? DailyRollcall.findOne({ date: { $gte: today, $lt: tomorrow } }).lean()
+        : Promise.resolve(null),
+      canMedical
+        ? Promise.all([
+            Medicine.countDocuments({ batches: { $elemMatch: { quantity: { $gt: 0 }, expiryDate: { $lt: new Date() } } } }),
+            Medicine.countDocuments({ $expr: { $lt: ["$totalQuantity", "$minThreshold"] } }),
+          ])
+        : Promise.resolve(null),
+      canEducation
+        ? Course.countDocuments({ status: { $in: ["ongoing", "upcoming"] } })
+        : Promise.resolve(null),
+      canStudents
+        ? Student.countDocuments({ status: "active" })
+        : Promise.resolve(null),
+    ]);
 
     const data: Record<string, unknown> = {};
 
-    if (isAdminOrCommander || user.department === "fax") {
-      const pendingCount = await Fax.countDocuments({ status: "pending" });
-      const totalCount = await Fax.countDocuments();
-      data.faxes = { pendingCount, totalCount };
+    if (faxResult) {
+      data.faxes = { pendingCount: faxResult[0], totalCount: faxResult[1] };
     }
 
-    if (isAdminOrCommander || user.department === "officers") {
-      const todayRollcall = await DailyRollcall.findOne({
-        date: { $gte: today, $lt: tomorrow },
-      });
-
-      if (todayRollcall) {
-        const entries = todayRollcall.entries;
+    if (canOfficers) {
+      if (rollcallDoc) {
+        const entries = rollcallDoc.entries || [];
         data.rollcall = {
-          todaySubmitted: todayRollcall.status === "submitted",
+          todaySubmitted: rollcallDoc.status === "submitted",
           presentCount: entries.filter((e: { status: string }) => e.status === "present").length,
           absentCount: entries.filter((e: { status: string }) => e.status === "absent").length,
           leaveCount: entries.filter((e: { status: string }) => e.status === "leave").length,
-          missionCount: entries.filter((e: { status: string }) => e.status === "mission").length,
+          missionCount: entries.filter((e: { status: string }) => e.status === "external_mission" || e.status === "daily_mission").length,
         };
       } else {
         data.rollcall = {
@@ -66,20 +95,16 @@ export async function GET(request: Request) {
       }
     }
 
-    if (isAdminOrCommander || user.department === "medical") {
-      const expiredCount = await Medicine.countDocuments({ "batches.expiryDate": { $lt: new Date() } });
-      const lowStockCount = await Medicine.countDocuments({ $expr: { $lt: ["$totalQuantity", "$minThreshold"] } });
-      data.medical = { expiredCount, lowStockCount };
+    if (medicalResult) {
+      data.medical = { expiredCount: medicalResult[0], lowStockCount: medicalResult[1] };
     }
 
-    if (isAdminOrCommander || user.department === "education") {
-      const activeCount = await Course.countDocuments({ status: { $in: ["ongoing", "upcoming"] } });
-      data.courses = { activeCount };
+    if (educationResult !== null) {
+      data.courses = { activeCount: educationResult };
     }
 
-    if (isAdminOrCommander || user.department === "students") {
-      const totalCount = await Student.countDocuments();
-      data.students = { totalCount };
+    if (studentsResult !== null) {
+      data.students = { totalCount: studentsResult };
     }
 
     return NextResponse.json({ success: true, data });

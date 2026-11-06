@@ -63,7 +63,7 @@ export async function GET(request: Request, { params }: RouteParams) {
       ipAddress: ip,
     });
 
-    const populatedUploadedBy = fax.uploadedBy as { _id: { toString(): string }; fullName: string };
+    const populatedUploadedBy = fax.uploadedBy as { _id: { toString(): string }; fullName: string } | null | undefined;
     const populatedForwardedTo = fax.forwardedToId as { _id: { toString(): string }; fullName: string } | null;
     const populatedClosedBy = fax.closedBy as { _id: { toString(): string }; fullName: string } | null;
     const populatedRelated = (fax.relatedFaxes ?? []) as Array<{ _id: { toString(): string }; faxNumber: string; date: Date; subject: string; status: string }>;
@@ -98,10 +98,10 @@ export async function GET(request: Request, { params }: RouteParams) {
           subject: r.subject,
           status: r.status,
         })),
-        uploadedBy: {
-          _id: populatedUploadedBy._id.toString(),
-          fullName: populatedUploadedBy.fullName,
-        },
+        uploadedBy: populatedUploadedBy ? {
+          _id: populatedUploadedBy._id?.toString() ?? "",
+          fullName: populatedUploadedBy.fullName ?? "مستخدم محذوف",
+        } : null,
         createdAt: (fax.createdAt as Date).toISOString(),
         updatedAt: (fax.updatedAt as Date).toISOString(),
       },

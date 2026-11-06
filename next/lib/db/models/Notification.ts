@@ -8,6 +8,8 @@ export const NOTIFICATION_TYPES = [
   "officers_reminder",
   "rollcall_reminder",
   "rollcall_approved",
+  "leave_decision",
+  "leave_request",
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
@@ -18,6 +20,7 @@ export interface INotification extends Document {
   title: string;
   body: string;
   isRead: boolean;
+  readAt?: Date;
   refId?: Types.ObjectId;
   refModel?: string;
   createdAt: Date;
@@ -34,6 +37,7 @@ const NotificationSchema = new Schema<INotification>(
     title: { type: String, required: true, trim: true },
     body: { type: String, required: true, trim: true },
     isRead: { type: Boolean, default: false },
+    readAt: { type: Date },
     refId: { type: Schema.Types.ObjectId },
     refModel: { type: String },
   },
@@ -41,6 +45,8 @@ const NotificationSchema = new Schema<INotification>(
 );
 
 NotificationSchema.index({ userId: 1, isRead: 1 });
+NotificationSchema.index({ userId: 1, createdAt: -1 });
+NotificationSchema.index({ type: 1, createdAt: -1 });
 NotificationSchema.index({ createdAt: -1 });
 
 export const Notification =

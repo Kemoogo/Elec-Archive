@@ -8,6 +8,7 @@ import {
   Course 
 } from "@/lib/db/models";
 import type { RollcallStatus } from "@/lib/db/models/DailyRollcall";
+import { isMissionActiveOnDay } from "@/lib/arkan-harb/rollcall-engine";
 
 export interface SuggestedRollcallEntry {
   officerId: string;
@@ -57,15 +58,16 @@ export async function getSuggestedRollcall(date: Date): Promise<SuggestedRollcal
       endDate: { $gte: startOfDay }
     }).lean(),
 
-    // Missions: active and date falls within range
+    // Missions: active or scheduled and date falls within range
     Mission.find({
       officerId: { $in: officerIds },
-      status: "active",
+      status: { $in: ["active", "scheduled"] },
       startDate: { $lte: endOfDay },
       $or: [
+        { endDate: { $gte: startOfDay } },
         { endDate: { $exists: false } },
-        { endDate: { $gte: startOfDay } }
-      ]
+        { endDate: null },
+      ],
     }).lean(),
 
     // Courses: ongoing and officer is a participant
@@ -84,9 +86,10 @@ export async function getSuggestedRollcall(date: Date): Promise<SuggestedRollcal
         const patientIds = patients.map(p => p._id);
         const patientToMilitaryId = new Map(patients.map(p => [p._id.toString(), p.patientId]));
         
+        const sixtyDaysAgo = new Date(startOfDay.getTime() - 60 * 24 * 60 * 60 * 1000);
         const visits = await MedicalVisit.find({
             patientId: { $in: patientIds },
-            visitDate: { $lte: endOfDay }
+            visitDate: { $lte: endOfDay, $gte: sixtyDaysAgo }
         }).sort({ visitDate: -1 }).lean();
 
         // Filter visits where rest is still active
@@ -95,7 +98,7 @@ export async function getSuggestedRollcall(date: Date): Promise<SuggestedRollcal
             if (v.restType === "none" || restDays === 0) return false;
             
             const restEndDate = new Date(v.visitDate);
-            restEndDate.setDate(restEndDate.getDate() + restDays);
+            restEndDate.setDate(restEndDate.getDate() + Math.max(0, restDays - 1));
             return restEndDate >= startOfDay;
         }).map(v => ({ ...v, militaryId: patientToMilitaryId.get(v.patientId.toString()) }));
     })
@@ -103,7 +106,10 @@ export async function getSuggestedRollcall(date: Date): Promise<SuggestedRollcal
 
   // 3. Map suggestions
   const leaveMap = new Map(activeLeaves.map(l => [l.officerId.toString(), l]));
-  const missionMap = new Map(activeMissions.map(m => [m.officerId.toString(), m]));
+  const filteredActiveMissions = activeMissions.filter(m =>
+    isMissionActiveOnDay(m, startOfDay, endOfDay)
+  );
+  const missionMap = new Map(filteredActiveMissions.map(m => [m.officerId.toString(), m]));
   const courseMap = new Map();
   activeCourses.forEach(c => {
     c.participants.forEach((pId: { toString(): string }) => {
@@ -128,8 +134,15 @@ export async function getSuggestedRollcall(date: Date): Promise<SuggestedRollcal
 
     const leave = leaveMap.get(oId);
     if (leave) {
-      suggestedStatus = "leave";
-      reason = `إجازة (${leave.type})`;
+      const endD = new Date(leave.endDate);
+      const isReturningToday = endD >= startOfDay && endD <= endOfDay && !leave.isReturnConfirmed;
+      if (isReturningToday) {
+        suggestedStatus = "present";
+        reason = "عودة من إجازة";
+      } else {
+        suggestedStatus = "leave";
+        reason = `إجازة (${leave.type})`;
+      }
       relatedId = leave._id.toString();
     } else {
       const mission = missionMap.get(oId);

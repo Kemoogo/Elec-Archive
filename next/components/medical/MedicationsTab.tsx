@@ -2,6 +2,7 @@
 
 import { Pill } from "lucide-react";
 import type { Medication } from "@/lib/medical/types";
+import { formatDateDisplay } from "@/lib/utils/date-display";
 
 interface MedicationsTabProps {
   medications: Medication[];
@@ -32,8 +33,8 @@ export function MedicationsTab({ medications }: MedicationsTabProps) {
               <td className="py-2 px-3 font-bold text-(--app-foreground)">
                 {med.totalQuantity}{med.unit ? ` ${med.unit}` : ""} {med.medicineName}{med.concentration ? ` ${med.concentration}` : ""}
               </td>
-              <td className="py-2 px-3 text-(--app-muted-foreground)">
-                {new Date(med.lastDispenseDate).toLocaleDateString("ar-EG")}
+              <td className="py-2 px-3 text-(--app-muted-foreground) font-mono">
+                {formatDateDisplay(med.lastDispenseDate)}
               </td>
             </tr>
           ))}
