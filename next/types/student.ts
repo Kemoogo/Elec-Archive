@@ -3,8 +3,6 @@ import type {
   QualificationType,
   DistributionStatus,
   StudentLocationStatus,
-  IRelocationDetails,
-  IUnitPersonnelDetails,
 } from "@/lib/db/models/Student.shared";
 import type { IBatchClassification } from "@/lib/db/models/StudentBatch.shared";
 

@@ -6,21 +6,9 @@ import { BookOpen } from "lucide-react";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { DateField } from "@/components/ui/date-field";
-import { FormField, FormInput, FormTextarea } from "@/components/ui/form-fields";
-import { CustomSelect, type CustomSelectOption } from "@/components/ui/custom-select";
+import { FormField, FormInput, FormSelect, FormTextarea } from "@/components/ui/form-fields";
 import { useToast } from "@/components/ui/toast";
 import { extractApiError } from "@/lib/utils";
-
-const PARTICIPANT_MODEL_OPTIONS: CustomSelectOption[] = [
-  { value: "Officer", label: "ضباط" },
-  { value: "Student", label: "طلبة" },
-];
-
-const COURSE_STATUS_OPTIONS: CustomSelectOption[] = [
-  { value: "upcoming", label: "قادمة" },
-  { value: "ongoing", label: "جارية" },
-  { value: "completed", label: "منتهية" },
-];
 
 interface CourseFormProps {
   mode: "create" | "edit";
@@ -55,30 +43,12 @@ export function CourseForm({ mode, initialData, onSuccess }: CourseFormProps) {
   const [participantModel, setParticipantModel] = useState(initialData?.participantModel ?? "Officer");
   const [status, setStatus] = useState(initialData?.status ?? "upcoming");
 
-  const resetForm = () => {
-    setTitle(initialData?.title ?? "");
-    setDescription(initialData?.description ?? "");
-    setStartDate(
-      initialData?.startDate ? new Date(initialData.startDate).toISOString().split("T")[0] : "",
-    );
-    setEndDate(
-      initialData?.endDate ? new Date(initialData.endDate).toISOString().split("T")[0] : "",
-    );
-    setParticipantModel(initialData?.participantModel ?? "Officer");
-    setStatus(initialData?.status ?? "upcoming");
-    setError("");
-  };
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
 
     const body: Record<string, string> = { title };
-    if (mode === "edit") {
-      body.description = description.trim();
-    } else if (description.trim()) {
-      body.description = description.trim();
-    }
+    if (description) body.description = description;
     body.startDate = startDate;
     body.endDate = endDate;
 
@@ -105,7 +75,6 @@ export function CourseForm({ mode, initialData, onSuccess }: CourseFormProps) {
         }
         setIsOpen(false);
         if (mode === "create") {
-          resetForm();
           showToast("تم إضافة الدورة بنجاح", "success");
           router.push(`/education/${data.data._id}`);
         } else {
@@ -123,13 +92,7 @@ export function CourseForm({ mode, initialData, onSuccess }: CourseFormProps) {
   if (mode === "create") {
     return (
       <>
-         <button
-           onClick={() => {
-             resetForm();
-             setIsOpen(true);
-           }}
-           className="btn-primary"
-         >
+         <button onClick={() => setIsOpen(true)} className="btn-primary">
            <>
              <BookOpen className="h-4 w-4" />
              إضافة دورة
@@ -142,18 +105,24 @@ export function CourseForm({ mode, initialData, onSuccess }: CourseFormProps) {
             panelClassName="max-w-[480px]"
             onClose={() => {
               setIsOpen(false);
-              resetForm();
+              setError("");
             }}
             footer={
-              <ModalActions
-                form={formId}
-                submitText="إضافة"
-                submitLoading={isPending}
-                onCancel={() => {
-                  setIsOpen(false);
-                  resetForm();
-                }}
-              />
+              <ModalActions>
+                <button type="submit" form={formId} disabled={isPending} className="btn-accent disabled:opacity-50">
+                  {isPending ? "جاري الحفظ..." : "إضافة"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOpen(false);
+                    setError("");
+                  }}
+                  className="rounded-md border border-(--app-border) px-4 py-2 text-sm text-foreground hover:bg-white/10"
+                >
+                  إلغاء
+                </button>
+              </ModalActions>
             }
           >
             <form id={formId} onSubmit={handleSubmit} className="space-y-4">
@@ -185,7 +154,7 @@ export function CourseForm({ mode, initialData, onSuccess }: CourseFormProps) {
         status={status} setStatus={setStatus}
       />
       {error && <p className="text-sm text-(--app-error)">{error}</p>}
-      <button type="submit" disabled={isPending} className="btn-primary disabled:opacity-50">
+      <button type="submit" disabled={isPending} className="btn-accent disabled:opacity-50">
         {isPending ? "جاري الحفظ..." : "حفظ التعديلات"}
       </button>
     </form>
@@ -234,24 +203,22 @@ function FormFields({
       </div>
 
       {mode === "create" && (
-        <CustomSelect
-          id="course-participantModel"
-          label="نوع المشاركين"
-          value={participantModel}
-          onChange={setParticipantModel}
-          options={PARTICIPANT_MODEL_OPTIONS}
-          required
-        />
+        <FormField label="نوع المشاركين" required>
+          <FormSelect id="course-participantModel" value={participantModel} onChange={(e) => setParticipantModel(e.target.value)}>
+            <option value="Officer">ضباط</option>
+            <option value="Student">طلبة</option>
+          </FormSelect>
+        </FormField>
       )}
 
       {mode === "edit" && setStatus && (
-        <CustomSelect
-          id="course-status"
-          label="الحالة"
-          value={status || ""}
-          onChange={setStatus}
-          options={COURSE_STATUS_OPTIONS}
-        />
+        <FormField label="الحالة">
+          <FormSelect id="course-status" value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="upcoming">قادمة</option>
+            <option value="ongoing">جارية</option>
+            <option value="completed">منتهية</option>
+          </FormSelect>
+        </FormField>
       )}
     </div>
   );

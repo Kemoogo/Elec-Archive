@@ -7,14 +7,6 @@ import { CourseForm } from "@/components/education/CourseForm";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { ModernPageHeader as PageHeader } from "@/components/layout/ModernPageHeader";
 import { BookOpen } from "lucide-react";
-import { CustomSelect, type CustomSelectOption } from "@/components/ui/custom-select";
-
-const COURSE_STATUS_OPTIONS: CustomSelectOption[] = [
-  { value: "all", label: "جميع الحالات" },
-  { value: "upcoming", label: "قادمة" },
-  { value: "ongoing", label: "جارية" },
-  { value: "completed", label: "مكتملة" },
-];
 
 interface CourseRow {
   _id: string;
@@ -70,10 +62,8 @@ export function EducationPageClient({
   );
 
   const handleSearchChange = (query: string) => {
-    const trimmed = query.trim();
-    if (trimmed.length === 1) return;
-    setSearchQuery(trimmed);
-    applyFilters({ search: trimmed });
+    setSearchQuery(query);
+    applyFilters({ search: query });
   };
 
   const handleStatusChange = (status: string) => {
@@ -92,13 +82,16 @@ export function EducationPageClient({
         onSearchChange={handleSearchChange}
         action={
           <div className="flex items-center gap-2">
-            <CustomSelect
+            <select
               value={statusFilter}
-              onChange={handleStatusChange}
-              options={COURSE_STATUS_OPTIONS}
-              placeholder="جميع الحالات"
-              containerClassName="w-36"
-            />
+              onChange={(e) => handleStatusChange(e.target.value)}
+              className="btn-secondary-sm"
+            >
+              <option value="all">جميع الحالات</option>
+              <option value="upcoming">قادمة</option>
+              <option value="ongoing">جارية</option>
+              <option value="completed">مكتملة</option>
+            </select>
             {canEdit && <CourseForm mode="create" />}
           </div>
         }

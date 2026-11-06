@@ -9,9 +9,9 @@ import { User, Briefcase, Plus, Trash2, Award, AlertTriangle, ArrowDown } from "
 import { ActionButton } from "@/components/officers/OfficersTable";
 import { CustomSelect, type CustomSelectOption } from "@/components/ui/custom-select";
 import { RANK_LABELS, type OfficerRank } from "@/lib/db/models/Officer.shared";
-import type { OfficerOption } from "@/types";
+import type { OfficerOption, OfficerData } from "@/types";
 
-export type OfficerData = OfficerOption;
+export type { OfficerData };
 
 export interface PositionItem {
   id: string;

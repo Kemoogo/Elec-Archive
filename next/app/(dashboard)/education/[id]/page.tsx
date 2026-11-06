@@ -38,20 +38,16 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
     endDate: (course.endDate as Date).toISOString(),
     status: course.status,
     participantModel: course.participantModel as "Officer" | "Student",
-    participants: ((course.participants ?? []) as (Record<string, unknown> | null)[])
-      .filter((p): p is Record<string, unknown> => p != null && typeof p === "object" && "_id" in p)
-      .map((p) => ({
-        _id: (p._id as Types.ObjectId)?.toString() ?? "",
-        fullName: (p.fullName as string) ?? "غير معروف",
-        militaryId: p.militaryId as string | undefined,
-        studentId: p.studentId as string | undefined,
-      })),
-    documents: ((course.documents ?? []) as { name?: string; fileUrl?: string }[])
-      .filter((d): d is { name: string; fileUrl: string } => d != null && typeof d === "object")
-      .map((d) => ({
-        name: d.name ?? "",
-        fileUrl: d.fileUrl ?? "",
-      })),
+    participants: (course.participants as Record<string, unknown>[]).map((p) => ({
+      _id: (p._id as Types.ObjectId).toString(),
+      fullName: p.fullName as string,
+      militaryId: p.militaryId as string | undefined,
+      studentId: p.studentId as string | undefined,
+    })),
+    documents: (course.documents as { name: string; fileUrl: string }[]).map((d) => ({
+      name: d.name,
+      fileUrl: d.fileUrl,
+    })),
     createdAt: (course.createdAt as Date).toISOString(),
   };
 

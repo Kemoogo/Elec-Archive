@@ -21,8 +21,6 @@ import {
   Search,
   Users,
   Eye,
-  UserX,
-  RotateCcw,
   GraduationCap,
   ShieldAlert,
   UserCheck,
@@ -63,8 +61,6 @@ interface CurrentStageTabProps {
   stages: IStageInfo[];
   canEdit: boolean;
   onStageChange: (newMrhla: string) => void;
-  onOpenShatb: (student: IStudentListItem) => void;
-  onOpenReverseShatb: (student: IStudentListItem) => void;
   onRefresh?: () => void;
   isLoading?: boolean;
   initialGovernorateFilter?: string;
@@ -93,8 +89,6 @@ export function CurrentStageTab({
   stages,
   canEdit,
   onStageChange,
-  onOpenShatb,
-  onOpenReverseShatb,
   onRefresh,
   isLoading = false,
   initialGovernorateFilter,
@@ -579,24 +573,6 @@ export function CurrentStageTab({
                 }}
               />
             </>
-          )}
-
-          {canEdit && !row.isStriken && row.locationStatus === "in_unit" && (
-            <ActionButton
-              icon={<UserX className="w-3.5 h-3.5" />}
-              color="text-(--color-primary) hover:text-(--app-info) hover:bg-(--color-primary)/10"
-              title="شطب إداري"
-              onClick={() => onOpenShatb(row)}
-            />
-          )}
-
-          {canEdit && row.isStriken && (
-            <ActionButton
-              icon={<RotateCcw className="w-3.5 h-3.5" />}
-              color="text-(--color-primary) hover:text-(--app-info) hover:bg-(--color-primary)/10"
-              title="إلغاء الشطب والعودة للقوة"
-              onClick={() => onOpenReverseShatb(row)}
-            />
           )}
         </div>
       ),
@@ -1198,42 +1174,6 @@ export function CurrentStageTab({
                 </div>
               </ModalSection>
             )}
-
-          {selectedStudent.isStriken && (
-            <ModalSection
-              title="بيانات الشطب والضم لقوة الأفراد"
-              badge={<ModalBadge>أمر شطب</ModalBadge>}
-            >
-              <div className="space-y-2 text-xs">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <span className="font-bold text-(--app-muted-foreground) block">
-                      تاريخ السريان:
-                    </span>
-                    <span className="font-mono font-bold text-(--app-foreground)">
-                      {selectedStudent.shatbDate
-                        ? formatDateDisplay(selectedStudent.shatbDate)
-                        : "—"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="font-bold text-(--app-muted-foreground) block">
-                      رقم أمر الشطب:
-                    </span>
-                    <span className="font-bold text-(--app-foreground)">
-                      {selectedStudent.shatbOrderNo || "—"}
-                    </span>
-                  </div>
-                </div>
-                <div>
-                  <span className="font-bold text-(--app-muted-foreground) block">سبب الشطب:</span>
-                  <p className="text-(--app-foreground) font-medium bg-(--app-surface-container) p-2 rounded-lg border border-(--app-border)">
-                    {selectedStudent.shatbReason || "—"}
-                  </p>
-                </div>
-              </div>
-            </ModalSection>
-          )}
         </ModalShell>
       )}
     </div>

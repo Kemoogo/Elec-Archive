@@ -7,6 +7,12 @@ import { logAuditEvent } from "@/lib/auth/audit";
 
 /**
  * Returns the quarter identifier for a given date, e.g. "Q1-2026"
+ * and whether today is an exact quarter end date or catch-up day:
+ * - 31 March (month === 2 && day === 31) -> Q1
+ * - 30 June (month === 5 && day === 30) -> Q2
+ * - 30 September (month === 8 && day === 30) -> Q3
+ * - 31 December (month === 11 && day === 31) -> Q4
+ * - Catch-up on the 1st day of the following month if missed while offline.
  */
 export function getQuarterForDate(date: Date): { quarter: string; isQuarterEnd: boolean } {
   const month = date.getMonth(); // 0-indexed: 0 = Jan, 11 = Dec
@@ -18,16 +24,36 @@ export function getQuarterForDate(date: Date): { quarter: string; isQuarterEnd: 
 
   if (month <= 2) {
     quarterNum = 1;
-    isEnd = month === 2 && day >= 30; // End of March
+    isEnd = month === 2 && day === 31; // Exactly 31 March
   } else if (month <= 5) {
     quarterNum = 2;
-    isEnd = month === 5 && day >= 29; // End of June
+    isEnd = month === 5 && day === 30; // Exactly 30 June
   } else if (month <= 8) {
     quarterNum = 3;
-    isEnd = month === 8 && day >= 29; // End of September
+    isEnd = month === 8 && day === 30; // Exactly 30 September
   } else {
     quarterNum = 4;
-    isEnd = month === 11 && day >= 30; // End of December
+    isEnd = month === 11 && day === 31; // Exactly 31 December
+  }
+
+  // Catch-up check: 1st day of the next quarter if previous quarter backup was missed
+  if (!isEnd) {
+    if (month === 3 && day === 1) {
+      // 1 April -> check Q1
+      return { quarter: `Q1-${year}`, isQuarterEnd: true };
+    }
+    if (month === 6 && day === 1) {
+      // 1 July -> check Q2
+      return { quarter: `Q2-${year}`, isQuarterEnd: true };
+    }
+    if (month === 9 && day === 1) {
+      // 1 October -> check Q3
+      return { quarter: `Q3-${year}`, isQuarterEnd: true };
+    }
+    if (month === 0 && day === 1) {
+      // 1 January -> check Q4 of previous year
+      return { quarter: `Q4-${year - 1}`, isQuarterEnd: true };
+    }
   }
 
   return {

@@ -63,7 +63,7 @@ export function CourseDocumentUpload({ courseId }: CourseDocumentUploadProps) {
 
   if (!isOpen) {
     return (
-      <button onClick={() => setIsOpen(true)} className="btn-primary">
+      <button onClick={() => setIsOpen(true)} className="btn-accent">
         رفع مستند
       </button>
     );
@@ -79,12 +79,12 @@ export function CourseDocumentUpload({ courseId }: CourseDocumentUploadProps) {
         </div>
         <div>
           <label className="mb-1 block text-xs text-(--app-muted-foreground)">الملف (PDF, JPEG, PNG — حد أقصى 10MB) *</label>
-          <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFileChange} className="w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-foreground) file:mr-4 file:rounded-md file:border-0 file:bg-(--color-primary) file:px-4 file:py-1 file:text-sm file:text-white file:font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" />
+          <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFileChange} className="w-full rounded-md border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-foreground) file:mr-4 file:rounded-md file:border-0 file:bg-(--app-accent) file:px-4 file:py-1 file:text-sm file:text-(--app-accent-foreground) file:font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" />
         </div>
         {error && <p className="text-sm text-(--app-error)">{error}</p>}
         <div className="flex justify-end gap-2">
-          <button type="button" onClick={() => { setIsOpen(false); setError(""); setName(""); setFile(null); }} className="btn-secondary">إلغاء</button>
-          <button type="submit" disabled={isUploading} className="btn-primary disabled:opacity-50">{isUploading ? "جاري الرفع..." : "رفع"}</button>
+          <button type="button" onClick={() => { setIsOpen(false); setError(""); setName(""); setFile(null); }} className="rounded-md border border-(--app-border) px-4 py-2 text-sm text-foreground hover:bg-white/10">إلغاء</button>
+          <button type="submit" disabled={isUploading} className="btn-accent disabled:opacity-50">{isUploading ? "جاري الرفع..." : "رفع"}</button>
         </div>
       </form>
     </div>

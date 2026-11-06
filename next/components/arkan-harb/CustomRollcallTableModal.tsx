@@ -7,18 +7,9 @@ import { ModalActions } from "@/components/ui/modal-actions";
 import { CustomSelect, type CustomSelectOption } from "@/components/ui/custom-select";
 import { ActionButton } from "@/components/officers/OfficersTable";
 import { type ICustomRollcallTable } from "@/lib/db/models/DailyRollcall.shared";
+import type { OfficerOptionItem } from "@/types";
 
-export interface OfficerOptionItem {
-  id: string;
-  fullName: string;
-  rank: string;
-  rankLabel: string;
-  militaryId?: string;
-  seniorityNumber?: string;
-  primaryPosition?: string;
-  currentStatusLabel?: string;
-  isExternalMissionOrCourse?: boolean;
-}
+export type { OfficerOptionItem };
 
 interface CustomRollcallTableModalProps {
   isOpen: boolean;

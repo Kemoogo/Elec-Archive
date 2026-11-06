@@ -13,22 +13,9 @@ import {
   LEAVE_STATUS_LABELS,
   OFFICER_LEAVE_SYSTEM_LABELS,
 } from "@/lib/db/models/Leave.shared";
+import type { LeaveRecord } from "@/types";
 
-interface LeaveRecord {
-  id: string;
-  type: string;
-  category: string;
-  startDate: string;
-  endDate: string;
-  actualReturnDate?: string;
-  lastReturnDate?: string;
-  presenceDurationDays?: number;
-  createdAt?: string;
-  status: string;
-  reason?: string;
-  medicalReportUrl?: string;
-  actingOfficerName?: string;
-}
+export type { LeaveRecord };
 
 interface LeaveRecordTabProps {
   officerId: string;

@@ -58,14 +58,15 @@ async function copyUploadsBack(srcDir: string, destDir: string): Promise<void> {
   }
 }
 
+type MongoDoc = mongoose.mongo.BSON.Document;
+
 /**
  * Restores a single collection from a .json.gz file in batches.
  * In full mode, clears existing documents.
  * In incremental mode, upserts by _id so existing untouched documents remain intact.
  */
 async function restoreCollectionFromGz(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  collection: any,
+  collection: mongoose.mongo.Collection<MongoDoc>,
   filePath: string,
   isIncremental = false,
   batchSize = 500
@@ -83,22 +84,21 @@ async function restoreCollectionFromGz(
   }
 
   const { EJSON } = mongoose.mongo.BSON;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let batch: any[] = [];
+  let batch: MongoDoc[] = [];
   let totalCount = 0;
 
   for await (const line of rl) {
     const trimmed = line.trim();
     if (!trimmed) continue;
 
-    const doc = EJSON.parse(trimmed);
+    const doc = EJSON.parse(trimmed) as MongoDoc;
     batch.push(doc);
 
     if (batch.length >= batchSize) {
       if (isIncremental) {
-        const ops = batch.map((d) => ({
+        const ops: mongoose.mongo.AnyBulkWriteOperation<MongoDoc>[] = batch.map((d) => ({
           replaceOne: {
-            filter: { _id: d._id },
+            filter: { _id: d._id as unknown as mongoose.mongo.BSON.ObjectId },
             replacement: d,
             upsert: true,
           },
@@ -114,9 +114,9 @@ async function restoreCollectionFromGz(
 
   if (batch.length > 0) {
     if (isIncremental) {
-      const ops = batch.map((d) => ({
+      const ops: mongoose.mongo.AnyBulkWriteOperation<MongoDoc>[] = batch.map((d) => ({
         replaceOne: {
-          filter: { _id: d._id },
+          filter: { _id: d._id as unknown as mongoose.mongo.BSON.ObjectId },
           replacement: d,
           upsert: true,
         },

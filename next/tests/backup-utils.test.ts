@@ -52,6 +52,12 @@ describe("Quarterly Date & Quarter Calculation", () => {
     const endJune = new Date(2026, 5, 30); // June 30
     assert.equal(getQuarterForDate(endJune).isQuarterEnd, true);
 
+    const midJune = new Date(2026, 5, 29); // June 29 - should NOT be quarter-end
+    assert.equal(getQuarterForDate(midJune).isQuarterEnd, false);
+
+    const endSept = new Date(2026, 8, 30); // Sept 30
+    assert.equal(getQuarterForDate(endSept).isQuarterEnd, true);
+
     const endDec = new Date(2026, 11, 31); // Dec 31
     assert.equal(getQuarterForDate(endDec).isQuarterEnd, true);
   });

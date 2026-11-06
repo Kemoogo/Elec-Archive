@@ -12,7 +12,6 @@ import { importConfirmSchema } from "@/lib/validations/student";
 import { safeMoveFile, cleanupStaleTempFiles } from "@/lib/students/temp-storage";
 import path from "path";
 import { access } from "fs/promises";
-import mongoose from "mongoose";
 
 export async function POST(request: Request) {
   const auth = await authenticate();
@@ -82,7 +81,6 @@ export async function POST(request: Request) {
         locationStatus: "in_unit",
         distributionStatus: "unspecified",
         isStriken: false,
-        shatbHistory: [],
         documents: [],
       };
 
@@ -184,9 +182,14 @@ export async function POST(request: Request) {
 
     // Auto-set active stage if none exists or higher stage detected
     const sortedStages = Array.from(uniqueStages).sort().reverse();
+    let targetBatchId = auth.user!.id;
     if (sortedStages.length > 0) {
       const highestStage = sortedStages[0];
       await setActiveStudentStage(highestStage, auth.user!.id);
+      const batchDoc = await StudentBatch.findOne({ mrhla: highestStage }).lean();
+      if (batchDoc?._id) {
+        targetBatchId = batchDoc._id.toString();
+      }
     }
 
     // Log Audit Event
@@ -195,7 +198,7 @@ export async function POST(request: Request) {
       userName: auth.user!.username,
       action: "UPDATE",
       module: "students",
-      targetId: new mongoose.Types.ObjectId().toString(),
+      targetId: targetBatchId,
       description: `استيراد ملف قاعدة بيانات أكسس (${fileId}) وتحديث ${parseResult.soldiers.length} طالباً (${bulkResult.upsertedCount} جديد، ${bulkResult.modifiedCount} محدث)`,
     });
 

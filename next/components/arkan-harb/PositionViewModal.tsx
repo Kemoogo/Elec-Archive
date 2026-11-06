@@ -5,9 +5,9 @@ import { ModalActions } from "@/components/ui/modal-actions";
 import { RANK_LABELS, type OfficerRank } from "@/lib/db/models/Officer.shared";
 import { compareOfficers } from "@/lib/officers/seniority";
 import { Briefcase, User, CheckCircle2, AlertCircle, FileText } from "lucide-react";
-import type { OfficerOption } from "@/types";
+import type { OfficerInfo } from "@/types";
 
-export type OfficerInfo = OfficerOption;
+export type { OfficerInfo };
 
 export interface PositionViewData {
   id: string;

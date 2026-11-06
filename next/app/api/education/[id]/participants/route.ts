@@ -7,7 +7,6 @@ import { handleApiError } from "@/lib/utils/api-error";
 import { Course } from "@/lib/db/models/Course";
 import { addParticipantSchema, removeParticipantSchema } from "@/lib/validations/education";
 import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
-import { canEditModule } from "@/lib/auth/authorization";
 import { Types } from "mongoose";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -15,7 +14,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!auth.success) {
     return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
   }
-  if (!canEditModule(auth.user!, "education")) {
+  if (auth.user!.permissions.education !== "edit") {
     return NextResponse.json({ success: false, error: errors.insufficientPermissions }, { status: 403 });
   }
   const ip = request.headers.get("x-forwarded-for") ?? "";
@@ -27,7 +26,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     await connectToDatabase();
 
     const { id } = await params;
-    const course = await Course.findById(id).lean();
+    const course = await Course.findById(id);
     if (!course) {
       return NextResponse.json({ success: false, error: "الدورة غير موجودة" }, { status: 404 });
     }
@@ -41,33 +40,20 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const { participantId } = parsed.data;
 
     // Check if already enrolled
-    const participants = (course.participants || []) as Types.ObjectId[];
+    const participants = course.participants as Types.ObjectId[];
     if (participants.some((p) => p.toString() === participantId)) {
       return NextResponse.json({ success: false, error: "المشارك مسجل مسبقاً في هذه الدورة" }, { status: 400 });
     }
 
-    // Verify participant exists and is active
+    // Verify participant exists
     const modelName = course.participantModel as string;
-    let participant: { fullName?: string } | null = null;
-    if (modelName === "Officer") {
-      const { Officer } = await import("@/lib/db/models/Officer");
-      participant = await Officer.findOne({
-        _id: participantId,
-        isInUnit: true,
-        employmentStatus: "active",
-      }).select("fullName").lean();
-      if (!participant) {
-        return NextResponse.json({ success: false, error: "الضابط غير موجود أو غير نشط بقوة الوحدة" }, { status: 404 });
-      }
-    } else {
-      const { Student } = await import("@/lib/db/models/Student");
-      participant = await Student.findOne({
-        _id: participantId,
-        status: "active",
-      }).select("fullName").lean();
-      if (!participant) {
-        return NextResponse.json({ success: false, error: "الدارس غير موجود أو غير نشط بالخدمة" }, { status: 404 });
-      }
+    const ParticipantModel = modelName === "Officer"
+      ? (await import("@/lib/db/models/Officer")).Officer
+      : (await import("@/lib/db/models/Student")).Student;
+
+    const participant = await ParticipantModel.findById(participantId).lean();
+    if (!participant) {
+      return NextResponse.json({ success: false, error: "المشارك غير موجود" }, { status: 404 });
     }
 
     await Course.findByIdAndUpdate(id, { $addToSet: { participants: participantId } });
@@ -78,7 +64,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       action: "UPDATE",
       module: "education",
       targetId: id,
-      description: `تم إضافة مشارك للدورة: ${participant.fullName || ""}`,
+      description: `تم إضافة مشارك للدورة: ${(participant as Record<string, unknown>).fullName as string}`,
       ipAddress: ip,
     });
 
@@ -93,7 +79,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   if (!auth.success) {
     return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
   }
-  if (!canEditModule(auth.user!, "education")) {
+  if (auth.user!.permissions.education !== "edit") {
     return NextResponse.json({ success: false, error: errors.insufficientPermissions }, { status: 403 });
   }
   const ip = request.headers.get("x-forwarded-for") ?? "";

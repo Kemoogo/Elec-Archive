@@ -129,16 +129,6 @@ export const saveRollcallSchema = z.object({
   overrideReason: z.string().optional(),
 });
 
-export const shatbStudentSchema = z.object({
-  shatbDate: z.string().min(1, "تاريخ سريان الشطب مطلوب"),
-  shatbOrderNo: z.string().min(1, "رقم أمر الشطب والتصديق مطلوب"),
-  shatbReason: z.string().min(1, "سبب الشطب والتوزيع مطلوب"),
-});
-
-export const shatbReverseSchema = z.object({
-  reversalReason: z.string().min(3, "سبب إلغاء الشطب مطلوب"),
-});
-
 export const updateDistributionStatusSchema = z.object({
   studentIds: z.array(z.string().min(1)).min(1, "يجب تحديد طالب واحد على الأقل"),
   distributionStatus: z.enum([
@@ -191,8 +181,6 @@ export type StudentsListQueryInput = z.infer<typeof studentsListQuerySchema>;
 export type ImportConfirmInput = z.infer<typeof importConfirmSchema>;
 export type ActiveStageInput = z.infer<typeof activeStageSchema>;
 export type SaveRollcallInput = z.infer<typeof saveRollcallSchema>;
-export type ShatbStudentInput = z.infer<typeof shatbStudentSchema>;
-export type ShatbReverseInput = z.infer<typeof shatbReverseSchema>;
 export type UpdateDistributionStatusInput = z.infer<typeof updateDistributionStatusSchema>;
 export type RelocateStudentsInput = z.infer<typeof relocateStudentsSchema>;
 export type TransferToPersonnelInput = z.infer<typeof transferToPersonnelSchema>;

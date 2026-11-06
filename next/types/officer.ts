@@ -28,6 +28,53 @@ export interface OfficerOption {
   name?: string;
   operationalStatus?: "إجازة" | "فرقة" | "مأمورية خارجية" | "عودة إجازة";
   operationalStatusDetails?: string;
+  value?: string;
+  label?: string;
+}
+
+/**
+ * Common Aliases for Centralized Officer Option
+ */
+export type OfficerInfo = OfficerOption;
+export type OfficerData = OfficerOption;
+export interface OfficerOptionItem extends OfficerOption {
+  value?: string;
+  label?: string;
+  primaryPosition?: string;
+  currentStatusLabel?: string;
+  isExternalMissionOrCourse?: boolean;
+}
+
+/**
+ * Officer System Info for leave system assignment modals
+ */
+export interface OfficerSystemInfo {
+  officerId: string;
+  officerName: string;
+  officerLabel?: string;
+  officerRank?: string;
+  militaryId?: string;
+  seniorityNumber?: string;
+  currentSystem?: string;
+}
+
+/**
+ * Standard Officer Leave Record representation
+ */
+export interface LeaveRecord {
+  id: string;
+  type: string;
+  category: string;
+  startDate: string;
+  endDate: string;
+  actualReturnDate?: string;
+  lastReturnDate?: string;
+  presenceDurationDays?: number;
+  createdAt?: string;
+  status: string;
+  reason?: string;
+  medicalReportUrl?: string;
+  actingOfficerName?: string;
 }
 
 /**

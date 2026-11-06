@@ -7,7 +7,6 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { BackupRecord } from "@/lib/db/models/BackupRecord";
 import { getStorageStats } from "@/lib/backup/disk-space";
 import { BACKUP_RETENTION_CAP } from "@/lib/backup/retention-manager";
-import { initQuarterlyBackupChecker } from "@/lib/backup/quarterly-checker";
 import { BackupManagementClient } from "@/components/admin/backup/BackupManagementClient";
 import type { IBackupRecordItem } from "@/types/backup";
 
@@ -20,9 +19,6 @@ export default async function AdminBackupPage() {
   if (result.user.role !== "admin") {
     redirect("/");
   }
-
-  // Initialize in-process quarterly checker if not started
-  initQuarterlyBackupChecker();
 
   await connectToDatabase();
 

@@ -18,16 +18,9 @@ import {
   OFFICER_LEAVE_SYSTEM_LABELS,
   type OfficerLeaveSystem,
 } from "@/lib/db/models/Leave.shared";
+import type { OfficerSystemInfo } from "@/types";
 
-interface OfficerSystemInfo {
-  officerId: string;
-  officerName: string;
-  officerLabel?: string;
-  officerRank?: string;
-  militaryId?: string;
-  seniorityNumber?: string;
-  currentSystem?: string;
-}
+export type { OfficerSystemInfo };
 
 interface LeaveSystemModalProps {
   isOpen: boolean;

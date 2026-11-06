@@ -9,9 +9,9 @@ import { compareOfficers } from "@/lib/officers/seniority";
 import { Edit, UserPlus, Briefcase, History, Building2, Database, AlertCircle } from "lucide-react";
 import { ModalBadge } from "@/components/ui/modal-shell";
 import type { PositionHistoryItem } from "./PositionHistoryModal";
-import type { OfficerOption } from "@/types";
+import type { OfficerInfo, OfficerOption } from "@/types";
 
-export type OfficerInfo = OfficerOption;
+export type { OfficerInfo };
 
 export interface PositionRowData {
   id: string;

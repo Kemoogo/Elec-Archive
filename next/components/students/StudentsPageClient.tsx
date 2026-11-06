@@ -9,8 +9,6 @@ import { StudentRollcallTab } from "./StudentRollcallTab";
 import { CurrentStageTab } from "./CurrentStageTab";
 import { PreviousStagesTab } from "./PreviousStagesTab";
 import { MdbImportModal } from "./MdbImportModal";
-import { StudentShatbModal } from "./StudentShatbModal";
-import { StudentShatbReverseModal } from "./StudentShatbReverseModal";
 import {
   GraduationCap,
   LayoutDashboard,
@@ -61,8 +59,6 @@ export function StudentsPageClient({
 
   // Modals state
   const [showMdbModal, setShowMdbModal] = useState(false);
-  const [shatbStudent, setShatbStudent] = useState<IStudentListItem | null>(null);
-  const [reverseShatbStudent, setReverseShatbStudent] = useState<IStudentListItem | null>(null);
 
   // Refetch data for current stage and stages list
   const refreshStageData = useCallback(async (targetMrhla?: string) => {
@@ -177,8 +173,6 @@ export function StudentsPageClient({
           initialGovernorateFilter={selectedGovFilter}
           initialBloodTypeFilter={selectedBloodFilter}
           onStageChange={handleStageChange}
-          onOpenShatb={(student) => setShatbStudent(student)}
-          onOpenReverseShatb={(student) => setReverseShatbStudent(student)}
           onRefresh={() => refreshStageData()}
           isLoading={loadingCurrentStage}
         />
@@ -233,23 +227,6 @@ export function StudentsPageClient({
         isOpen={showMdbModal}
         onClose={() => setShowMdbModal(false)}
         onSuccess={() => refreshStageData()}
-      />
-
-      {/* Shatb Action Modal */}
-      <StudentShatbModal
-        student={shatbStudent}
-        isOpen={Boolean(shatbStudent)}
-        onClose={() => setShatbStudent(null)}
-        onSuccess={() => refreshStageData()}
-      />
-
-      {/* Reverse Shatb Action Modal */}
-      <StudentShatbReverseModal
-        student={reverseShatbStudent}
-        isOpen={Boolean(reverseShatbStudent)}
-        onClose={() => setReverseShatbStudent(null)}
-        onSuccess={() => refreshStageData()}
-        isAdmin={isAdmin}
       />
     </PageContainer>
   );
