@@ -1,4 +1,4 @@
 <!-- SPECKIT START -->
-For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan at specs/012-quarterly-backup-retention/plan.md
+System baseline is fully up to date on branch `main` (features 001 through 012 completed).
+For architecture standards, operational mandates, and project structure, refer to `.specify/memory/constitution.md` and `AGENTS.md`.
 <!-- SPECKIT END -->

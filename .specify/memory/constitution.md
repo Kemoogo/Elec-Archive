@@ -1,14 +1,14 @@
 <!-- Sync Impact Report
-Version change: 1.1.0 → 1.1.1
-Modified principles: VI (Design-Driven UI & Layout Enforcement)
-Added sections: None
+Version change: 1.1.1 → 1.2.0
+Modified principles: III (Offline-First: Tooling updated to Podman/Docker local containers), V (Quality Gates & Main Branch Protection), VI (Design-Driven UI & Layout Enforcement)
+Added sections: VII (Operational Personnel Isolation: Strict Archival for Out-of-Unit Personnel)
 Removed sections: None
 Templates requiring updates: None
 Follow-up TODOs: None
-Notes: PATCH bump — clarified MainTable self-contained architecture (no redundant outer SectionWrapper) and consolidated native table props.
+Notes: MINOR bump — ratified Principle VII for strict out-of-unit personnel isolation across all operational workflows, and aligned container deployment tooling to Podman (podman-compose.yml / Containerfile) and Docker Compose across Linux and Windows Server environments.
 -->
 
-# الأرشيف  (Elec Archive) Constitution
+# الأرشيف الإلكتروني (Elec Archive) Constitution
 
 ## Core Principles
 
@@ -22,7 +22,7 @@ React Server Components (RSC) MUST be the default rendering strategy for all pag
 
 ### III. Offline-First (بدون إنترنت — NON-NEGOTIABLE)
 
-The system MUST operate completely offline with no internet dependency. All data, assets, and functionality MUST be available on the local network only. MongoDB MUST run locally via Docker. File uploads MUST be stored on the local filesystem (`public/uploads/`). No external API calls, CDNs, or third-party runtime dependencies are permitted.
+The system MUST operate completely offline with no internet dependency. All data, assets, and functionality MUST be available on the local network only. MongoDB MUST run locally via isolated container runtime (Podman or Docker via `podman-compose.yml` / `Containerfile`). File uploads MUST be stored on the local filesystem (`public/uploads/`). No external API calls, CDNs, or third-party runtime dependencies are permitted.
 
 ### IV. Type Safety & Validation (سلامة الأنواع)
 
@@ -30,7 +30,7 @@ TypeScript MUST be used strictly across the entire codebase. The use of `any` ty
 
 ### V. Quality Gates & Main Branch Protection (بوابات الجودة وحماية الفرع الرئيسي — NON-NEGOTIABLE)
 
-1. **Quality Gates**: ESLint and Prettier MUST be configured and enforced. `npx tsc --noEmit` MUST pass with 0 errors. `npm run build` is run ONLY when strictly necessary (e.g., major architectural changes, releases/deployments, or explicit user request) to maintain rapid iteration speed, and is NOT required after routine edits or minor modifications. Edge cases MUST be handled in every module: database connection failures, 404 for missing resources, unsupported file types/size limits, and concurrent edit conflicts. All search operations MUST implement debouncing (500ms), min-length guards (>= 2 chars), and immediate Enter triggers to protect server resources. After editing code, `graphify auto-update .` MUST be executed to maintain the structural AST navigation index.
+1. **Quality Gates**: ESLint and formatting standards MUST be configured and enforced. `npx tsc --noEmit` MUST pass with 0 errors. `npm run build` is run ONLY when strictly necessary (e.g., major architectural changes, releases/deployments, or explicit user request) to maintain rapid iteration speed, and is NOT required after routine edits or minor modifications. Edge cases MUST be handled in every module: database connection failures, 404 for missing resources, unsupported file types/size limits, and concurrent edit conflicts. All search operations MUST implement debouncing (500ms), min-length guards (>= 2 chars), and immediate Enter triggers to protect server resources. After editing code, `graphify auto-update .` MUST be executed to maintain the structural AST navigation index.
 2. **Main Branch Protection (حماية الفرع الرئيسي main/master)**: Under NO circumstances may any code be merged into or switched to the `main` or `master` branch during development or iteration. All work MUST be performed on dedicated, isolated feature branches. Switching to or merging into `main`/`master` is STRICTLY PROHIBITED until:
    - The application feature or task is completely finished, fully functional, and verified.
    - All quality gates pass (`npx tsc --noEmit` 0 errors, lint checks, audit logging verified).
@@ -46,6 +46,18 @@ All frontend pages and components MUST adhere strictly to the Sapphire Archive D
 - **Color Discipline**: Non-brand colors (`amber`, `orange`, `yellow`) and raw `text-slate-500` are STRICTLY PROHIBITED. Use design tokens: `--color-primary`, `--app-muted-foreground`, `--app-surface-container`, `--app-border`. Red and green are restricted solely to toast notifications (`ToastProvider`) and standalone modal delete buttons (`btn-destructive`).
 - **Language & Layout**: The entire UI MUST support Arabic RTL layout (`dir="rtl"`) throughout. Reusable components from `@/components/ui/` MUST be used rather than ad-hoc inline styles.
 
+### VII. Operational Personnel Isolation (عزل تام للأفراد والضباط المنقولين وخارج الوحدة — NON-NEGOTIABLE)
+
+Any officer or military personnel transferred, retired, terminated, or departed (`isInUnit: false` or non-active) is strictly classified as ARCHIVED (`مؤرشف`).
+- Out-of-unit personnel MUST NEVER appear in any active operational workflow, dropdown, select modal, active register, or calculation:
+  - Leaves register and leave request modals (سجل الإجازات وطلبات الإجازة).
+  - Daily rollcall and operational attendance engines (التمام اليومي ومحرك حساب القوة).
+  - Missions, travel orders, and external assignments (المأموريات والتكليفات وخطوط السير).
+  - Position placements, substitutions, and roster duties (تسليم الوظائف والنوبتجيات).
+  - Dashboard active personnel counters (إحصائيات القوة الفعلية بالوحدة).
+- Out-of-unit personnel have ONLY ONE place in the system: the Historical Archive (أرشيف الضباط السابقين / سجل الحركات وتاريخ الخدمة).
+- All active queries, calculation engines, and mutation APIs MUST enforce `{ isInUnit: true, employmentStatus: "active" }`. Assigning an out-of-unit officer to an operational activity is strictly prohibited at both API and UI levels.
+
 ## Additional Constraints
 
 **Language & Direction**: The entire application UI MUST be in Arabic with RTL layout. All component structures, forms, tables, and navigation MUST render correctly in RTL mode.
@@ -55,7 +67,7 @@ All frontend pages and components MUST adhere strictly to the Sapphire Archive D
 - Database: MongoDB 7 via Mongoose 9.x ODM
 - Styling: Tailwind CSS 4 + shadcn/ui
 - Validation: Zod 4
-- Deployment: Docker Compose (Next.js + MongoDB) on Windows
+- Deployment: Podman Compose / Docker Compose (Next.js + MongoDB + Nginx) on Linux or Windows Server
 
 **Scale**: The system MUST support 10–30 concurrent users on a local network. Performance optimization targets local intranet latency, not internet-scale.
 
@@ -63,7 +75,7 @@ All frontend pages and components MUST adhere strictly to the Sapphire Archive D
 
 ## Development Workflow
 
-**Phase-Based Execution**: Development MUST follow the 9-phase plan (Phase 0–8) in sequential order. Each phase has defined specs, deliverables, and Stitch tasks. No phase may be skipped.
+**Phase-Based Execution**: Development MUST follow the 9-phase plan (Phase 0–8) in sequential order. Each phase has defined specs, deliverables, and tasks. No phase may be skipped.
 
 **Code Organization**: Source code resides in the `next/` directory using Next.js App Router conventions. Specs and planning documents reside in `specs/`. Models go in `next/lib/db/models/`. Shared UI components go in `next/components/ui/shared/`. Module-specific components go in `next/components/[module]/`.
 
@@ -79,8 +91,8 @@ This constitution governs all development decisions for the الأرشيف ال�
 
 **Versioning**: MAJOR bump for backward-incompatible principle removals or redefinitions. MINOR bump for new principles or materially expanded guidance. PATCH bump for clarifications, wording fixes, non-semantic refinements.
 
-**Compliance Review**: Every implementation plan MUST include a "Constitution Check" gate that validates compliance with all six core principles before Phase 0 research begins and again after Phase 1 design.
+**Compliance Review**: Every implementation plan MUST include a "Constitution Check" gate that validates compliance with all core principles before Phase 0 research begins and again after Phase 1 design.
 
 **Supremacy**: In case of conflict between this constitution and any other documentation, this constitution takes precedence.
 
-**Version**: 1.1.1 | **Ratified**: 2026-03-23 | **Last Amended**: 2026-10-21
+**Version**: 1.2.0 | **Ratified**: 2026-03-23 | **Last Amended**: 2026-11-07

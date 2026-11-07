@@ -1,5 +1,44 @@
 ## Merged Features Log
 
+### 012-quarterly-backup-retention — 2026-11-06
+**Branch:** 012-quarterly-backup-retention
+**Spec:** specs/012-quarterly-backup-retention
+
+**What was added:**
+- سياسة وحوكمة النسخ الاحتياطي الربع سنوي المؤتمت (نهاية مارس، يونيو، سبتمبر، ديسمبر) لقاعدة البيانات والمرفقات.
+- سياسة تدوير النسخ التلقائية الصارمة بحد أقصى أحدث 4 نسخ فقط (Retention Manager) وحذف النسخ الأقدم تلقائياً لتوفير المساحة وتجنب امتلاء الخادم.
+- التصدير الفوري الشامل عند الطلب (On-Demand Export) والتنزيل المباشر للأرشيف المشفر/المضغوط عبر المتصفح.
+- واجهة الاسترجاع والتعافي من الكوارث (Disaster Recovery & Restore UI) المؤمنة برمز تأكيد كتابي وكلمة مرور المدير مع تدقيق كامل في سجل العمليات.
+- فحص مسبق استباقي للمساحة التخزينية المتاحة (Disk Space Pre-Check) وقفل التزامن (Concurrency Mutex Lock) لمنع التداخل أثناء النسخ والاسترجاع.
+
+**New Components & APIs:**
+- Components: `AdminBackupPanel.tsx`, `BackupHistoryTable.tsx`, `RestoreConfirmModal.tsx`, `StorageStatsWidget.tsx`.
+- Models & Shared: `BackupRecord.ts`, `RestoreOperation.ts`, `next/types/backup.ts`.
+- Engines & Services: `backup-engine.ts`, `restore-engine.ts`, `retention-manager.ts`, `disk-space.ts`, `mutex-lock.ts`.
+- APIs: `/api/admin/backup/quarterly`, `/api/admin/backup/export`, `/api/admin/backup/restore`, `/api/admin/backup/history`, `/api/admin/backup/[id]/download`.
+
+**Tasks Completed:** 20/20 tasks implemented & verified (100%).
+
+### 011-students-mdb-upgrade — 2026-11-06
+**Branch:** 011-students-mdb-upgrade
+**Spec:** specs/011-students-mdb-upgrade
+
+**What was added:**
+- محرك استيراد وتحليل قواعد بيانات مايكروسوفت أكسس (`.mdb`) الرسمية المعتمدة لبيانات الجنود والغياب والحبس باستخدام `/usr/bin/mdb-export`.
+- شاشة المعاينة الذكية والتفنيد المسبق لسجلات الدفعات (المراحل) الجديدة والمحدثة قبل الحفظ (Upsert).
+- إدارة تدفق وصول الدفعة الثلاثي: المقرر وصوله، ما تم وصوله، والمتبقي للوصول تلقائياً.
+- مصفوفة التصنيفات التخصصية القابلة للتخصيص ومصفوفة المؤهلات الدراسية الأربعة (عليا، فوق متوسطة، متوسطة، عادة).
+- إلغاء مبدأ الشطب واعتماد حالات التواجد الرسمية (`locationStatus`): بالوحدة (`in_unit`)، مرحّل (`relocated`)، ومنقول لقوة الأفراد بالوحدة (`transferred_to_unit_personnel`).
+- تمام طلبة المرحلة اليومي المقتصر حصرياً على المتواجدين بالوحدة (`in_unit`) مع الحالات الـ 13 والطباعة الرسمية A4 والقفل التلقائي الساعة 06:00 صباحاً.
+
+**New Components & APIs:**
+- Components: `StudentMdbImportModal.tsx`, `StudentRollcallTable.tsx`, `BatchFlowWidget.tsx`, `ClassificationMatrixModal.tsx`, `RelocationSheet.tsx`.
+- Models & Shared: `Student.ts`, `Student.shared.ts`, `StudentRollcall.ts`, `StudentRollcall.shared.ts`.
+- Services: `mdb-parser.ts`, `student-rollcall-engine.ts`.
+- APIs: `/api/students/upload-mdb`, `/api/students/import-confirm`, `/api/students/rollcall`, `/api/students/relocate`.
+
+**Tasks Completed:** 24/24 tasks implemented & verified (100%).
+
 ### 010-arkan-harb-upgrade — 2026-10-19
 **Branch:** 010-arkan-harb-upgrade
 **Spec:** specs/010-arkan-harb-upgrade
