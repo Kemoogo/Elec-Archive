@@ -9,7 +9,7 @@ import { User, Briefcase, Plus, Trash2, Award, AlertTriangle, ArrowDown } from "
 import { ActionButton } from "@/components/officers/OfficersTable";
 import { CustomSelect, type CustomSelectOption } from "@/components/ui/custom-select";
 import { RANK_LABELS, type OfficerRank } from "@/lib/db/models/Officer.shared";
-import type { OfficerOption, OfficerData } from "@/types";
+import type { OfficerData } from "@/types";
 
 export type { OfficerData };
 

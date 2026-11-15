@@ -46,6 +46,7 @@ podman-compose down           # Stop local containers
 - Zod schemas for all form inputs and API request/response bodies
 
 ## Recent Changes
+- Phase 4 Finalization (COMPLETED): Closed remaining PRD Phase 4 gaps — implemented PUT /classifications API and inline edit UI for student batch classifications (FR-06.1), added external .tar.gz archive upload support to the disaster recovery Restore modal with double verification (FR-07.4), and formally archived Phase 4 as COMPLETED in PRD.md and changelog.md.
 - 012-quarterly-backup-retention (COMPLETED): Automated quarterly backup system (March, June, September, December), strict 4-version retention manager, on-demand export and direct download, authenticated disaster recovery & restore interface with double verification, disk space pre-check, and concurrency mutex locking.
 - 011-students-mdb-upgrade (COMPLETED): Military students affairs upgrade with official Access .mdb database parsing engine (/usr/bin/mdb-export), smart preview and upsert import, batch flow tracking (scheduled, arrived, remaining), dynamic qualification matrix, strict relocation/transfer status lifecycle (in_unit, relocated, transferred_to_unit_personnel), and daily rollcall engine with 06:00 AM lockdown.
 - 010-arkan-harb-upgrade (COMPLETED): Operations & Staff upgrade with Fax-to-Mission bilateral conversion, Medical Point auto-sync for leaves/rests/hospitals, official A4 Military Travel Orders with conflict check engine, Clearance Documents upload, Officers Affairs dynamic position and missions history tab, Monthly Duty Roster with distribution equity metrics, and Daily Incidents Log with commander instruction recording.
@@ -145,6 +146,6 @@ All development MUST strictly comply with the project constitution at [.specify/
 ---
 
 <!-- SPECKIT START -->
-System baseline is fully up to date on branch `main` (features 001 through 012 completed).
-For subsequent feature planning, refer to `.specify/memory/constitution.md` and feature specs in `specs/`.
+Active feature plan: `specs/013-phase4-final-gaps/plan.md` (branch `feature/phase4-final-gaps`, Phase 4 finalization & clarification alignment; baseline features 001–012 completed on `main`).
+For project rules and feature specs, refer to `.specify/memory/constitution.md` and `specs/013-phase4-final-gaps/`.
 <!-- SPECKIT END -->

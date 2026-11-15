@@ -20,6 +20,13 @@ export const restoreBackupSchema = z.object({
   }),
 });
 
+export const restoreUploadBackupSchema = z.object({
+  adminPassword: z.string().min(1, "كلمة مرور مدير النظام مطلوبة"),
+  confirmationPhrase: z.string().refine((val) => val.trim() === RESTORE_CONFIRMATION_PHRASE, {
+    message: `يجب كتابة عبارة التأكيد بدقة: "${RESTORE_CONFIRMATION_PHRASE}"`,
+  }),
+});
+
 export const deleteBackupSchema = z.object({
   id: z.string().min(1, "معرف النسخة مطلوب").regex(/^[0-9a-fA-F]{24}$/, "معرف النسخة غير صالح"),
 });
@@ -27,4 +34,5 @@ export const deleteBackupSchema = z.object({
 export type ExportBackupInput = z.infer<typeof exportBackupSchema>;
 export type QuarterlyBackupInput = z.infer<typeof quarterlyBackupSchema>;
 export type RestoreBackupInput = z.infer<typeof restoreBackupSchema>;
+export type RestoreUploadBackupInput = z.infer<typeof restoreUploadBackupSchema>;
 export type DeleteBackupInput = z.infer<typeof deleteBackupSchema>;

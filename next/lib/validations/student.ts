@@ -175,6 +175,12 @@ export const batchClassificationSchema = z.object({
   description: z.string().max(500).optional(),
 });
 
+export const updateBatchClassificationSchema = z.object({
+  id: z.string().min(1, "معرف التصنيف مطلوب").trim(),
+  name: z.string().min(1, "اسم التصنيف مطلوب").max(100, "اسم التصنيف يجب ألا يتجاوز 100 حرف").trim(),
+  description: z.string().max(500).optional(),
+});
+
 export type CreateStudentInput = z.infer<typeof createStudentSchema>;
 export type UpdateStudentInput = z.infer<typeof updateStudentSchema>;
 export type StudentsListQueryInput = z.infer<typeof studentsListQuerySchema>;
@@ -186,3 +192,4 @@ export type RelocateStudentsInput = z.infer<typeof relocateStudentsSchema>;
 export type TransferToPersonnelInput = z.infer<typeof transferToPersonnelSchema>;
 export type UpdateBatchTargetInput = z.infer<typeof updateBatchTargetSchema>;
 export type BatchClassificationInput = z.infer<typeof batchClassificationSchema>;
+export type UpdateBatchClassificationInput = z.infer<typeof updateBatchClassificationSchema>;

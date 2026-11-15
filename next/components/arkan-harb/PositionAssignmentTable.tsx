@@ -9,7 +9,7 @@ import { compareOfficers } from "@/lib/officers/seniority";
 import { Edit, UserPlus, Briefcase, History, Building2, Database, AlertCircle } from "lucide-react";
 import { ModalBadge } from "@/components/ui/modal-shell";
 import type { PositionHistoryItem } from "./PositionHistoryModal";
-import type { OfficerInfo, OfficerOption } from "@/types";
+import type { OfficerInfo } from "@/types";
 
 export type { OfficerInfo };
 

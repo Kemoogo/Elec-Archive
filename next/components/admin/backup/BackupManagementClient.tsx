@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   Loader2,
   Layers,
+  Upload,
 } from "lucide-react";
 import { ModernPageHeader as PageHeader } from "@/components/layout/ModernPageHeader";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -42,6 +43,7 @@ export function BackupManagementClient({
   // Modals state
   const [selectedBackupForRestore, setSelectedBackupForRestore] =
     useState<IBackupRecordItem | null>(null);
+  const [restoreModalMode, setRestoreModalMode] = useState<"server_file" | "external_upload">("server_file");
   const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
 
   const [backupToDelete, setBackupToDelete] = useState<IBackupRecordItem | null>(null);
@@ -184,6 +186,7 @@ export function BackupManagementClient({
   // Handle open restore modal
   const handleOpenRestore = (backup: IBackupRecordItem) => {
     setSelectedBackupForRestore(backup);
+    setRestoreModalMode("server_file");
     setIsRestoreModalOpen(true);
   };
 
@@ -230,6 +233,21 @@ export function BackupManagementClient({
             >
               <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
               <span className="hidden sm:inline">تحديث</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedBackupForRestore(null);
+                setRestoreModalMode("external_upload");
+                setIsRestoreModalOpen(true);
+              }}
+              disabled={isExporting || isExportingIncremental || isQuarterlyLoading}
+              className="btn-secondary"
+              title="استعادة المنظومة والتعافي من الكوارث عبر رفع ملف أرشيف خارجي (.tar.gz)"
+            >
+              <Upload className="w-4 h-4 text-(--color-primary)" />
+              <span>استعادة من أرشيف خارجي</span>
             </button>
 
             <button
@@ -314,6 +332,7 @@ export function BackupManagementClient({
       <RestoreModal
         isOpen={isRestoreModalOpen}
         backup={selectedBackupForRestore}
+        initialMode={restoreModalMode}
         onClose={() => {
           setIsRestoreModalOpen(false);
           setSelectedBackupForRestore(null);

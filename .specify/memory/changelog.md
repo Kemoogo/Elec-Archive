@@ -1,5 +1,20 @@
 ## Merged Features Log
 
+### phase-4-completion (Phase 4 Finalization & Remaining Gaps) — 2026-11-07
+**Branch:** feature/phase4-final-gaps
+**Scope:** PRD Phase 4 Full Completion (FEAT-STU-06 & FEAT-SYS-01)
+
+**What was added:**
+- **FR-06.1 (FEAT-STU-06):** مسار وواجهة تعديل مسمى التصنيف التخصصي (`PUT /api/students/stages/[id]/classifications`) مع فحص عدم التكرار والتحديث التلقائي لكافة الطلاب المسكنين على التصنيف في المرحلة، ودعم التعديل الفوري عبر واجهة تبويب المرحلة الحالية (`CurrentStageTab`).
+- **FR-07.4 (FEAT-SYS-01):** دعم رفع واستعادة ملف أرشيف خارجي بصيغة (`.tar.gz`) في مودال الاستعادة والتعافي من الكوارث (`RestoreModal`) من وسائط التخزين الخارجية (Flash Drive / External SSD) مع التحقق الأمني المزدوج (كلمة مرور المدير + عبارة التأكيد)، وحفظ النسخة في سجل النسخ وتنفيذ الاستعادة الذرية.
+- زر مخصص في شريط أدوات إدارة النسخ الاحتياطي (`BackupManagementClient`) لفتح مودال الاستعادة مباشرة في وضع "رفع أرشيف خارجي".
+- اعتماد وإغلاق كافة مستهدفات المرحلة الرابعة (Phase 4: COMPLETED) في وثيقة متطلبات ومواصفات المنتج `PRD.md`.
+
+**Updated Components & APIs:**
+- Components: `next/components/students/CurrentStageTab.tsx`, `next/components/admin/backup/RestoreModal.tsx`, `next/components/admin/backup/BackupManagementClient.tsx`.
+- APIs: `PUT /api/students/stages/[id]/classifications`, multipart upload handling in `POST /api/admin/backup/restore`.
+- Engines & Models: `next/lib/backup/restore-engine.ts`, `next/lib/validations/backup.ts`, `next/lib/validations/student.ts`.
+
 ### 012-quarterly-backup-retention — 2026-11-06
 **Branch:** 012-quarterly-backup-retention
 **Spec:** specs/012-quarterly-backup-retention

@@ -34,6 +34,9 @@ import {
   Trash2,
   CheckSquare,
   Square,
+  Pencil,
+  Check,
+  X,
 } from "lucide-react";
 import { formatDateDisplay } from "@/lib/utils/date-display";
 import {
@@ -115,6 +118,8 @@ export function CurrentStageTab({
   const [savingTarget, setSavingTarget] = useState(false);
   const [isClassificationsModalOpen, setIsClassificationsModalOpen] = useState(false);
   const [newClassName, setNewClassName] = useState("");
+  const [editingClassId, setEditingClassId] = useState<string | null>(null);
+  const [editingClassName, setEditingClassName] = useState("");
   const [savingClass, setSavingClass] = useState(false);
 
   const [page, setPage] = useState(1);
@@ -336,6 +341,48 @@ export function CurrentStageTab({
       }
       showToast(data.message || "تمت إضافة التصنيف بنجاح", "success");
       setNewClassName("");
+      onRefresh?.();
+    } catch {
+      showToast("خطأ أثناء الاتصال بالخادم", "error");
+    } finally {
+      setSavingClass(false);
+    }
+  };
+
+  const handleStartEditClassification = (c: IBatchClassification) => {
+    setEditingClassId(c.id);
+    setEditingClassName(c.name);
+  };
+
+  const handleCancelEditClassification = () => {
+    setEditingClassId(null);
+    setEditingClassName("");
+  };
+
+  const handleSaveEditClassification = async (classId: string) => {
+    if (!editingClassName.trim()) {
+      showToast("يرجى إدخال اسم التصنيف", "error");
+      return;
+    }
+
+    setSavingClass(true);
+    try {
+      const res = await fetch(`/api/students/stages/${activeStage.mrhla}/classifications`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: classId,
+          name: editingClassName.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        showToast(data.error || "فشل تعديل مسمى التصنيف", "error");
+        return;
+      }
+      showToast(data.message || "تم تعديل مسمى التصنيف بنجاح", "success");
+      setEditingClassId(null);
+      setEditingClassName("");
       onRefresh?.();
     } catch {
       showToast("خطأ أثناء الاتصال بالخادم", "error");
@@ -906,7 +953,11 @@ export function CurrentStageTab({
         <ModalShell
           title="تخصيص التصنيفات التخصصية للدفعة"
           icon={<Settings2 className="w-4 h-4" />}
-          onClose={() => setIsClassificationsModalOpen(false)}
+          onClose={() => {
+            setIsClassificationsModalOpen(false);
+            handleCancelEditClassification();
+            setNewClassName("");
+          }}
           overlayClassName="bg-black/40"
           panelClassName="max-w-lg border-(--app-border) shadow-depth-xl"
           bodyClassName="p-5 space-y-4 no-scrollbar"
@@ -914,7 +965,11 @@ export function CurrentStageTab({
             <ModalActions
               mode="view"
               cancelText="إغلاق"
-              onCancel={() => setIsClassificationsModalOpen(false)}
+              onCancel={() => {
+                setIsClassificationsModalOpen(false);
+                handleCancelEditClassification();
+                setNewClassName("");
+              }}
             />
           }
         >
@@ -941,28 +996,83 @@ export function CurrentStageTab({
 
           <ModalSection title="التصنيفات المعتمدة بالدفعة">
             <div className="space-y-2">
-              {batchClassifications.map((c) => (
-                <div
-                  key={c.id}
-                  className="flex items-center justify-between p-2.5 bg-(--app-surface) rounded-xl border border-(--app-border)"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-(--app-foreground)">{c.name}</span>
-                    {c.isDefault === false && (
-                      <MonoBadge size="sm" variant="muted" value="مخصص" />
+              {batchClassifications.map((c) => {
+                const isEditing = editingClassId === c.id;
+                return (
+                  <div
+                    key={c.id}
+                    className="flex items-center justify-between p-2.5 bg-(--app-surface) rounded-xl border border-(--app-border)"
+                  >
+                    {isEditing ? (
+                      <div className="flex items-center gap-2 flex-1">
+                        <input
+                          type="text"
+                          value={editingClassName}
+                          onChange={(e) => setEditingClassName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleSaveEditClassification(c.id);
+                            } else if (e.key === "Escape") {
+                              handleCancelEditClassification();
+                            }
+                          }}
+                          className="flex-1 px-2.5 py-1.5 bg-(--app-surface) border border-blue-500 rounded-lg text-xs font-bold text-(--app-foreground) focus:outline-none focus:ring-blue-500/20 text-right"
+                          autoFocus
+                          disabled={savingClass}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleSaveEditClassification(c.id)}
+                          disabled={savingClass || !editingClassName.trim()}
+                          title="حفظ التعديل"
+                          className="p-1.5 rounded-lg text-white bg-(--color-primary) hover:bg-(--color-primary-hover) transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleCancelEditClassification}
+                          disabled={savingClass}
+                          title="إلغاء التعديل"
+                          className="p-1.5 rounded-lg text-(--app-muted-foreground) hover:bg-(--app-surface-container) transition-colors cursor-pointer"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-(--app-foreground)">{c.name}</span>
+                          {c.isDefault === false && (
+                            <MonoBadge size="sm" variant="muted" value="مخصص" />
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleStartEditClassification(c)}
+                            disabled={savingClass}
+                            title="تعديل مسمى التصنيف"
+                            className="p-1.5 rounded-lg text-(--color-primary) hover:text-(--app-info) hover:bg-(--color-primary)/10 transition-colors cursor-pointer disabled:opacity-40"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteClassification(c.id)}
+                            disabled={savingClass || batchClassifications.length <= 1}
+                            title="حذف التصنيف"
+                            className="p-1.5 rounded-lg text-(--color-primary) hover:text-(--app-info) hover:bg-(--color-primary)/10 transition-colors cursor-pointer disabled:opacity-40"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </>
                     )}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteClassification(c.id)}
-                    disabled={savingClass || batchClassifications.length <= 1}
-                    title="حذف التصنيف"
-                    className="p-1.5 rounded-lg text-(--color-primary) hover:text-(--app-info) hover:bg-(--color-primary)/10 transition-colors cursor-pointer disabled:opacity-40"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </ModalSection>
         </ModalShell>

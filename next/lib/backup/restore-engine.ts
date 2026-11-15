@@ -249,7 +249,20 @@ export async function executeRestore(context: RestoreContext): Promise<RestoreRe
     operationRecord.status = "completed";
     operationRecord.completedAt = completedAt;
     operationRecord.durationSeconds = durationSeconds;
-    await operationRecord.save();
+    await RestoreOperation.findByIdAndUpdate(
+      operationRecord._id,
+      {
+        backupId: backup._id,
+        backupFilename: backup.filename,
+        status: "completed",
+        startedAt,
+        completedAt,
+        durationSeconds,
+        performedBy: new Types.ObjectId(context.userId),
+        performedByName: context.userName,
+      },
+      { upsert: true }
+    );
 
     return {
       operationId: operationRecord._id.toString(),
@@ -260,9 +273,19 @@ export async function executeRestore(context: RestoreContext): Promise<RestoreRe
     };
   } catch (error) {
     if (operationRecord) {
-      operationRecord.status = "failed";
-      operationRecord.errorDetails = error instanceof Error ? error.message : "خطأ غير معروف";
-      await operationRecord.save().catch(() => {});
+      await RestoreOperation.findByIdAndUpdate(
+        operationRecord._id,
+        {
+          backupId: backup._id,
+          backupFilename: backup.filename,
+          status: "failed",
+          startedAt,
+          performedBy: new Types.ObjectId(context.userId),
+          performedByName: context.userName,
+          errorDetails: error instanceof Error ? error.message : "خطأ غير معروف",
+        },
+        { upsert: true }
+      ).catch(() => {});
     }
     throw error;
   } finally {
