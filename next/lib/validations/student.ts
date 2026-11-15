@@ -176,9 +176,9 @@ export const batchClassificationSchema = z.object({
 });
 
 export const updateBatchClassificationSchema = z.object({
-  id: z.string().min(1, "معرف التصنيف مطلوب").trim(),
-  name: z.string().min(1, "اسم التصنيف مطلوب").max(100, "اسم التصنيف يجب ألا يتجاوز 100 حرف").trim(),
-  description: z.string().max(500).optional(),
+  id: z.string().trim().min(1, "معرف التصنيف مطلوب"),
+  name: z.string().trim().min(1, "اسم التصنيف مطلوب").max(100, "اسم التصنيف يجب ألا يتجاوز 100 حرف"),
+  description: z.string().trim().max(500).optional(),
 });
 
 export type CreateStudentInput = z.infer<typeof createStudentSchema>;

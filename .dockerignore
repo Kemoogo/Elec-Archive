@@ -1,0 +1,17 @@
+.git/
+next/node_modules/
+next/.next/
+next/.env*
+mongo_data/
+graphify-out/
+*.log
+*.tmp
+*.swp
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.agent/
+.agents/
+.specify/
+specs/

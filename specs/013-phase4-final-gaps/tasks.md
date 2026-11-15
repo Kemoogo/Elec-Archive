@@ -88,6 +88,7 @@
 
 - [x] T015 تشغيل فحص الأنواع (`npx tsc --noEmit`) و`ESLint` (`npm run lint`) وبناء الإنتاج (`npm run build`) في `next/` بعد إتمام مهام المواءمة النهائية
 - [x] T016 تحديث فهرس البنية (`graphify auto-update .`) والتحقق من سيناريوهات الدليل الإرشادي في `specs/013-phase4-final-gaps/quickstart.md` (تم تحديث `graphify` بنجاح؛ سيناريوهات الاختبار اليدوي في `quickstart.md` جاهزة للتحقق التفاعلي على الخادم الحي)
+- [x] T017 إضافة ملف `.dockerignore` وكتابة وتشغيل حزمة الاختبارات الآلية لضوابط المرحلة الرابعة في `next/tests/phase4-final-gaps.test.ts` عبر `npm test`
 
 ---
 
