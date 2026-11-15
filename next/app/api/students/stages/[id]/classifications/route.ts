@@ -11,6 +11,7 @@ import {
   type IBatchClassification,
 } from "@/lib/db/models/StudentBatch";
 import { logAuditEvent } from "@/lib/auth/audit";
+import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
 import { batchClassificationSchema, updateBatchClassificationSchema } from "@/lib/validations/student";
 
 interface RouteContext {
@@ -19,6 +20,40 @@ interface RouteContext {
 
 function extractClientIp(request: Request): string {
   return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "127.0.0.1";
+}
+
+async function authorizeClassificationWrite(request: Request) {
+  const auth = await authenticate();
+  if (!auth.success || !auth.user) {
+    return {
+      ok: false as const,
+      response: NextResponse.json(
+        { success: false, error: auth.error },
+        { status: auth.status }
+      ),
+    };
+  }
+
+  if (!hasModuleAccess(auth.user, "students", "edit")) {
+    return {
+      ok: false as const,
+      response: NextResponse.json(
+        { success: false, error: errors.insufficientPermissions },
+        { status: 403 }
+      ),
+    };
+  }
+
+  const clientIp = extractClientIp(request);
+  const rl = checkApiRateLimit(auth.user.id, clientIp, "write");
+  if (!rl.allowed) {
+    return {
+      ok: false as const,
+      response: NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 }),
+    };
+  }
+
+  return { ok: true as const, user: auth.user, clientIp };
 }
 
 async function getOrCreateStudentBatch(mrhla: string, requireExisting = false) {
@@ -42,20 +77,8 @@ async function getOrCreateStudentBatch(mrhla: string, requireExisting = false) {
 }
 
 export async function POST(request: Request, context: RouteContext) {
-  const auth = await authenticate();
-  if (!auth.success) {
-    return NextResponse.json(
-      { success: false, error: auth.error },
-      { status: auth.status }
-    );
-  }
-
-  if (!hasModuleAccess(auth.user, "students", "edit")) {
-    return NextResponse.json(
-      { success: false, error: errors.insufficientPermissions },
-      { status: 403 }
-    );
-  }
+  const auth = await authorizeClassificationWrite(request);
+  if (!auth.ok) return auth.response;
 
   try {
     const { id: mrhla } = await context.params;
@@ -91,17 +114,14 @@ export async function POST(request: Request, context: RouteContext) {
 
     await batch.save();
 
-    const user = auth.user!;
-    const clientIp = extractClientIp(request);
-
     await logAuditEvent({
-      userId: user.id,
-      userName: user.fullName,
+      userId: auth.user.id,
+      userName: auth.user.fullName,
       action: "CREATE",
       module: "students",
       targetId: batch._id.toString(),
       description: `إضافة/تحديث التصنيف التخصصي (${name}) لمرحلة ${mrhla}`,
-      ipAddress: clientIp,
+      ipAddress: auth.clientIp,
     });
 
     return NextResponse.json({
@@ -119,20 +139,8 @@ export async function POST(request: Request, context: RouteContext) {
 }
 
 export async function PUT(request: Request, context: RouteContext) {
-  const auth = await authenticate();
-  if (!auth.success) {
-    return NextResponse.json(
-      { success: false, error: auth.error },
-      { status: auth.status }
-    );
-  }
-
-  if (!hasModuleAccess(auth.user, "students", "edit")) {
-    return NextResponse.json(
-      { success: false, error: errors.insufficientPermissions },
-      { status: 403 }
-    );
-  }
+  const auth = await authorizeClassificationWrite(request);
+  if (!auth.ok) return auth.response;
 
   try {
     const { id: mrhla } = await context.params;
@@ -187,25 +195,20 @@ export async function PUT(request: Request, context: RouteContext) {
 
     await batch.save();
 
-    // Denormalized update on students
-    if (oldName !== newName.trim()) {
-      await Student.updateMany(
-        { mrhla, classificationId: classId },
-        { $set: { classificationName: newName.trim() } }
-      );
-    }
-
-    const user = auth.user!;
-    const clientIp = extractClientIp(request);
+    // Denormalized sync on students (always ensure consistency)
+    await Student.updateMany(
+      { mrhla, classificationId: classId },
+      { $set: { classificationName: newName.trim() } }
+    );
 
     await logAuditEvent({
-      userId: user.id,
-      userName: user.fullName,
+      userId: auth.user.id,
+      userName: auth.user.fullName,
       action: "UPDATE",
       module: "students",
       targetId: batch._id.toString(),
       description: `تعديل مسمى التصنيف التخصصي من (${oldName}) إلى (${newName.trim()}) لمرحلة ${mrhla}`,
-      ipAddress: clientIp,
+      ipAddress: auth.clientIp,
     });
 
     return NextResponse.json({
@@ -223,20 +226,8 @@ export async function PUT(request: Request, context: RouteContext) {
 }
 
 export async function DELETE(request: Request, context: RouteContext) {
-  const auth = await authenticate();
-  if (!auth.success) {
-    return NextResponse.json(
-      { success: false, error: auth.error },
-      { status: auth.status }
-    );
-  }
-
-  if (!hasModuleAccess(auth.user, "students", "edit")) {
-    return NextResponse.json(
-      { success: false, error: errors.insufficientPermissions },
-      { status: 403 }
-    );
-  }
+  const auth = await authorizeClassificationWrite(request);
+  if (!auth.ok) return auth.response;
 
   try {
     const { id: mrhla } = await context.params;
@@ -281,17 +272,14 @@ export async function DELETE(request: Request, context: RouteContext) {
       { $unset: { classificationId: 1, classificationName: 1 } }
     );
 
-    const user = auth.user!;
-    const clientIp = extractClientIp(request);
-
     await logAuditEvent({
-      userId: user.id,
-      userName: user.fullName,
+      userId: auth.user.id,
+      userName: auth.user.fullName,
       action: "DELETE",
       module: "students",
       targetId: batch._id.toString(),
       description: `حذف التصنيف التخصصي (${targetClass.name}) من مرحلة ${mrhla}`,
-      ipAddress: clientIp,
+      ipAddress: auth.clientIp,
     });
 
     return NextResponse.json({

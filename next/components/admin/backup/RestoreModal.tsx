@@ -15,7 +15,10 @@ import {
 import { ModalShell, ModalHeaderCard } from "@/components/ui/modal-shell";
 import { ModalActions } from "@/components/ui/modal-actions";
 import { useToast } from "@/components/ui/toast";
-import { RESTORE_CONFIRMATION_PHRASE } from "@/lib/validations/backup";
+import {
+  MAX_EXTERNAL_RESTORE_BYTES,
+  RESTORE_CONFIRMATION_PHRASE,
+} from "@/lib/validations/backup";
 import type { IBackupRecordItem } from "@/types/backup";
 
 interface RestoreModalProps {
@@ -73,6 +76,21 @@ export function RestoreModal({
     if (!lowerName.endsWith(".tar.gz") && !lowerName.endsWith(".tgz")) {
       setError("صيغة الملف غير مدعومة. يجب اختيار ملف أرشيف بصيغة (.tar.gz)");
       setUploadedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    if (file.size === 0) {
+      setError("ملف الأرشيف المختار فارغ أو تالف");
+      setUploadedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    if (file.size > MAX_EXTERNAL_RESTORE_BYTES) {
+      setError("حجم ملف الأرشيف يتجاوز الحد الأقصى المسموح به (2 جيجابايت)");
+      setUploadedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
 
@@ -147,8 +165,7 @@ export function RestoreModal({
   return (
     <ModalShell
       title="استعادة المنظومة والتعافي من الكوارث"
-      icon={<RotateCcw className="w-4 h-4 text-red-500" />}
-      titleVariant="danger"
+      icon={<RotateCcw className="w-4 h-4 text-(--color-primary)" />}
       overlayClassName="bg-black/40"
       panelClassName="max-w-xl border-(--app-border) shadow-depth-xl"
       bodyClassName="p-5 sm:p-6 space-y-4 text-right no-scrollbar"
@@ -233,7 +250,7 @@ export function RestoreModal({
                     اضغط لاختيار ملف الأرشيف الخارجي من وسيط تخزين (Flash Drive)
                   </p>
                   <p className="text-[11px] font-bold text-(--app-muted-foreground) mt-0.5">
-                    الصيغ المدعومة: أرشيف المنظومة المعتمد بصيغة .tar.gz
+                    الصيغ المدعومة: أرشيف المنظومة المعتمد بصيغة .tar.gz (حد أقصى 2 جيجابايت)
                   </p>
                 </div>
                 <input
@@ -275,7 +292,7 @@ export function RestoreModal({
 
         {/* Warning Alert Banner */}
         <div className="p-3.5 bg-(--color-primary)/5 border border-(--color-primary)/20 rounded-2xl text-xs font-bold text-(--color-primary) flex items-start gap-2.5">
-          <AlertTriangle className="w-4 h-4 shrink-0 text-red-500 mt-0.5" />
+          <AlertTriangle className="w-4 h-4 shrink-0 text-(--color-primary) mt-0.5" />
           <div className="space-y-1">
             <p className="font-black text-(--color-primary)">تحذير أمني عالي الحساسية:</p>
             <p className="text-(--app-muted-foreground) leading-relaxed">
@@ -286,7 +303,7 @@ export function RestoreModal({
         </div>
 
         {error && (
-          <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-600 dark:text-red-400 text-xs font-bold flex items-center gap-2">
+          <div className="p-3 bg-(--color-primary)/5 border border-(--color-primary)/20 rounded-xl text-(--color-primary) text-xs font-bold flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>

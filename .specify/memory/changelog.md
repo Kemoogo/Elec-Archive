@@ -1,14 +1,15 @@
 ## Merged Features Log
 
-### phase-4-completion (Phase 4 Finalization & Remaining Gaps) — 2026-11-07
+### phase-4-completion (Phase 4 Finalization & Remaining Gaps) — 2026-11-15
 **Branch:** feature/phase4-final-gaps
+**Spec:** specs/013-phase4-final-gaps
 **Scope:** PRD Phase 4 Full Completion (FEAT-STU-06 & FEAT-SYS-01)
 
 **What was added:**
-- **FR-06.1 (FEAT-STU-06):** مسار وواجهة تعديل مسمى التصنيف التخصصي (`PUT /api/students/stages/[id]/classifications`) مع فحص عدم التكرار والتحديث التلقائي لكافة الطلاب المسكنين على التصنيف في المرحلة، ودعم التعديل الفوري عبر واجهة تبويب المرحلة الحالية (`CurrentStageTab`).
-- **FR-07.4 (FEAT-SYS-01):** دعم رفع واستعادة ملف أرشيف خارجي بصيغة (`.tar.gz`) في مودال الاستعادة والتعافي من الكوارث (`RestoreModal`) من وسائط التخزين الخارجية (Flash Drive / External SSD) مع التحقق الأمني المزدوج (كلمة مرور المدير + عبارة التأكيد)، وحفظ النسخة في سجل النسخ وتنفيذ الاستعادة الذرية.
+- **FR-06.1 (FEAT-STU-06):** مسار وواجهة تعديل مسمى التصنيف التخصصي (`PUT /api/students/stages/[id]/classifications`) مع فحص عدم التكرار، حد معدل الطلبات (`checkApiRateLimit`)، التحديث التلقائي لكافة الطلاب المسكنين على التصنيف مع إبقاء سجلات التمام التاريخية ثابتة، ودعم التعديل الفوري عبر واجهة تبويب المرحلة الحالية (`CurrentStageTab`).
+- **FR-07.4 (FEAT-SYS-01):** دعم رفع واستعادة ملف أرشيف خارجي بصيغة (`.tar.gz` / `.tgz`) بحد أقصى `2 GiB` في مودال الاستعادة والتعافي من الكوارث (`RestoreModal` و`POST /api/admin/backup/restore`) مع التحقق الأمني المزدوج (كلمة مرور المدير + عبارة التأكيد)، فحص المساحة الحرة (`checkDiskSpaceSufficient`)، البث المباشر للقرص (`Readable.fromWeb` + `pipeline`)، حفظ النسخة في سجل النسخ وتطبيق سقف أحدث 4 نسخ (`enforceRetentionPolicy`)، والتنظيف التلقائي عند الفشل.
 - زر مخصص في شريط أدوات إدارة النسخ الاحتياطي (`BackupManagementClient`) لفتح مودال الاستعادة مباشرة في وضع "رفع أرشيف خارجي".
-- اعتماد وإغلاق كافة مستهدفات المرحلة الرابعة (Phase 4: COMPLETED) في وثيقة متطلبات ومواصفات المنتج `PRD.md`.
+- ضبط حدود Proxy الإنتاج في `nginx/nginx.conf` لدعم رفع الأرشيف حتى `2 GiB` (`client_max_body_size 2048m`) واعتماد وإغلاق كافة مستهدفات المرحلة الرابعة (`Phase 4: COMPLETED`) في وثيقة متطلبات ومواصفات المنتج `PRD.md`.
 
 **Updated Components & APIs:**
 - Components: `next/components/students/CurrentStageTab.tsx`, `next/components/admin/backup/RestoreModal.tsx`, `next/components/admin/backup/BackupManagementClient.tsx`.

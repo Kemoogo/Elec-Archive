@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const RESTORE_CONFIRMATION_PHRASE = "استعادة النسخة الاحتياطية";
+export const MAX_EXTERNAL_RESTORE_BYTES = 2 * 1024 * 1024 * 1024; // 2 GiB
 
 export const exportBackupSchema = z.object({
   notes: z.string().max(500, "الملاحظات يجب ألا تزيد عن 500 حرف").optional(),

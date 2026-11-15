@@ -27,7 +27,7 @@
 
 - [x] T002 [P] إضافة مخطط التحقق `updateBatchClassificationSchema` لتعديل مسمى التصنيف في `next/lib/validations/student.ts`
 - [x] T003 [P] إضافة مخطط التحقق الأمني المزدوج `restoreUploadBackupSchema` (عبارة التأكيد الدقيقة وكلمة مرور مدير النظام) في `next/lib/validations/backup.ts`
-- [ ] T004 [P] تعريف ثابت الحد الأقصى لحجم الأرشيف الخارجي المرفوع `MAX_EXTERNAL_RESTORE_BYTES` (2 جيجابايت) في `next/lib/validations/backup.ts`
+- [x] T004 [P] تعريف ثابت الحد الأقصى لحجم الأرشيف الخارجي المرفوع `MAX_EXTERNAL_RESTORE_BYTES` (2 جيجابايت) في `next/lib/validations/backup.ts`
 
 **Checkpoint**: مخططات التحقق والثوابت جاهزة — يمكن مواصلة قصص المستخدم بشكل مستقل
 
@@ -60,8 +60,8 @@
 - [x] T008 [US2] دعم طلبات `multipart/form-data` لرفع ملف أرشيف خارجي مضغوط (`.tar.gz` / `.tgz`) غير فارغ والتحقق من كلمة مرور مدير النظام وعبارة التأكيد وتسجيل `AuditLog` وتنظيف الملفات المؤقتة عند الفشل في `next/app/api/admin/backup/restore/route.ts`
 - [x] T009 [P] [US2] تحديث نافذة الاستعادة للتبديل بين نسخة محفوظة على الخادم ورفع ملف أرشيف خارجي مع التحقق من الصيغة وعبارة التأكيد وكلمة المرور في `next/components/admin/backup/RestoreModal.tsx`
 - [x] T010 [P] [US2] إضافة زر مدخل مباشر "استعادة من أرشيف خارجي" في شريط أدوات إدارة النسخ الاحتياطي في `next/components/admin/backup/BackupManagementClient.tsx`
-- [ ] T011 [US2] مواءمة ضوابط التوضيح (`FR-005`, `FR-006`): التحقق من حد 2 جيجابايت (`MAX_EXTERNAL_RESTORE_BYTES`)، فحص المساحة الحرة (`checkDiskSpaceSufficient`)، بث الملف للقرص دون تخزينه بالذاكرة، إعادة تثبيت `BackupRecord` بعد `executeRestore`، وتطبيق `enforceRetentionPolicy` (أحدث 4 نسخ فقط) في `next/app/api/admin/backup/restore/route.ts`
-- [ ] T012 [P] [US2] إضافة فحص حد الحجم الأقصى (2 جيجابايت) للملف المرفوع وإظهار رسالة خطأ واضحة قبل الإرسال في `next/components/admin/backup/RestoreModal.tsx`
+- [x] T011 [US2] مواءمة ضوابط التوضيح (`FR-005`, `FR-006`): التحقق من حد 2 جيجابايت (`MAX_EXTERNAL_RESTORE_BYTES`)، فحص المساحة الحرة (`checkDiskSpaceSufficient`)، بث الملف للقرص دون تخزينه بالذاكرة، إعادة تثبيت `BackupRecord` بعد `executeRestore`، وتطبيق `enforceRetentionPolicy` (أحدث 4 نسخ فقط) في `next/app/api/admin/backup/restore/route.ts`
+- [x] T012 [P] [US2] إضافة فحص حد الحجم الأقصى (2 جيجابايت) للملف المرفوع وإظهار رسالة خطأ واضحة قبل الإرسال في `next/components/admin/backup/RestoreModal.tsx`
 
 **Checkpoint**: قصة المستخدم 2 مكتملة ومتوافقة بالكامل مع جميع ضوابط التوضيح (`FR-004`, `FR-005`, `FR-006`, `FR-007`)
 
@@ -86,8 +86,8 @@
 
 **Purpose**: التحقق النهائي من الجودة الصارمة وبناء الإنتاج وتحديث فهرس التنقل
 
-- [ ] T015 تشغيل فحص الأنواع (`npx tsc --noEmit`) و`ESLint` (`npm run lint`) وبناء الإنتاج (`npm run build`) في `next/` بعد إتمام مهام المواءمة النهائية
-- [ ] T016 تحديث فهرس البنية (`graphify auto-update .`) والتحقق من سيناريوهات الدليل الإرشادي في `specs/013-phase4-final-gaps/quickstart.md`
+- [x] T015 تشغيل فحص الأنواع (`npx tsc --noEmit`) و`ESLint` (`npm run lint`) وبناء الإنتاج (`npm run build`) في `next/` بعد إتمام مهام المواءمة النهائية
+- [x] T016 تحديث فهرس البنية (`graphify auto-update .`) والتحقق من سيناريوهات الدليل الإرشادي في `specs/013-phase4-final-gaps/quickstart.md` (تم تحديث `graphify` بنجاح؛ سيناريوهات الاختبار اليدوي في `quickstart.md` جاهزة للتحقق التفاعلي على الخادم الحي)
 
 ---
 

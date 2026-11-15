@@ -1,15 +1,26 @@
 import { NextResponse } from "next/server";
 import fs from "fs/promises";
+import { createWriteStream } from "fs";
 import path from "path";
+import { Readable } from "stream";
+import { pipeline } from "stream/promises";
+import type { ReadableStream as NodeWebReadableStream } from "stream/web";
 import bcrypt from "bcryptjs";
 import { connectToDatabase } from "@/lib/db/connect";
 import { requireAdmin } from "@/lib/auth/middleware";
 import { User } from "@/lib/db/models/User";
 import { BackupRecord } from "@/lib/db/models/BackupRecord";
 import { logAuditEvent } from "@/lib/auth/audit";
-import { restoreBackupSchema, restoreUploadBackupSchema } from "@/lib/validations/backup";
+import { checkApiRateLimit, rateLimitErrorResponse } from "@/lib/security/rate-limit";
+import {
+  MAX_EXTERNAL_RESTORE_BYTES,
+  restoreBackupSchema,
+  restoreUploadBackupSchema,
+} from "@/lib/validations/backup";
 import { executeRestore } from "@/lib/backup/restore-engine";
 import { computeFileSha256 } from "@/lib/backup/backup-engine";
+import { checkDiskSpaceSufficient } from "@/lib/backup/disk-space";
+import { enforceRetentionPolicy } from "@/lib/backup/retention-manager";
 import { handleApiError } from "@/lib/utils/api-error";
 
 async function verifyAdminPassword(params: {
@@ -67,7 +78,18 @@ export async function POST(request: Request) {
   }
 
   const ipAddress = request.headers.get("x-forwarded-for") ?? "127.0.0.1";
-  let createdExternalBackup: { id: string; filePath: string } | null = null;
+  const rl = checkApiRateLimit(auth.user.id, ipAddress, "upload");
+  if (!rl.allowed) {
+    return NextResponse.json(rateLimitErrorResponse(rl.resetAt), { status: 429 });
+  }
+
+  let createdExternalBackup: { id?: string; filePath: string } | null = null;
+  let externalUploadMeta: {
+    filename: string;
+    filePath: string;
+    fileSizeBytes: number;
+    checksumSha256: string;
+  } | null = null;
 
   try {
     const contentType = request.headers.get("content-type") || "";
@@ -75,6 +97,18 @@ export async function POST(request: Request) {
     let externalFilename: string | undefined;
 
     if (contentType.includes("multipart/form-data")) {
+      const contentLengthHeader = request.headers.get("content-length");
+      if (contentLengthHeader) {
+        const declaredBytes = Number(contentLengthHeader);
+        const multipartOverheadAllowance = 10 * 1024 * 1024;
+        if (Number.isFinite(declaredBytes) && declaredBytes > MAX_EXTERNAL_RESTORE_BYTES + multipartOverheadAllowance) {
+          return NextResponse.json(
+            { success: false, error: "حجم ملف الأرشيف يتجاوز الحد الأقصى المسموح به (2 جيجابايت)" },
+            { status: 413 }
+          );
+        }
+      }
+
       const formData = await request.formData();
       const file = formData.get("file") as File | null;
       const adminPassword = (formData.get("adminPassword") as string) || "";
@@ -91,6 +125,13 @@ export async function POST(request: Request) {
         return NextResponse.json(
           { success: false, error: "ملف الأرشيف المرفوع فارغ أو تالف" },
           { status: 400 }
+        );
+      }
+
+      if (file.size > MAX_EXTERNAL_RESTORE_BYTES) {
+        return NextResponse.json(
+          { success: false, error: "حجم ملف الأرشيف يتجاوز الحد الأقصى المسموح به (2 جيجابايت)" },
+          { status: 413 }
         );
       }
 
@@ -127,27 +168,35 @@ export async function POST(request: Request) {
         return authCheck.response;
       }
 
-      // Save uploaded archive to public/uploads/backups
+      // Check free disk space before writing and extracting external archive
       const baseUploadsDir = path.join(process.cwd(), "public", "uploads");
       const backupStorageDir = path.join(baseUploadsDir, "backups");
       await fs.mkdir(backupStorageDir, { recursive: true });
+
+      const diskCheck = await checkDiskSpaceSufficient(backupStorageDir, file.size);
+      if (!diskCheck.sufficient) {
+        return NextResponse.json(
+          { success: false, error: diskCheck.reason ?? "مساحة القرص الحرة غير كافية لتنفيذ الاستعادة" },
+          { status: 507 }
+        );
+      }
 
       const safeOriginalName = externalFilename.replace(/[^a-zA-Z0-9._-]/g, "_");
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
       const savedFilename = `external-restore-${timestamp}-${safeOriginalName}`;
       const savedFilePath = path.join(backupStorageDir, savedFilename);
+      createdExternalBackup = { filePath: savedFilePath };
 
-      const arrayBuffer = await file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      await fs.writeFile(savedFilePath, buffer);
+      const webStream = file.stream() as unknown as NodeWebReadableStream<Uint8Array>;
+      await pipeline(Readable.fromWeb(webStream), createWriteStream(savedFilePath));
 
       const checksumSha256 = await computeFileSha256(savedFilePath);
 
-      // Create a BackupRecord for the external uploaded archive
+      // Create a BackupRecord for the external uploaded archive so executeRestore can verify & process it
       const backupDoc = await BackupRecord.create({
         filename: savedFilename,
         filePath: savedFilePath,
-        fileSizeBytes: buffer.length,
+        fileSizeBytes: file.size,
         backupType: "manual_export",
         status: "completed",
         checksumSha256,
@@ -156,7 +205,13 @@ export async function POST(request: Request) {
       });
 
       backupIdToRestore = backupDoc._id.toString();
-      createdExternalBackup = { id: backupIdToRestore, filePath: savedFilePath };
+      createdExternalBackup.id = backupIdToRestore;
+      externalUploadMeta = {
+        filename: savedFilename,
+        filePath: savedFilePath,
+        fileSizeBytes: file.size,
+        checksumSha256,
+      };
     } else {
       const body = await request.json();
       const validation = restoreBackupSchema.safeParse(body);
@@ -193,6 +248,36 @@ export async function POST(request: Request) {
     });
     createdExternalBackup = null;
 
+    // Re-persist the external archive record in the restored DB & enforce 4-backup retention cap
+    if (externalUploadMeta) {
+      const persistedBackup = await BackupRecord.findOneAndUpdate(
+        { filename: externalUploadMeta.filename },
+        {
+          $set: {
+            filePath: externalUploadMeta.filePath,
+            fileSizeBytes: externalUploadMeta.fileSizeBytes,
+            backupType: "manual_export",
+            status: "completed",
+            collectionsCount: restoreResult.restoredCollectionsCount,
+            documentsCount: restoreResult.restoredDocumentsCount,
+            checksumSha256: externalUploadMeta.checksumSha256,
+            createdBy: auth.user.id,
+            createdByName: auth.user.fullName,
+          },
+        },
+        { upsert: true, new: true }
+      );
+      if (persistedBackup) {
+        backupIdToRestore = persistedBackup._id.toString();
+      }
+
+      await enforceRetentionPolicy({
+        userId: auth.user.id,
+        userName: auth.user.fullName,
+        ipAddress,
+      });
+    }
+
     // Log successful restore to AuditLog
     await logAuditEvent({
       userId: auth.user.id,
@@ -218,7 +303,9 @@ export async function POST(request: Request) {
   } catch (error: unknown) {
     if (createdExternalBackup) {
       await fs.unlink(createdExternalBackup.filePath).catch(() => {});
-      await BackupRecord.findByIdAndDelete(createdExternalBackup.id).catch(() => {});
+      if (createdExternalBackup.id) {
+        await BackupRecord.findByIdAndDelete(createdExternalBackup.id).catch(() => {});
+      }
     }
     const err = error as { statusCode?: number; message?: string };
     if (err.statusCode) {

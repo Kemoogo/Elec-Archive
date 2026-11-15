@@ -39,7 +39,7 @@
   2. `multipart/form-data` (الاستعادة من أرشيف خارجي مرفوع):
      - `file`: ملف `.tar.gz` أو `.tgz` (الحجم `> 0` و `<= 2 GiB`).
      - `adminPassword`: كلمة مرور مدير النظام.
-     - `confirmationPhrase`: `"أؤكد استعادة النظام واستبدال البيانات الحالية"`.
+     - `confirmationPhrase`: `"استعادة النسخة الاحتياطية"`.
 - **Multipart Validation & Flow**:
   1. فحص وجود الملف، الامتداد (`.tar.gz` / `.tgz`)، الحجم (`file.size === 0` -> `400`، `file.size > 2 GiB` -> `413` أو `400`).
   2. التحقق من `restoreUploadBackupSchema` (`400`).

@@ -491,6 +491,7 @@ export interface IStudentRollcall extends Document {
 | `/api/students/transfer-personnel` | `POST` | نقل جنود محددين من الدفعة إلى قوة الأفراد بالوحدة | `students: edit` |
 | `/api/students/rollcall` | `GET / POST` | استعلام وحفظ التمام اليومي لطلبة المرحلة (للمتواجدين بالوحدة فقط) | `students: edit` |
 | `/api/admin/backup/quarterly` | `POST` | تشغيل النسخ الاحتياطي وتطبيق سياسة الاحتفاظ بأحدث 4 نسخ | `Admin` |
+| `/api/admin/backup/restore` | `POST` | استعادة المنظومة وقاعدة البيانات والمرفقات من نسخة خادم أو أرشيف خارجي `.tar.gz` | `Admin` |
 | `/api/admin/backup/download` | `GET` | تحميل النسخة الاحتياطية الفورية المضغوطة | `Admin` |
 
 ---
