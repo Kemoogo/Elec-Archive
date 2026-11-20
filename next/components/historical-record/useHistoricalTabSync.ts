@@ -2,11 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/toast";
-import { useDebounce } from "@/lib/hooks/useDebounce";
 import { extractApiError } from "@/lib/utils";
+
+export interface HistoricalTabHandle {
+  openCreateModal: () => void;
+  openProfileModal?: () => void;
+}
 
 interface UseHistoricalTabSyncOptions<TResponse> {
   endpoint: string;
+  searchQuery: string;
   buildParams: (searchText: string) => URLSearchParams;
   loadErrorMessage: string;
   fallbackErrorMessage: string;
@@ -16,11 +21,12 @@ interface UseHistoricalTabSyncOptions<TResponse> {
 
 /**
  * Shared client synchronization hook for Historical Record timeline tabs:
- * handles 500ms debounced search (>= 2 chars or empty), Enter-key immediate search,
- * AbortController cancellation without loading-state flicker, and governance DELETE requests.
+ * synchronizes external main-header search query & tab filters with AbortController
+ * cancellation (without loading-state flicker) and handles governance DELETE requests.
  */
 export function useHistoricalTabSync<TResponse>({
   endpoint,
+  searchQuery,
   buildParams,
   loadErrorMessage,
   fallbackErrorMessage,
@@ -28,8 +34,6 @@ export function useHistoricalTabSync<TResponse>({
   deps,
 }: UseHistoricalTabSyncOptions<TResponse>) {
   const { showToast } = useToast();
-  const [searchInput, setSearchInput] = useState("");
-  const debouncedSearch = useDebounce(searchInput, 500);
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -77,32 +81,22 @@ export function useHistoricalTabSync<TResponse>({
   );
 
   useEffect(() => {
+    const trimmed = searchQuery.trim();
     if (!hasMountedRef.current) {
       hasMountedRef.current = true;
-      return;
+      if (trimmed.length < 2) return;
     }
-    const trimmed = debouncedSearch.trim();
     if (trimmed.length === 1) return;
     const timerId = window.setTimeout(() => {
       void fetchList(trimmed);
     }, 0);
     return () => window.clearTimeout(timerId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, fetchList, ...deps]);
+  }, [searchQuery, fetchList, ...deps]);
 
   useEffect(() => {
     return () => abortRef.current?.abort();
   }, []);
-
-  const handleSearchKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        void fetchList(searchInput);
-      }
-    },
-    [fetchList, searchInput],
-  );
 
   const executeDelete = useCallback(
     async (
@@ -125,23 +119,20 @@ export function useHistoricalTabSync<TResponse>({
         }
         showToast(messages.success, "success");
         onSuccess();
-        void fetchList(searchInput);
+        void fetchList(searchQuery);
       } catch {
         showToast("حدث خطأ أثناء الحذف", "error");
       } finally {
         setDeleting(false);
       }
     },
-    [endpoint, fetchList, searchInput, showToast],
+    [endpoint, fetchList, searchQuery, showToast],
   );
 
   return {
-    searchInput,
-    setSearchInput,
     loading,
     deleting,
     fetchList,
-    handleSearchKeyDown,
     executeDelete,
   };
 }
