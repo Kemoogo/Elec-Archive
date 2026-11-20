@@ -7,7 +7,7 @@ import { SessionWatcher } from "@/components/auth/SessionWatcher";
 import LandingPage from "@/components/landing/LandingPage";
 import { checkDailyRollcallReminder } from "@/lib/arkan-harb/rollcall-reminder";
 
-const moduleRoutes: (keyof ModulePermissions)[] = ["fax", "officers", "medical", "students", "education", "arkan_harb"];
+const moduleRoutes: (keyof ModulePermissions)[] = ["fax", "officers", "medical", "students", "education", "arkan_harb", "historical_record"];
 
 function checkRouteAccess(pathname: string, role: string, permissions: ModulePermissions): { allowed: boolean; redirectTo?: string } {
   if (pathname.startsWith("/admin")) {
@@ -20,7 +20,7 @@ function checkRouteAccess(pathname: string, role: string, permissions: ModulePer
   for (const mod of moduleRoutes) {
     const route = `/${mod.replace("_", "-")}`;
     if (pathname.startsWith(route)) {
-      if (role !== "admin" && role !== "commander" && permissions[mod] === "none") {
+      if (role !== "admin" && role !== "commander" && (permissions[mod] ?? "none") === "none") {
         return { allowed: false, redirectTo: "/" };
       }
       return { allowed: true };
@@ -68,7 +68,7 @@ export default async function DashboardLayout({
   }
 
   const accessibleModules = moduleRoutes.filter(
-    (module) => user.role === "admin" || user.role === "commander" || user.permissions[module] !== "none"
+    (module) => user.role === "admin" || user.role === "commander" || (user.permissions[module] ?? "none") !== "none"
   );
 
   return (

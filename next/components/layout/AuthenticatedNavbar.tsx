@@ -18,6 +18,7 @@ const moduleLabels: Record<keyof ModulePermissions, string> = {
   students: "شئون الطلاب",
   education: "التعليم",
   arkan_harb: "أركان حرب",
+  historical_record: "السجل التاريخي",
 };
 
 interface AuthenticatedNavbarProps {
@@ -37,7 +38,7 @@ interface NavItem {
 
 export function AuthenticatedNavbar({ user, accessibleModules }: AuthenticatedNavbarProps) {
   const navItems: NavItem[] = accessibleModules.map((mod) => {
-    const routeName = mod === "arkan_harb" ? "arkan-harb" : mod;
+    const routeName = mod.replace("_", "-");
     return {
       href: `/${routeName}`,
       label: moduleLabels[mod],

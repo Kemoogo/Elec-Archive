@@ -30,6 +30,7 @@ const moduleLabels: Record<string, string> = {
   students: "الطلبة",
   education: "التعليم",
   arkan_harb: "أركان حرب",
+  historical_record: "السجل التاريخي",
 };
 
 const ACTION_OPTIONS: CustomSelectOption[] = [

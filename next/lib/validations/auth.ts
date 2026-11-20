@@ -27,6 +27,7 @@ const permissionsSchema = z.object({
   students: permissionLevelSchema,
   education: permissionLevelSchema,
   arkan_harb: permissionLevelSchema,
+  historical_record: permissionLevelSchema.default("none"),
 });
 
 export const loginSchema = z.object({

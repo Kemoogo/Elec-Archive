@@ -146,6 +146,6 @@ All development MUST strictly comply with the project constitution at [.specify/
 ---
 
 <!-- SPECKIT START -->
-Active feature plan: `specs/013-phase4-final-gaps/plan.md` (branch `feature/phase4-final-gaps`, Phase 4 finalization & clarification alignment; baseline features 001–012 completed on `main`).
-For project rules and feature specs, refer to `.specify/memory/constitution.md` and `specs/013-phase4-final-gaps/`.
+Active feature plan: `specs/014-historical-record/plan.md` (branch `014-historical-record`, Phase 5: Historical Record `/historical-record` & Historical Data Protection Governance; baseline features 001–013 completed).
+For project rules and feature specs, refer to `.specify/memory/constitution.md` and `specs/014-historical-record/`.
 <!-- SPECKIT END -->

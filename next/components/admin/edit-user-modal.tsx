@@ -91,8 +91,8 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
           if (dataUser.user.permissions) {
             const initialRows: PermissionRow[] = [];
             for (const mod of MODULES) {
-              const val = dataUser.user.permissions[mod] as PermissionLevel | undefined;
-              if (val && val !== "none") {
+              const val = (dataUser.user.permissions[mod] as PermissionLevel | undefined) ?? "none";
+              if (val !== "none") {
                 initialRows.push({
                   module: mod,
                   level: currentRole === "viewer" && val === "edit" ? "view" : val,

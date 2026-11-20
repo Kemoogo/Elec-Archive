@@ -27,7 +27,7 @@ interface DynamicDep {
   branchId: { _id: string; name: string } | string;
 }
 
-export const MODULES = ["fax", "officers", "arkan_harb", "medical", "students", "education"] as const;
+export const MODULES = ["fax", "officers", "arkan_harb", "medical", "students", "education", "historical_record"] as const;
 export type ModuleKey = (typeof MODULES)[number];
 export const PERMISSION_LEVELS = ["none", "view", "edit"] as const;
 export type PermissionLevel = (typeof PERMISSION_LEVELS)[number];
@@ -40,6 +40,7 @@ export const MODULE_CONFIG: Record<ModuleKey, { label: string }> = {
   medical: { label: "الخدمات الطبية" },
   students: { label: "شئون الطلبة" },
   education: { label: "التعليم والتدريب" },
+  historical_record: { label: "السجل التاريخي" },
 };
 
 export const ROLE_LABELS: Record<string, string> = {
@@ -64,6 +65,7 @@ export function detectModuleFromDepartment(deptName: string): ModuleKey | null {
   if (norm.includes("طب") || norm.includes("علاج") || norm.includes("صحي") || norm.includes("medical")) return "medical";
   if (norm.includes("طلب") || norm.includes("دارس") || norm.includes("student")) return "students";
   if (norm.includes("عليم") || norm.includes("دريب") || norm.includes("مناهج") || norm.includes("education")) return "education";
+  if (norm.includes("تاريخ") || norm.includes("سجل") || norm.includes("historical")) return "historical_record";
   if (norm.includes("فاكس") || norm.includes("أرشيف") || norm.includes("ارشيف") || norm.includes("سري") || norm.includes("fax")) return "fax";
   return null;
 }
@@ -135,13 +137,25 @@ export function CreateUserModal({ onClose, onCreated }: CreateUserModalProps) {
     loadBranchesAndDepartments();
   }, []);
 
-  // When role changes to viewer, downgrade any "edit" permissions to "view"
+  // When role changes, enforce viewer restriction or commander/admin historical_record default
   function handleRoleChange(newRole: string) {
     setRole(newRole);
     if (newRole === "viewer") {
       setPermissionRows((prev) =>
         prev.map((r) => (r.level === "edit" ? { ...r, level: "view" } : r))
       );
+      return;
+    }
+    if (newRole === "commander" || newRole === "admin") {
+      setPermissionRows((prev) => {
+        const hasHistorical = prev.some((r) => r.module === "historical_record");
+        if (hasHistorical) {
+          return prev.map((r) =>
+            r.module === "historical_record" ? { ...r, level: "edit" } : r
+          );
+        }
+        return [...prev, { module: "historical_record", level: "edit" }];
+      });
     }
   }
 

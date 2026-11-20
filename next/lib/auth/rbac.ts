@@ -33,8 +33,8 @@ export function hasModuleAccess(
     return true;
   }
 
-  // 2. Commander view bypass: Full view access to all modules
-  if (user.role === "commander" && level === "view") {
+  // 2. Commander bypass: Full view access to all modules, and automatic edit (Add-only) access to historical_record
+  if (user.role === "commander" && (level === "view" || module === "historical_record")) {
     return true;
   }
 

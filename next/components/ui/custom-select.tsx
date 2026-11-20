@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, Check } from "lucide-react";
+import { ChevronDown, Check, Search } from "lucide-react";
 
 export interface CustomSelectOption {
   value: string;
@@ -23,6 +23,8 @@ export interface CustomSelectProps {
   disabled?: boolean;
   required?: boolean;
   error?: string;
+  searchable?: boolean;
+  searchPlaceholder?: string;
   className?: string;
   containerClassName?: string;
 }
@@ -37,17 +39,40 @@ export function CustomSelect({
   disabled = false,
   required = false,
   error,
+  searchable = false,
+  searchPlaceholder = "بحث في القائمة...",
   className = "",
   containerClassName = "",
 }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [menuStyle, setMenuStyle] = useState<React.CSSProperties>({});
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const selectedOption = options.find((opt) => opt.value === value);
+
+  const filteredOptions = useMemo(() => {
+    if (!searchable) return options;
+    const term = searchQuery.trim().toLowerCase();
+    if (!term) return options;
+    return options.filter((opt) => {
+      const haystacks = [opt.label, opt.description, opt.badge, opt.value];
+      return haystacks.some((item) => item?.toLowerCase().includes(term));
+    });
+  }, [options, searchable, searchQuery]);
+
+  useEffect(() => {
+    if (isOpen && searchable) {
+      const focusTimerId = setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 20);
+      return () => clearTimeout(focusTimerId);
+    }
+  }, [isOpen, searchable]);
 
   useEffect(() => {
     setMounted(true);
@@ -204,6 +229,7 @@ export function CustomSelect({
           onClick={() => {
             if (!disabled) {
               if (!isOpen) {
+                setSearchQuery("");
                 updatePosition();
               }
               setIsOpen((prev) => !prev);
@@ -259,7 +285,39 @@ export function CustomSelect({
               style={menuStyle}
               className="bg-(--app-surface) border border-(--app-border) rounded-xl shadow-depth-xl py-1.5 overflow-y-auto no-scrollbar focus:outline-none transition-all animate-in fade-in-50 zoom-in-95 duration-100"
             >
-              {options.map((option) => {
+              {searchable && (
+                <div
+                  className="sticky top-0 z-10 bg-(--app-surface) px-2.5 pb-1.5 pt-0.5 border-b border-(--app-border)/60"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-(--app-muted-foreground) absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") {
+                          setIsOpen(false);
+                          triggerRef.current?.focus();
+                        } else {
+                          e.stopPropagation();
+                        }
+                      }}
+                      placeholder={searchPlaceholder}
+                      className="w-full pr-8 pl-2.5 py-1.5 text-xs font-bold bg-(--app-surface-container)/60 border border-(--app-border) rounded-lg text-(--app-foreground) focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {filteredOptions.length === 0 ? (
+                <div className="px-3.5 py-4 text-center text-xs font-bold text-(--app-muted-foreground)">
+                  لا توجد نتائج مطابقة
+                </div>
+              ) : (
+                filteredOptions.map((option) => {
                 const isSelected = option.value === value;
                 return (
                   <div
@@ -307,7 +365,8 @@ export function CustomSelect({
                     )}
                   </div>
                 );
-              })}
+              })
+              )}
             </div>,
             document.body
           )}

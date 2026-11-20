@@ -273,6 +273,7 @@ function runSuite2ReopenRbac() {
         students: "none",
         education: "none",
         arkan_harb: "none",
+        historical_record: "none",
         ...overrides,
       },
     };

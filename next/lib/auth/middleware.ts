@@ -63,6 +63,7 @@ export const authenticate = cache(async (): Promise<AuthResult> => {
       students: user.permissions.students,
       education: user.permissions.education,
       arkan_harb: user.permissions.arkan_harb,
+      historical_record: user.permissions.historical_record ?? "none",
     },
     isActive: user.isActive,
     isLocked: user.isLocked,

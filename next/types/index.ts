@@ -8,3 +8,4 @@
 export * from "./officer";
 export * from "./student";
 export * from "./backup";
+export * from "./historical-record";

@@ -17,6 +17,7 @@ export interface IUser extends Document {
     students: ModulePermission;
     education: ModulePermission;
     arkan_harb: ModulePermission;
+    historical_record: ModulePermission;
   };
   isActive: boolean;
   isLocked: boolean;
@@ -64,6 +65,7 @@ const UserSchema = new Schema<IUser>(
       students: { type: String, enum: ["none", "view", "edit"], default: "none" },
       education: { type: String, enum: ["none", "view", "edit"], default: "none" },
       arkan_harb: { type: String, enum: ["none", "view", "edit"], default: "none" },
+      historical_record: { type: String, enum: ["none", "view", "edit"], default: "none" },
     },
     isActive: {
       type: Boolean,

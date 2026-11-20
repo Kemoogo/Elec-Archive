@@ -9,6 +9,7 @@ export interface ModulePermissions {
   students: PermissionLevel;
   education: PermissionLevel;
   arkan_harb: PermissionLevel;
+  historical_record: PermissionLevel;
 }
 
 export interface JwtPayload {

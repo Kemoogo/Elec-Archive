@@ -49,6 +49,14 @@ export { Mission, MISSION_STATUSES, MISSION_STATUS_LABELS, MISSION_TYPES, MISSIO
 export { DutyRoster, DUTY_TYPES, DUTY_TYPE_LABELS, DUTY_ROSTER_STATUSES, DUTY_ROSTER_STATUS_LABELS } from "./DutyRoster";
 export { BackupRecord } from "./BackupRecord";
 export { RestoreOperation } from "./RestoreOperation";
+export { HistoricalVisit } from "./HistoricalVisit";
+export { HistoricalCommander } from "./HistoricalCommander";
+export { UnitHistoricalProfile, UnitHistoricalMilestone } from "./UnitHistoricalInfo";
+export {
+  UNIT_MILESTONE_CATEGORIES,
+  UNIT_MILESTONE_CATEGORY_LABELS,
+  formatMilestoneCategoryLabel,
+} from "./UnitHistoricalInfo.shared";
 
 export { Branch } from "./Branch";
 export { Department } from "./Department";
@@ -104,3 +112,7 @@ export type { IMission, MissionStatus, MissionType, IMissionClearanceDoc } from 
 export type { IDutyRoster, IDutyRosterEntry, DutyType, DutyRosterStatus, IOfficerDutyEquityStat } from "./DutyRoster";
 export type { IBackupRecord } from "./BackupRecord";
 export type { IRestoreOperation } from "./RestoreOperation";
+export type { IHistoricalVisit } from "./HistoricalVisit";
+export type { IHistoricalCommander, IOfficerSnapshot } from "./HistoricalCommander";
+export type { IUnitHistoricalProfile, IUnitHistoricalMilestone } from "./UnitHistoricalInfo";
+export type { UnitMilestoneCategory } from "./UnitHistoricalInfo.shared";

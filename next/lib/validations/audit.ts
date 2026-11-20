@@ -23,6 +23,8 @@ export const AUDIT_MODULES = [
   "notifications",
   "arkan_harb",
   "app_ideas",
+  "backup",
+  "historical_record",
 ] as const;
 
 export const auditQuerySchema = z.object({

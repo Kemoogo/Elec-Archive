@@ -173,6 +173,14 @@ export default async function DashboardPage() {
             icon="📚"
             href="/education"
           />
+          <DashboardCard
+            title="السجل التاريخي"
+            count={null}
+            subtitle="الذاكرة التاريخية للوحدة"
+            color="blue"
+            icon="🏛️"
+            href="/historical-record"
+          />
         </div>
       </div>
     );
@@ -182,11 +190,11 @@ export default async function DashboardPage() {
     const permissions = user.permissions;
     const canViewArkanHarb = permissions.arkan_harb !== "none";
     const assignedModules = Object.entries(permissions)
-      .filter(([, level]) => level !== "none")
+      .filter(([, level]) => Boolean(level) && level !== "none")
       .map(([module]) => module);
 
     if (assignedModules.length === 1 && !canViewArkanHarb) {
-      redirect(`/${assignedModules[0]}`);
+      redirect(`/${assignedModules[0].replace("_", "-")}`);
     }
 
     const data = await getDashboardData(user);
@@ -249,6 +257,16 @@ export default async function DashboardPage() {
           icon: "📚",
           count: data.courses.activeCount,
           subtitle: "دورات نشطة",
+        });
+      }
+      if (mod === "historical_record") {
+        moduleCards.push({
+          module: "historical-record",
+          title: "السجل التاريخي",
+          color: "blue",
+          icon: "🏛️",
+          count: null,
+          subtitle: "الذاكرة التاريخية للوحدة",
         });
       }
     }
